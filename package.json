@@ -45,6 +45,7 @@
     "eslint-config-prettier": "^10.0.0",
     "jest": "^30.0.2",
     "jest-environment-node": "^30.0.2",
+    "jest-expo": "~54.0.17",
     "jest-util": "^30.0.2",
     "jsonc-eslint-parser": "^2.1.0",
     "metro-config": "~0.83.0",
@@ -89,8 +90,8 @@
     "next-auth": "^4.24.13",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-native": "0.81.5",
-    "react-native-svg": "15.12.1",
+    "react-native": "^0.84.1",
+    "react-native-svg": "^15.15.4",
     "react-native-svg-transformer": "~1.5.1",
     "react-native-web": "~0.21.0",
     "tailwind-merge": "^3.5.0"

@@ -1,0 +1,17 @@
+{
+  "name": "data-service-e2e",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "implicitDependencies": ["data-service"],
+  "projectType": "application",
+  "targets": {
+    "e2e": {
+      "executor": "@nx/jest:jest",
+      "outputs": ["{workspaceRoot}/coverage/{e2eProjectRoot}"],
+      "options": {
+        "jestConfig": "apps/data-service-e2e/jest.config.cts",
+        "passWithNoTests": true
+      },
+      "dependsOn": ["data-service:build", "data-service:serve"]
+    }
+  }
+}

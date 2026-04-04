@@ -1,7 +1,7 @@
 import express from 'express';
 import mongoose from 'mongoose';
 
-const host = process.env.HOST ?? 'localhost';
+const host = process.env.HOST ? process.env.HOST : '0.0.0.0';
 /**
  * Utilizing 3000 as the default listener port for the main analytics Data Service.
  */

@@ -1,11 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { SafeAreaView, StyleSheet, Text, View, ActivityIndicator, StatusBar } from 'react-native';
+import Constants from 'expo-constants';
 
 /**
- * Utilizing 3000 as the mapped Local port referencing DataService inside Nx structure.
- * In a real mobile device, this must resolve to the IP address of the local machine.
+ * Dynamically resolves the host LAN IP via Metro during dev since localhost hits the mobile loopback.
  */
-const API_BASE_URL = 'http://localhost:3000';
+const getApiUrl = () => {
+  const hostUri = Constants?.expoConfig?.hostUri;
+  if (hostUri) {
+    return `http://${hostUri.split(':')[0]}:3000`;
+  }
+  return 'http://192.168.1.105:3000'; 
+};
+
+const API_BASE_URL = getApiUrl();
 
 export default function App() {
   const [data, setData] = useState<any>(null);

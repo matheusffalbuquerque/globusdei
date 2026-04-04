@@ -54,6 +54,7 @@ Aqui estão todos os detalhes de como deverá ser desenvolvido o sistema GlobusD
     - As tecnologias utilizadas serão todas baseadas na linguagem Javascript:
         - Backend: Typescript com NestJs
             - Arquitetura em microsserviços com:
+                1. MainService - Será o centro da aplicação com os principais fluxo e regras de negócio
                 1. FinanceService - Somente para gestão de recursos, doações, distribuições
                 2. NotificationService - Somente para envio de emails, avisos, newsletters e comunicação em geral
         - Autenticação: Keycloak com JWT

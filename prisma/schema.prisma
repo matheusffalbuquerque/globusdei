@@ -54,3 +54,31 @@ model EmpreendimentoAgent {
 
   @@id([agentId, empreendimentoId])
 }
+
+/// Event model representing online or physical sessions organized by Globus Dei.
+/// Required by business specs to cluster online/offline events over the operational year.
+model Event {
+  id              String   @id @default(uuid())
+  title           String
+  description     String   @db.Text
+  date            DateTime
+  location        String?
+  isOnline        Boolean  @default(false)
+
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+/// AuditLog mapped strictly for LGPD constraints - tracking sensitive data access.
+/// Records actions like: view sensitive missions data, elevation of privileges, or login faults.
+model AuditLog {
+  id              String   @id @default(uuid())
+  /// The Keycloak Identity UUID or System Service who performed the action
+  actorId         String   
+  /// Types: SECURITY, TECHNICAL, AUDIT
+  actionType      String   
+  /// Specific description (e.g., VIEW_SENSITIVE_DATA, INVESTMENT_APPROVAL)
+  actionDetail    String   
+  timestamp       DateTime @default(now())
+  ipAddress       String?
+}
