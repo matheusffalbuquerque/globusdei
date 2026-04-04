@@ -10,6 +10,16 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+/// Onboarding Phase Enum for tracking User Admission
+enum AgentStatus {
+  ENTERED             // Just registered, preparing application
+  SUBMITTED           // Questionnaire completed, pending analysis
+  SCHEDULED           // Inteview scheduled with google meet link
+  FEEDBACK_PROVIDED   // Interview finished, evaluation emitted
+  APPROVED            // Fully integrated into the ecosystem
+  REJECTED            // Application denied
+}
+
 /// Agent model representing a user acting as a missionary, student, or professional seeking support.
 /// Strictly implementing the Agent interface requirements from the shared domain models.
 model Agent {
@@ -24,6 +34,20 @@ model Agent {
   
   /// Identifiers or relations to the Empreendimento initiatives the agent belongs to.
   empreendimentos EmpreendimentoAgent[]
+
+  /// ONBOARDING STATE MACHINE
+  status          AgentStatus @default(ENTERED)
+  
+  /// Contains the Google Meet link or external URL once status is SCHEDULED
+  interviewLink   String?
+  interviewDate   DateTime?
+  /// UUID of the Collaborator handling the evaluation
+  interviewerId   String?
+  /// Missiological Feedback provided after the interview
+  feedback        String?     @db.Text
+  
+  /// Form Answers array submitted by the agent
+  answers         Answer[]
   
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -81,4 +105,32 @@ model AuditLog {
   actionDetail    String   
   timestamp       DateTime @default(now())
   ipAddress       String?
+}
+
+/// Dynamic Onboarding Questions definable by Staff
+model Question {
+  id              String   @id @default(uuid())
+  title           String
+  /// If true, the agent must fulfill this to submit the onboarding application
+  isRequired      Boolean  @default(true)
+  
+  answers         Answer[]
+  
+  createdAt       DateTime @default(now())
+}
+
+/// A specific Agent's answer to an Onboarding Question
+model Answer {
+  id              String   @id @default(uuid())
+  agentId         String
+  questionId      String
+  
+  text            String   @db.Text
+  
+  agent           Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  question        Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  
+  createdAt       DateTime @default(now())
+
+  @@unique([agentId, questionId])
 }
