@@ -1,0 +1,56 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Agent model representing a user acting as a missionary, student, or professional seeking support.
+/// Strictly implementing the Agent interface requirements from the shared domain models.
+model Agent {
+  id              String   @id @default(uuid())
+  name            String
+  email           String   @unique
+  /// The specific role vocation context of this agent
+  vocationType    String
+  /// Comprehensive background detailing needs and history
+  description     String   @db.Text
+  isActive        Boolean  @default(true)
+  
+  /// Identifiers or relations to the Empreendimento initiatives the agent belongs to.
+  empreendimentos EmpreendimentoAgent[]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+/// Empreendimento model representing an initiative, project, or organization.
+model Empreendimento {
+  id              String   @id @default(uuid())
+  name            String
+  /// Core mission statement and initiative objectives
+  description     String   @db.Text
+  establishedDate DateTime
+  
+  /// The specific agents formally connected to this initiative.
+  agents          EmpreendimentoAgent[]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+/// Join table for the many-to-many relationship bridging Agents and Empreendimentos.
+model EmpreendimentoAgent {
+  agentId           String
+  empreendimentoId  String
+  
+  agent             Agent          @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  empreendimento    Empreendimento @relation(fields: [empreendimentoId], references: [id], onDelete: Cascade)
+
+  @@id([agentId, empreendimentoId])
+}
