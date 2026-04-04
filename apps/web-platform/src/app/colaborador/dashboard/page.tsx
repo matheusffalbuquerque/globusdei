@@ -8,6 +8,7 @@ type PendingAgent = {
   email: string;
   status: string;
   updatedAt: string;
+  interviewLink?: string;
   answers: { question: { title: string }; text: string }[];
 };
 

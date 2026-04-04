@@ -21,6 +21,53 @@ enum AgentStatus {
   REJECTED            // Application denied
 }
 
+enum EmpreendimentoType {
+  CHURCH
+  AGENCY
+  SCHOOL
+  PROJECT
+  VENTURE
+  ONG
+}
+
+enum EmpreendimentoCategory {
+  EDUCATION
+  SPORTS
+  TECHNOLOGY
+  BUSINESS
+  HEALTH
+  SOCIAL
+  SCIENTIFICAL
+  CAPACITATION
+  SUPPORT
+}
+
+enum NeedType {
+  MAINTENANCE
+  EXPANSION
+  EMERGENCY
+}
+
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum EmpreendimentoAgentRole {
+  OWNER
+  MANAGER
+  CONTRIBUTOR
+  VOLUNTEER
+}
+
+enum FollowUpStatus {
+  OPEN
+  MONITORING
+  ON_HOLD
+  CLOSED
+}
+
 /// Agent model representing a user acting as a missionary, student, or professional seeking support.
 /// Strictly implementing the Agent interface requirements from the shared domain models.
 model Agent {
@@ -66,8 +113,38 @@ model Empreendimento {
   description     String   @db.Text
   establishedDate DateTime
   
-  /// The specific agents formally connected to this initiative.
-  agents          EmpreendimentoAgent[]
+  type            EmpreendimentoType
+  category        EmpreendimentoCategory
+  
+  /// Social networks and portfolios
+  socialLinks     Json?    // Stores { instagram, youtube, website, etc. }
+  portfolioUrl    String?
+  location        String?
+  actuationRegions String? @db.Text
+  logoUrl         String?
+  bannerUrl       String?
+
+  /// Financial and Needs Management
+  monthlyExpenses   Float     @default(0)
+  incomeSources     String?   @db.Text
+  needType          NeedType  @default(MAINTENANCE)
+  receivesInvestments Boolean @default(false)
+
+  /// Bank Verification (Restricted access)
+  isBankVerified    Boolean   @default(false)
+  bankDetails       String?   @db.Text // AES-256 Encrypted on Application Layer
+  
+  /// Staff Management / Internal Control
+  priorityScore      Int            @default(0) // 0 to 100
+  followUpStatus     FollowUpStatus @default(OPEN)
+  internalNotes      String?        @db.Text
+  internalResponsibleId String?     // Link to Staff id
+  
+  /// Relationships
+  ownerId           String
+  agents            EmpreendimentoAgent[]
+  invites           EmpreendimentoInvite[]
+  serviceLogs       ServiceLog[]
   
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -77,6 +154,7 @@ model Empreendimento {
 model EmpreendimentoAgent {
   agentId           String
   empreendimentoId  String
+  role              EmpreendimentoAgentRole @default(CONTRIBUTOR)
   
   agent             Agent          @relation(fields: [agentId], references: [id], onDelete: Cascade)
   empreendimento    Empreendimento @relation(fields: [empreendimentoId], references: [id], onDelete: Cascade)
@@ -166,4 +244,34 @@ model AvailabilitySlot {
   
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+}
+
+/// Invitation system to link Agents to Empreendimentos
+model EmpreendimentoInvite {
+  id                String   @id @default(uuid())
+  empreendimentoId  String
+  empreendimento    Empreendimento @relation(fields: [empreendimentoId], references: [id], onDelete: Cascade)
+  
+  email             String   // Target agent email
+  role              EmpreendimentoAgentRole @default(CONTRIBUTOR)
+  status            InviteStatus @default(PENDING)
+  token             String   @unique // For link-based acceptance
+  
+  inviterId         String   // Agent who created the invite
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+/// Periodic Internal Logs created by Staff for tracking Empreendimento status
+model ServiceLog {
+  id                String   @id @default(uuid())
+  empreendimentoId  String
+  empreendimento    Empreendimento @relation(fields: [empreendimentoId], references: [id], onDelete: Cascade)
+  
+  staffId           String   // Column for keycloak or local staff id
+  action            String   // e.g., STATUS_CHANGE, NOTE_ADDED, PRIORITY_ADJUSTED
+  content           String   @db.Text
+  
+  createdAt         DateTime @default(now())
 }

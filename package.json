@@ -69,6 +69,7 @@
   "dependencies": {
     "@expo/metro-config": "~54.0.9",
     "@expo/metro-runtime": "~6.1.2",
+    "@nestjs/config": "^4.0.3",
     "@nestjs/microservices": "^11.1.18",
     "@nestjs/platform-express": "^11.0.0",
     "@prisma/client": "^6.19.3",

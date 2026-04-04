@@ -5,6 +5,7 @@ import { AgentModule } from '../agent/agent.module';
 import { EmpreendimentoModule } from '../empreendimento/empreendimento.module';
 import { EventModule } from '../event/event.module';
 import { OnboardingModule } from '../onboarding/onboarding.module';
+import { ConfigModule } from '@nestjs/config';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -17,6 +18,7 @@ import { AppService } from './app.service';
     EmpreendimentoModule,
     EventModule,
     OnboardingModule,
+    ConfigModule.forRoot({ isGlobal: true }),
   ],
   controllers: [AppController],
   providers: [AppService],
