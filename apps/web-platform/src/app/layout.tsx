@@ -1,5 +1,6 @@
 import './global.css';
 import { Inter, Poppins } from 'next/font/google';
+import Link from 'next/link';
 
 /**
  * Loading Inter locally optimized for readable body text.
@@ -49,12 +50,12 @@ export default function RootLayout({
             </nav>
             
             <div className="flex items-center gap-4">
-              <button className="text-sm font-medium hover:text-primary transition-colors text-slate-700">
+              <Link href="/login" className="text-sm font-medium hover:text-primary transition-colors text-slate-700">
                 Entrar
-              </button>
-              <button className="text-sm font-medium bg-primary text-white px-5 py-2 rounded shadow-sm hover:opacity-90 transition-opacity">
+              </Link>
+              <Link href="/register" className="text-sm font-medium bg-primary text-white px-5 py-2 rounded shadow-sm hover:opacity-90 transition-opacity">
                 Criar Conta
-              </button>
+              </Link>
             </div>
           </div>
         </header>

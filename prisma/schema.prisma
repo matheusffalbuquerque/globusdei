@@ -68,6 +68,27 @@ enum FollowUpStatus {
   CLOSED
 }
 
+enum ConnectionStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum ServiceRequestCategory {
+  TECHNICAL
+  PSYCHOLOGICAL
+  MEDICAL
+  SPIRITUAL
+  MENTORSHIP
+}
+
+enum ServiceRequestStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+}
+
 /// Agent model representing a user acting as a missionary, student, or professional seeking support.
 /// Strictly implementing the Agent interface requirements from the shared domain models.
 model Agent {
@@ -82,6 +103,12 @@ model Agent {
   
   /// Identifiers or relations to the Empreendimento initiatives the agent belongs to.
   empreendimentos EmpreendimentoAgent[]
+
+  /// Networking & Following
+  sentConnections     Connection[] @relation("SentConnections")
+  receivedConnections Connection[] @relation("ReceivedConnections")
+  followedIniciativas EmpreendimentoFollow[]
+  serviceRequests     ServiceRequest[]
 
   /// ONBOARDING STATE MACHINE
   status          AgentStatus @default(ENTERED)
@@ -100,6 +127,68 @@ model Agent {
   
   /// Form Answers array submitted by the agent
   answers         Answer[]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+/// Networking between Agents
+model Connection {
+  id            String           @id @default(uuid())
+  senderId      String
+  receiverId    String
+  status        ConnectionStatus @default(PENDING)
+  
+  sender        Agent            @relation("SentConnections", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver      Agent            @relation("ReceivedConnections", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
+
+  @@unique([senderId, receiverId])
+}
+
+/// Agent following an Empreendimento
+model EmpreendimentoFollow {
+  agentId           String
+  empreendimentoId  String
+  
+  agent             Agent          @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  empreendimento    Empreendimento @relation(fields: [empreendimentoId], references: [id], onDelete: Cascade)
+
+  createdAt         DateTime       @default(now())
+
+  @@id([agentId, empreendimentoId])
+}
+
+/// Official announcements from Globus Dei Staff to the Agent Feed
+model Announcement {
+  id              String   @id @default(uuid())
+  title           String
+  content         String   @db.Text
+  /// SYSTEM, MISSION, OPPORTUNITY
+  type            String   @default("SYSTEM")
+  
+  /// Optional link to a specific initiative or event
+  targetId        String?  
+  authorId        String   // Staff Id
+  
+  createdAt       DateTime @default(now())
+}
+
+/// Service requests created by Agents seeking specific platform support
+model ServiceRequest {
+  id              String   @id @default(uuid())
+  agentId         String
+  agent           Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  
+  category        ServiceRequestCategory
+  status          ServiceRequestStatus @default(OPEN)
+  description     String   @db.Text
+  
+  /// Internal Staff handling the request
+  assignedStaffId String?
+  internalNotes   String?  @db.Text
   
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
@@ -144,6 +233,7 @@ model Empreendimento {
   ownerId           String
   agents            EmpreendimentoAgent[]
   invites           EmpreendimentoInvite[]
+  followers         EmpreendimentoFollow[]
   serviceLogs       ServiceLog[]
   
   createdAt       DateTime @default(now())

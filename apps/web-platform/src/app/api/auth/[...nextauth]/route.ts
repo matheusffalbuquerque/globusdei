@@ -30,7 +30,10 @@ const handler = NextAuth({
       (session as any).accessToken = token.accessToken;
       return session;
     }
-  }
+  },
+  pages: {
+    signIn: '/login',
+  },
 })
 
 export { handler as GET, handler as POST }
