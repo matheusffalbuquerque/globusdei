@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Put, Body, Param } from '@nestjs/common';
 import { OnboardingService } from './onboarding.service';
 import { QuestionService } from './question.service';
+import { StaffService } from './staff.service';
 import { Prisma } from '@prisma/client';
 
 /**
@@ -21,6 +22,7 @@ export class OnboardingController {
   constructor(
     private readonly onboarding: OnboardingService,
     private readonly questions: QuestionService,
+    private readonly staff: StaffService,
   ) {}
 
   /**
@@ -40,6 +42,15 @@ export class OnboardingController {
   @Get('pending-analysis')
   async extractPendingAgents() {
     return this.onboarding.getPendingAgents();
+  }
+
+  /**
+   * GET /onboarding/slots
+   * Agent utility: retrieves all available (unclaimed) interview slots.
+   */
+  @Get('slots')
+  async getAvailableSlots() {
+    return this.staff.getAvailableSlots();
   }
 
   /**
@@ -67,28 +78,29 @@ export class OnboardingController {
   }
 
   /**
-   * PUT /onboarding/:agentId/schedule
-   * Staff schedules a Google Meet interview for a SUBMITTED agent (→ SCHEDULED).
-   * @param agentId - UUID of the Agent being scheduled.
-   * @param payload - Google Meet URL and ISO datetime string for the interview.
-   *
-   * TODO: Replace STAFF_MOCK_UUID with the authenticated Keycloak subject (sub claim)
-   *       once OIDC token extraction is integrated into the request context.
-   *       Until then, the AuditLog actor will not reflect the real staff identity — LGPD risk.
+   * PATCH /onboarding/:agentId/approve
+   * Staff approves questionnaire for a SUBMITTED agent (→ QUALIFIED).
+   * Indicating the agent is now ready to pick an interview slot.
    */
-  @Put(':agentId/schedule')
-  async scheduleInterview(
+  @Post(':agentId/approve')
+  async approveQuestionnaire(
     @Param('agentId') agentId: string,
-    @Body() payload: { interviewLink: string; interviewDate: string }
   ) {
-    // TODO: Extract staffId from Keycloak JWT token (request context)
+    // TODO: Extract staffId from Keycloak JWT token
     const staffId = 'STAFF_MOCK_UUID';
-    return this.onboarding.scheduleInterview(
-      agentId,
-      staffId,
-      payload.interviewLink,
-      new Date(payload.interviewDate),
-    );
+    return this.onboarding.approveQuestionnaire(agentId, staffId);
+  }
+
+  /**
+   * POST /onboarding/:agentId/claim-slot
+   * Agent picks an available interview slot (QUALIFIED → SCHEDULED).
+   */
+  @Post(':agentId/claim-slot')
+  async claimInterviewSlot(
+    @Param('agentId') agentId: string,
+    @Body() payload: { slotId: string }
+  ) {
+    return this.onboarding.claimSlot(agentId, payload.slotId);
   }
 
   /**

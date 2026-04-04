@@ -46,4 +46,21 @@ export class NotificationController {
       });
     }
   }
+
+  /**
+   * Onboarding: Triggered when Staff approves questionnaire.
+   * Agent should now go to their dashboard to pick a slot.
+   */
+  @EventPattern('onboarding_qualified')
+  async handleOnboardingQualified(@Payload() data: Record<string, any>) {
+    this.logger.log(`[SIMULATED EMAIL] To: ${data.email} | Subject: Próximo Passo: Agende sua Entrevista | Message: Olá ${data.name}, seu questionário foi aprovado! Entre no portal para escolher um horário.`);
+  }
+
+  /**
+   * Onboarding: Triggered when Agent picks a slot.
+   */
+  @EventPattern('onboarding_scheduled')
+  async handleOnboardingScheduled(@Payload() data: Record<string, any>) {
+    this.logger.log(`[SIMULATED EMAIL] To: ${data.email} | Subject: Entrevista Confirmada! | Message: Olá ${data.name}, sua entrevista está marcada para ${data.date}. Link: ${data.meetLink}`);
+  }
 }

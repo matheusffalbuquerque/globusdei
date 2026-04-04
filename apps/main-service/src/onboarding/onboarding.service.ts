@@ -1,4 +1,5 @@
-import { Injectable, BadRequestException, NotFoundException, Logger } from '@nestjs/common';
+import { Injectable, BadRequestException, NotFoundException, Logger, Inject } from '@nestjs/common';
+import { ClientProxy } from '@nestjs/microservices';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService, AuditType } from '../audit/audit.service';
 import { AgentStatus } from '@prisma/client';
@@ -6,10 +7,11 @@ import { AgentStatus } from '@prisma/client';
 /**
  * OnboardingService — implements the Agent admission state machine.
  *
- * Manages the three-phase onboarding workflow:
+ * Manages the multi-phase onboarding workflow:
  *  Phase 1 — Agent submits questionnaire answers (ENTERED → SUBMITTED)
- *  Phase 2 — Staff schedules a missiological interview (SUBMITTED → SCHEDULED)
- *  Phase 3 — Staff provides final feedback and decision (SCHEDULED → APPROVED | REJECTED)
+ *  Phase 2 — Staff reviews questionnaire and qualifies agent (SUBMITTED → QUALIFIED)
+ *  Phase 3 — Agent picks an interview slot (QUALIFIED → SCHEDULED)
+ *  Phase 4 — Staff provides final feedback and decision (SCHEDULED → APPROVED | REJECTED)
  *
  * All state transitions are recorded via AuditService for LGPD traceability.
  */
@@ -20,6 +22,7 @@ export class OnboardingService {
   constructor(
     private prisma: PrismaService,
     private audit: AuditService,
+    @Inject('NOTIFICATION_SERVICE') private client: ClientProxy,
   ) {}
 
   /**
@@ -55,14 +58,17 @@ export class OnboardingService {
   /**
    * Staff Utilities: Fetch agents pending analysis and their answers
    */
-  async getPendingAgents() {
+   async getPendingAgents() {
     return this.prisma.agent.findMany({
       where: {
-        status: { in: [AgentStatus.SUBMITTED, AgentStatus.SCHEDULED] }
+        status: { in: [AgentStatus.SUBMITTED, AgentStatus.QUALIFIED, AgentStatus.SCHEDULED] }
       },
       include: {
         answers: {
           include: { question: true }
+        },
+        scheduledSlot: {
+          include: { staff: true }
         }
       },
       orderBy: { updatedAt: 'desc' }
@@ -70,25 +76,65 @@ export class OnboardingService {
   }
 
   /**
-   * Phase 2: Staff Member schedules Google Meet interview
+   * Phase 2: Staff reviews the questionnaire and moves to QUALIFIED
    */
-  async scheduleInterview(agentId: string, staffId: string, interviewLink: string, interviewDate: Date) {
+  async approveQuestionnaire(agentId: string, staffId: string) {
     const agent = await this.prisma.agent.findUnique({ where: { id: agentId } });
-    if (!agent) throw new NotFoundException('Agent missing.');
-    if (agent.status !== AgentStatus.SUBMITTED) throw new BadRequestException(`Cannot schedule. Status is ${agent.status}`);
+    if (!agent) throw new NotFoundException('Agent profile not found.');
+    if (agent.status !== AgentStatus.SUBMITTED) throw new BadRequestException(`Agent must be in SUBMITTED state, current: ${agent.status}`);
 
-    const scheduledAgent = await this.prisma.agent.update({
+    const updatedAgent = await this.prisma.agent.update({
+      where: { id: agentId },
+      data: { status: AgentStatus.QUALIFIED },
+    });
+
+    await this.audit.logAction(staffId, AuditType.AUDIT, `Approved questionnaire for agent ${agentId}. Status: QUALIFIED.`);
+    
+    // Emit notification event
+    this.client.emit('onboarding_qualified', {
+      email: updatedAgent.email,
+      name: updatedAgent.name,
+    });
+
+    return updatedAgent;
+  }
+
+  /**
+   * Phase 3: Agent picks an available slot, moving to SCHEDULED
+   */
+  async claimSlot(agentId: string, slotId: string) {
+    const agent = await this.prisma.agent.findUnique({ where: { id: agentId } });
+    if (!agent) throw new NotFoundException('Agent profile not found.');
+    if (agent.status !== AgentStatus.QUALIFIED) throw new BadRequestException(`Agent must be QUALIFIED to claim a slot, current: ${agent.status}`);
+
+    const slot = await this.prisma.availabilitySlot.findUnique({ 
+      where: { id: slotId },
+      include: { agent: true, staff: true } 
+    });
+    if (!slot) throw new NotFoundException('Availability slot not found.');
+    if (slot.agent) throw new BadRequestException('Slot already claimed.');
+
+    // 1. Update agent status and link the slot
+    const updatedAgent = await this.prisma.agent.update({
       where: { id: agentId },
       data: {
         status: AgentStatus.SCHEDULED,
-        interviewLink,
-        interviewDate,
-        interviewerId: staffId,
+        scheduledSlotId: slotId,
+        interviewDate: slot.startTime,
+        interviewLink: slot.meetLink,
+        interviewerId: slot.staffId,
       },
     });
 
-    await this.audit.logAction(staffId, AuditType.AUDIT, `Scheduled Missiological Profile Interview for Agent ${agentId} via Meet`);
-    return scheduledAgent;
+    // Emit notification event
+    this.client.emit('onboarding_scheduled', {
+      email: updatedAgent.email,
+      name: updatedAgent.name,
+      date: slot.startTime.toLocaleString('pt-BR'),
+      meetLink: slot.meetLink,
+    });
+
+    return updatedAgent;
   }
 
   /**

@@ -14,7 +14,8 @@ datasource db {
 enum AgentStatus {
   ENTERED             // Just registered, preparing application
   SUBMITTED           // Questionnaire completed, pending analysis
-  SCHEDULED           // Inteview scheduled with google meet link
+  QUALIFIED           // Approved by staff, ready to pick interview slot
+  SCHEDULED           // Interview scheduled with google meet link
   FEEDBACK_PROVIDED   // Interview finished, evaluation emitted
   APPROVED            // Fully integrated into the ecosystem
   REJECTED            // Application denied
@@ -38,6 +39,10 @@ model Agent {
   /// ONBOARDING STATE MACHINE
   status          AgentStatus @default(ENTERED)
   
+  /// New Scheduling Relation
+  scheduledSlot   AvailabilitySlot? @relation(fields: [scheduledSlotId], references: [id])
+  scheduledSlotId String?           @unique
+
   /// Contains the Google Meet link or external URL once status is SCHEDULED
   interviewLink   String?
   interviewDate   DateTime?
@@ -133,4 +138,32 @@ model Answer {
   createdAt       DateTime @default(now())
 
   @@unique([agentId, questionId])
+}
+
+/// Staff members who manage the platform and conduct interviews
+model Staff {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  slots     AvailabilitySlot[]
+  
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+/// Time slots offered by Staff for interviews
+model AvailabilitySlot {
+  id              String   @id @default(uuid())
+  startTime       DateTime
+  endTime         DateTime
+  staffId         String
+  staff           Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
+  
+  // The agent who claimed this slot
+  agent           Agent?
+  
+  meetLink        String?  // Custom Meet link for this session
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 }
