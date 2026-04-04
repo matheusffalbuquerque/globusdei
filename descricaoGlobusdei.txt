@@ -1,0 +1,138 @@
+Aqui estão todos os detalhes de como deverá ser desenvolvido o sistema GlobusDei 
+
+- Descrição do que é Globus Dei:
+    - A Globus Dei é uma organização cristã, classificada como agência missionária que atua no apoio
+    a iniciativas individuais ou coletivas, formais ou informais, nacionais ou internacionais, com 
+    objetivo de evangelização global, sendo que isso se define como o anúncio e divulgação da mensagem 
+    cristã.
+    - Seu segundo grande objetivo é integrar cristãos na missão global da igreja, fazendo isto por meio 
+    dos seus canais como Instagram, Youtube, entre outros.
+    - É uma organização brasileira interdenominacional, que se propõe a servir missionários no campo,
+    auxiliar no desenvolvimento estratégico, administrativo e operacional das iniciativas.
+
+- Descrição da plataforma GlobusDei:
+    - O objetivo dessa plataforma é servir de apoio à gestão das iniciativas apoiadas e das pessoas
+    envolvidas. Por um lado, a equipe da organização Globus Dei deve ter acesso aos dados e informações
+    necessárias para prestar os serviços de apoio que se propõe. E por outro lado, representantes de 
+    iniciativas irão acessar a plataforma para acompanhar seus processos em andamento e utilizar serviços 
+    prestados pela plataforma.
+    - Os usuários que farão a gestão e que compõem a equipe de trabalho e voluntários da organização
+    são chamados de COLABORADORES. E possuem funções distintas dentro da plataforma, a saber, há três 
+    papéis principais: gestor de recursos, gestor de projetos e gestor de pessoas. Além desses, alguns usuários
+    podem permissão total, que serão os administradores.
+    - Pessoas podem se cadastrar para receber benefícios e apoio em suas iniciativas. Essas pessoas podem
+    ser missionários em campo, estudantes de teologia, estudantes de missão, profissionais em missão, 
+    cientistas cristãos, gerentes e líderes de grupos, empresários que acreditam que seu negócio pode influenciar 
+    e ser uma ferramenta para a evangelização, pastores, evangelistas, membros de igrejas cristãs, entre outros perfis similares. 
+    Estas pessoas são chamadas de AGENTES.
+    - Pode ser que uma pessoa deseje cadastrar e representar uma iniciativa(que pode ser um projeto ou uma organização, inclusive uma igreja),
+    então o sistema permitirá o cadastro de iniciativas chamados de EMPREENDIMENTOS. Estes podem agregar agentes que deles participam 
+    e terão páginas próprias para descrição e apresentação.
+    - O modelo de apoio da Globus Dei possui três pilares fundamentais, são eles: Apoio espiritual,
+    apoio integral(cuidado da saúde física e mental), apoio financeiro(auxílio e acompanhamento de carreira).
+    - O sistema servirá, portanto, como um espaço voltado especialmente para o acompanhamento e desenvolvimento 
+    de missionários, sejam eles eclesiásticos, profissionais, autônomos, empresários ou investidores.
+    - Além de aplicações financeiras diretas, qualquer pessoa pode investir direta ou indiretamente nas iniciativas
+    ou na própria organização. Portanto, o sistema deve possuir um sistema de recebimento e controle de doações
+    que serão chamadas de INVESTIMENTOS. Estas entradas podem ser registradas pelos gestores de recursos da
+    organização ou diretamente pelo INVESTIDOR que pode ser anônimo ou cadastrado na plataforma.
+    - A plataforma deve gerir eventos ao longo do ano realizados pela Globus Dei. Estes podem ser presenciais 
+    ou online(a maioria).
+    - Os COLABORADORES precisarão de informações detalhadas sobre as iniciativas que os ajudarão a prestar um 
+    serviço de apoio com qualidade e acurácia. Esses dados devem responder perguntas como, o que fazem, de onde são, quais 
+    necessidades possuem, quais formações e conhecimentos possuem, como agregam, quanto tempo estão em atividade e etc.
+    - O sistema deve ter um mecanismo de relatórios, dashboards e gráficos para visualização imediata das informações
+    atualizadas dos agentes e suas iniciativas.
+    - O sistema deve ter um sistema de criação de conteúdo, que será enviado para os usuários do sistema.
+
+    - Inspirações e detalhes para o desenvolvimento do sistema:
+        - Este sistema tem inspiração em partes no Linkedin, pois deve conectar pessoas e organizações do mundo todo que estão envolvidos
+        com a causa cristã de evangelização.
+        - 
+
+- Como será desenvolvida a plataforma:
+    - As tecnologias utilizadas serão todas baseadas na linguagem Javascript:
+        - Backend: Typescript com NestJs
+            - Arquitetura em microsserviços com:
+                1. FinanceService - Somente para gestão de recursos, doações, distribuições
+                2. NotificationService - Somente para envio de emails, avisos, newsletters e comunicação em geral
+        - Autenticação: Keycloak com JWT
+        - Documentação: Swagger da API
+        - Banco de dados: Postgresql/MongoDB(caso preciso)
+        - Frontend: React com NextJS
+        - Estilização/UI: Tailwind/shadcn-ui
+        - Ícones: Material Icons/Font Awesome/Ionicons
+        - Build e Deploy: Aplicações em conteineres com docker e rodando com docker-compose
+        - Aplicativo: ReactNative com Expo
+        - Mensageria: RabbitMQ
+        - Cache: Redis
+        - Backend para manipulação de dados: Typescript com ExpressJs
+            - Microsserviços: 
+                1. DataService - Focado em atualizar e analisar dados, provendo informações à plataforma
+                2. ReportService - Focado na geração de relatórios
+    - Metodologias de desenvolvimento:
+        - Deve estar organizado por domínios, seguindo os princípios do domain-driven design
+        - A arquitetura deve ser modular por domínio
+        - Deve seguir princípios de arquitetura do conceito SOLID
+        - Não deve haver repetição de código
+        - Todas as classes devem ter classes de testes correspondentes para seus métodos
+        - Deve haver testes de integrações dos fluxos principais
+        - Todos os componentes do frontend utilizados devem ser reutilizaveis, havendo uma preferencia
+        para componentes já existentes na aplicação.
+        - A estrutura de segurança será em camadas, atentando-se para os seguintes pontos:
+            1. Identidade centralizada - com o Keycloak
+            2. Autorização por papel e por recurso - OAuth2/OIDC
+            3. Proteção de dados - Atenção aos dados sensíveis - RBAC/ABAC
+                - Deve existir uma camada de políticas para cada tipo de usuário:
+                    Exemplo de políticas(checagem fina):
+                    - canViewAgent(user, agentId), canManageInvestment(user, investmentId), canEditEnterprise(user, enterpriseId)
+                - A plataforma vai tratar dados pessoais, financeiros e potencialmente dados sensíveis, 
+                inclusive ligados a saúde/cuidado integral e contexto religioso/missionário. 
+                - A ANPD mantém materiais orientativos sobre LGPD e canal específico para comunicação de incidentes de segurança; 
+                além disso, o guia institucional reforça a necessidade de governança, papéis de tratamento e documentação adequada
+            4. Auditoria e rastreabilidade
+                - Deve ter logs nos três tipos abaixo:
+                    1. Log técnico
+                        - exceptions
+                        - latência
+                        - falhas de integração
+                    2. Log de segurança
+                        - login/logout
+                        - falhas repetidas
+                        - troca de senha
+                        - reset de senha
+                        - elevação de privilégio
+                        - access denied
+                        - token inválido
+                        - anomalias
+                    3. Log de auditoria
+                        - quem viu dado sensível
+                        - quem aprovou investimento
+                        - quem alterou cadastro de agente
+                        - quem exportou relatório
+                        - quem baixou anexo restrito
+            5. Segurança de API e integrações
+                - Centralizar secrets, chaves e senhas em cofre de segredos:
+                    - Keycloak client secrets
+                    - credenciais de banco
+                    - Redis password
+                    - RabbitMQ credentials
+                    - SMTP/API keys
+                    - chaves de integração
+                    - chaves de criptografia de campo
+            6. Segurança de infraestrutura e deploy
+                - imagens mínimas e atualizadas
+                - usuário não-root nos containers
+                - network interna segmentada
+                - portas expostas só quando necessário
+                - banco, Redis e RabbitMQ fora da internet pública
+                - backups criptografados
+                - política de restore testada
+                - scan de imagem no CI
+                - SBOM e controle de dependências
+            7. Testes contínuos 
+            
+
+
+
+    
