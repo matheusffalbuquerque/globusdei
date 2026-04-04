@@ -1,0 +1,21 @@
+{
+  "realm": "globusdei",
+  "enabled": true,
+  "displayName": "Globus Dei",
+  "roles": {
+    "realm": [
+      {
+        "name": "colaborador",
+        "description": "Usuario interno que presta recursos e suporte"
+      },
+      {
+        "name": "agente",
+        "description": "Missionario, aluno ou proponente das iniciativas"
+      },
+      {
+        "name": "administrador",
+        "description": "Acesso total ao painel"
+      }
+    ]
+  }
+}
