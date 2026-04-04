@@ -34,7 +34,12 @@
       "options": {
         "targetName": "test"
       },
-      "exclude": ["apps/finance-service-e2e/**/*"]
+      "exclude": [
+        "apps/finance-service-e2e/**/*",
+        "apps/notification-service-e2e/**/*",
+        "apps/data-service-e2e/**/*",
+        "apps/report-service-e2e/**/*"
+      ]
     },
     {
       "plugin": "@nx/webpack/plugin",
