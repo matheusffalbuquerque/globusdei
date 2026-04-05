@@ -1,6 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSession } from 'next-auth/react';
+
+import { apiFetch } from '../../../lib/api';
 
 type Empreendimento = {
   id: string;
@@ -17,60 +20,65 @@ type Empreendimento = {
 };
 
 export default function ColaboradorEmpreendimentos() {
+  const { data: session, status: sessionStatus } = useSession();
   const [empreendimentos, setEmpreendimentos] = useState<Empreendimento[]>([]);
   const [selected, setSelected] = useState<Empreendimento | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
   // Internal update states
   const [score, setScore] = useState(0);
-  const [status, setStatus] = useState('OPEN');
+  const [followUpStatus, setFollowUpStatus] = useState('OPEN');
   const [notes, setNotes] = useState('');
   const [bankVerified, setBankVerified] = useState(false);
 
   useEffect(() => {
-    fetchGlobalList();
-  }, []);
+    if (sessionStatus === 'authenticated') {
+      void fetchGlobalList();
+    }
+  }, [sessionStatus]);
 
   const fetchGlobalList = async () => {
     try {
-      const res = await fetch('http://localhost:3001/api/empreendimentos'); // Reuse global fetch
-      const data = await res.json();
+      const data = await apiFetch('/empreendimentos', { session });
       setEmpreendimentos(data);
       setLoading(false);
     } catch (e) {
-      console.error(e);
+      setError((e as Error).message);
+      setLoading(false);
     }
   };
 
   const handleUpdateInternal = async () => {
     if (!selected) return;
     try {
-      const res = await fetch(`http://localhost:3001/api/staff/empreendimentos/${selected.id}/internal`, {
+      await apiFetch(`/empreendimentos/${selected.id}/internal`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        session,
         body: JSON.stringify({ 
           priorityScore: Number(score), 
           isBankVerified: bankVerified, 
-          followUpStatus: status, 
+          followUpStatus, 
           internalNotes: notes 
         }),
       });
-      if (res.ok) {
-        setSelected(null);
-        fetchGlobalList();
-      }
+      setSelected(null);
+      await fetchGlobalList();
     } catch (e) {
-      console.error(e);
+      setError((e as Error).message);
     }
   };
 
   const openSelection = (emp: Empreendimento) => {
     setSelected(emp);
     setScore(emp.priorityScore);
-    setStatus(emp.followUpStatus);
+    setFollowUpStatus(emp.followUpStatus);
     setNotes(emp.internalNotes || '');
     setBankVerified(emp.isBankVerified);
   };
+
+  if (sessionStatus === 'loading') return <div className="p-10 text-center">Carregando sessão...</div>;
+  if (sessionStatus !== 'authenticated') return <div className="p-10 text-center">Faça login para acessar os empreendimentos.</div>;
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -85,6 +93,7 @@ export default function ColaboradorEmpreendimentos() {
 
       <main className="flex-1 p-12">
         <h1 className="text-3xl font-bold text-gray-900 mb-10">Iniciativas Corporativas (Célula Técnica)</h1>
+        {error && <div className="mb-6 rounded-2xl border border-red-100 bg-red-50 p-4 text-red-600">{error}</div>}
 
         <div className="bg-white rounded-3xl shadow-sm border border-gray-100 overflow-hidden">
            <table className="min-w-full divide-y divide-gray-100">
@@ -175,8 +184,8 @@ export default function ColaboradorEmpreendimentos() {
                        <label className="block text-sm font-bold text-gray-700 mb-2 uppercase text-xs tracking-widest">Status de Acompanhamento</label>
                        <select 
                          className="w-full bg-gray-50 p-4 rounded-xl border border-gray-100 font-bold"
-                         value={status}
-                         onChange={e => setStatus(e.target.value)}
+                         value={followUpStatus}
+                         onChange={e => setFollowUpStatus(e.target.value)}
                        >
                           <option value="OPEN">Aberta / Triagem</option>
                           <option value="MONITORING">Em Acompanhamento</option>

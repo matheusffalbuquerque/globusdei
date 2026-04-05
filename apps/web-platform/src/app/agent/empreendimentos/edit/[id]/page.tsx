@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+
+import { apiFetch } from '../../../../../lib/api';
 
 type Empreendimento = {
   id: string;
@@ -24,26 +27,30 @@ type Empreendimento = {
 export default function EditEmpreendimento() {
   const router = useRouter();
   const { id } = useParams();
+  const { data: session, status } = useSession();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [inviteEmail, setInviteEmail] = useState('');
   const [formData, setFormData] = useState<Empreendimento | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchEmpreendimento();
-  }, [id]);
+    if (status === 'authenticated') {
+      void fetchEmpreendimento();
+    }
+  }, [id, status]);
 
   const fetchEmpreendimento = async () => {
     try {
-      const res = await fetch(`http://localhost:3001/api/empreendimentos/${id}`);
-      const data = await res.json();
+      const data = await apiFetch(`/empreendimentos/${id}`, { session });
       setFormData({
         ...data,
         establishedDate: data.establishedDate.split('T')[0], // format for date input
       });
       setLoading(false);
     } catch (err) {
-      console.error(err);
+      setError((err as Error).message);
+      setLoading(false);
     }
   };
 
@@ -52,21 +59,18 @@ export default function EditEmpreendimento() {
     if (!formData) return;
     setSaving(true);
     try {
-      const res = await fetch(`http://localhost:3001/api/empreendimentos/${id}`, {
+      await apiFetch(`/empreendimentos/${id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        session,
         body: JSON.stringify({
           ...formData,
           monthlyExpenses: Number(formData.monthlyExpenses),
           establishedDate: new Date(formData.establishedDate).toISOString(),
         }),
       });
-      if (res.ok) {
-        router.refresh();
-        alert('Dados salvos com sucesso!');
-      }
+      router.refresh();
     } catch (err) {
-      console.error(err);
+      setError((err as Error).message);
     } finally {
       setSaving(false);
     }
@@ -75,20 +79,19 @@ export default function EditEmpreendimento() {
   const sendInvite = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const res = await fetch('http://localhost:3001/api/empreendimentos/invites/send', {
+      await apiFetch(`/empreendimentos/${id}/invites`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ empreendimentoId: id, email: inviteEmail }),
+        session,
+        body: JSON.stringify({ email: inviteEmail }),
       });
-      if (res.ok) {
-        alert('Convite enviado para o e-mail do agente!');
-        setInviteEmail('');
-      }
+      setInviteEmail('');
     } catch (e) {
-      console.error(e);
+      setError((e as Error).message);
     }
   };
 
+  if (status === 'loading') return <div className="p-20 text-center">Carregando sessão...</div>;
+  if (status !== 'authenticated') return <div className="p-20 text-center">Faça login para editar o empreendimento.</div>;
   if (loading || !formData) return <div className="p-20 text-center">Carregando dados...</div>;
 
   return (
@@ -115,6 +118,7 @@ export default function EditEmpreendimento() {
 
       <main className="flex-1 p-16 max-w-5xl overflow-y-auto">
         <form onSubmit={handleUpdate} className="space-y-16">
+          {error && <div className="rounded-2xl border border-red-100 bg-red-50 p-4 text-red-600">{error}</div>}
           
           <div className="flex justify-between items-center">
             <h2 className="text-3xl font-bold text-gray-900">Editar Iniciativa</h2>

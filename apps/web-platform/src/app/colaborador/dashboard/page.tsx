@@ -1,6 +1,9 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
+
+import { apiFetch } from '../../../lib/api';
 
 type PendingAgent = {
   id: string;
@@ -21,133 +24,161 @@ type AvailabilitySlot = {
 };
 
 export default function ColaboradorDashboard() {
+  const { data: session, status } = useSession();
   const [activeTab, setActiveTab] = useState<'triagem' | 'agenda'>('triagem');
   const [agents, setAgents] = useState<PendingAgent[]>([]);
   const [selectedAgent, setSelectedAgent] = useState<PendingAgent | null>(null);
-  
-  // Agenda states
   const [slots, setSlots] = useState<AvailabilitySlot[]>([]);
   const [newSlot, setNewSlot] = useState({ startTime: '', endTime: '', meetLink: '' });
-
-  // MOCK Staff ID
-  const staffId = 'STAFF_MOCK_UUID';
+  const [summary, setSummary] = useState<{ pendingAgents: number; managedEmpreendimentos: number; openRequests: number; totalAnnouncements: number } | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchAgents();
-    fetchSlots();
-  }, []);
+    if (status !== 'authenticated') {
+      return;
+    }
+
+    void Promise.all([fetchAgents(), fetchSlots(), fetchSummary()]);
+  }, [status]);
+
+  const fetchSummary = async () => {
+    const data = await apiFetch('/collaborators/me/dashboard', { session });
+    setSummary(data);
+  };
 
   const fetchAgents = async () => {
-    try {
-      const res = await fetch('http://localhost:3001/api/onboarding/pending-analysis');
-      const data = await res.json();
-      setAgents(data);
-    } catch (e) {
-      console.error('Falha ao buscar pendências', e);
-    }
+    const data = await apiFetch('/onboarding/pending-analysis', { session });
+    setAgents(data);
   };
 
   const fetchSlots = async () => {
-    try {
-      const res = await fetch(`http://localhost:3001/api/staff/${staffId}/slots`);
-      const data = await res.json();
-      setSlots(data);
-    } catch (e) {
-      console.error('Falha ao buscar slots', e);
-    }
+    const data = await apiFetch('/onboarding/collaborator/slots', { session });
+    setSlots(data);
   };
 
   const approveForInterview = async () => {
     if (!selectedAgent) return;
     try {
-      const res = await fetch(`http://localhost:3001/api/onboarding/${selectedAgent.id}/approve`, {
+      await apiFetch(`/onboarding/${selectedAgent.id}/approve`, {
         method: 'POST',
+        session,
       });
-      if (res.ok) {
-        setSelectedAgent(null);
-        fetchAgents();
-      }
-    } catch (err) {
-      console.error(err);
+      setSelectedAgent(null);
+      await fetchAgents();
+      await fetchSummary();
+    } catch (requestError) {
+      setError((requestError as Error).message);
     }
   };
 
-  const createSlot = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const createSlot = async (event: React.FormEvent) => {
+    event.preventDefault();
     try {
-      const res = await fetch(`http://localhost:3001/api/staff/${staffId}/slots`, {
+      await apiFetch('/onboarding/collaborator/slots', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        session,
         body: JSON.stringify(newSlot),
       });
-      if (res.ok) {
-        setNewSlot({ startTime: '', endTime: '', meetLink: '' });
-        fetchSlots();
-      }
-    } catch (err) {
-      console.error(err);
+      setNewSlot({ startTime: '', endTime: '', meetLink: '' });
+      await fetchSlots();
+    } catch (requestError) {
+      setError((requestError as Error).message);
     }
   };
 
   const deleteSlot = async (id: string) => {
     try {
-      await fetch(`http://localhost:3001/api/staff/slots/${id}`, { method: 'DELETE' });
-      fetchSlots();
-    } catch (err) {
-      console.error(err);
+      await apiFetch(`/onboarding/collaborator/slots/${id}`, {
+        method: 'DELETE',
+        session,
+      });
+      await fetchSlots();
+    } catch (requestError) {
+      setError((requestError as Error).message);
     }
   };
 
+  if (status === 'loading') {
+    return <div className="p-10 text-center">Carregando sessão...</div>;
+  }
+
+  if (status !== 'authenticated') {
+    return <div className="p-10 text-center">Faça login para acessar o painel do colaborador.</div>;
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 flex">
-      {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-gray-200 hidden md:flex flex-col">
-        <div className="h-16 flex items-center px-6 border-b border-gray-200">
-          <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">Globus Dei</span>
+      <aside className="hidden w-64 flex-col border-r border-gray-200 bg-white md:flex">
+        <div className="flex h-16 items-center border-b border-gray-200 px-6">
+          <span className="bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-xl font-bold text-transparent">
+            Globus Dei
+          </span>
         </div>
-        <nav className="flex-1 px-4 py-6 space-y-2">
-          <button 
+        <nav className="flex-1 space-y-2 px-4 py-6">
+          <button
             onClick={() => setActiveTab('triagem')}
-            className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${activeTab === 'triagem' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}
+            className={`w-full rounded-lg px-4 py-3 text-left text-sm font-medium transition-colors ${
+              activeTab === 'triagem' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'
+            }`}
           >
-            Análises Pendentes
+            Análises pendentes
           </button>
-          <button 
+          <button
             onClick={() => setActiveTab('agenda')}
-            className={`w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${activeTab === 'agenda' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'}`}
+            className={`w-full rounded-lg px-4 py-3 text-left text-sm font-medium transition-colors ${
+              activeTab === 'agenda' ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-50'
+            }`}
           >
-            Minha Agenda
+            Minha agenda
           </button>
-          <a href="#" className="flex items-center px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50 rounded-lg">
+          <a href="/colaborador/empreendimentos" className="flex items-center rounded-lg px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50">
             Empreendimentos
+          </a>
+          <a href="/colaborador/service-requests" className="flex items-center rounded-lg px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50">
+            Solicitações
+          </a>
+          <a href="/colaborador/announcements" className="flex items-center rounded-lg px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50">
+            Conteúdo
+          </a>
+          <a href="/colaborador/finance" className="flex items-center rounded-lg px-4 py-3 text-sm font-medium text-gray-600 hover:bg-gray-50">
+            Financeiro
           </a>
         </nav>
       </aside>
 
       <main className="flex-1 p-8">
-        <div className="flex justify-between items-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">
-            {activeTab === 'triagem' ? 'Painel do Colaborador - Triagem' : 'Gestão de Disponibilidade'}
-          </h1>
+        <div className="mb-8 flex items-start justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              {activeTab === 'triagem' ? 'Painel do colaborador - triagem' : 'Gestão de disponibilidade'}
+            </h1>
+            <p className="mt-2 text-sm text-gray-500">
+              {summary
+                ? `${summary.pendingAgents} agentes pendentes, ${summary.openRequests} solicitações abertas`
+                : 'Resumo operacional do colaborador'}
+            </p>
+          </div>
         </div>
 
+        {error && <div className="mb-6 rounded-2xl border border-red-100 bg-red-50 p-4 text-red-600">{error}</div>}
+
         {activeTab === 'triagem' ? (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Agente (Candidato)</th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status Atual</th>
-                  <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Última Atualização</th>
-                  <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ações</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Agente</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Status</th>
+                  <th className="px-6 py-4 text-left text-xs font-medium uppercase tracking-wider text-gray-500">Atualização</th>
+                  <th className="px-6 py-4 text-right text-xs font-medium uppercase tracking-wider text-gray-500">Ações</th>
                 </tr>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="divide-y divide-gray-200 bg-white">
                 {agents.map((agent) => (
-                  <tr key={agent.id} className="hover:bg-gray-50 transition-colors">
+                  <tr key={agent.id} className="transition-colors hover:bg-gray-50">
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        <div className="h-10 w-10 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 font-bold text-white">
                           {agent.name.charAt(0)}
                         </div>
                         <div className="ml-4">
@@ -157,10 +188,7 @@ export default function ColaboradorDashboard() {
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-3 py-1 inline-flex text-xs leading-5 font-semibold rounded-full 
-                        ${agent.status === 'SUBMITTED' ? 'bg-yellow-100 text-yellow-800' : 
-                          agent.status === 'QUALIFIED' ? 'bg-purple-100 text-purple-800' : 
-                          'bg-blue-100 text-blue-800'}`}>
+                      <span className="inline-flex rounded-full px-3 py-1 text-xs font-semibold leading-5 bg-yellow-100 text-yellow-800">
                         {agent.status}
                       </span>
                     </td>
@@ -168,90 +196,88 @@ export default function ColaboradorDashboard() {
                       {new Date(agent.updatedAt).toLocaleDateString('pt-BR')}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                      <button 
+                      <button
                         onClick={() => setSelectedAgent(agent)}
-                        className="text-indigo-600 hover:text-indigo-900 bg-indigo-50 px-4 py-2 rounded-lg font-semibold"
+                        className="rounded-lg bg-indigo-50 px-4 py-2 font-semibold text-indigo-600 hover:text-indigo-900"
                       >
-                        {agent.status === 'SUBMITTED' ? 'Analisar Questionário' : 'Ver Detalhes'}
+                        {agent.status === 'SUBMITTED' ? 'Analisar questionário' : 'Ver detalhes'}
                       </button>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            {agents.length === 0 && (
-              <div className="p-8 text-center text-gray-500">Nenhum agente pendente de análise no momento.</div>
-            )}
+            {agents.length === 0 && <div className="p-8 text-center text-gray-500">Nenhum agente pendente de análise.</div>}
           </div>
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
             <div className="lg:col-span-1">
-              <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-                <h3 className="text-lg font-bold mb-4">Adicionar Horário</h3>
+              <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+                <h3 className="mb-4 text-lg font-bold">Adicionar horário</h3>
                 <form onSubmit={createSlot} className="space-y-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Início</label>
-                    <input 
-                      type="datetime-local" 
+                    <input
+                      type="datetime-local"
                       required
-                      className="w-full mt-1 border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      className="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                       value={newSlot.startTime}
-                      onChange={e => setNewSlot({...newSlot, startTime: e.target.value})}
+                      onChange={(event) => setNewSlot({ ...newSlot, startTime: event.target.value })}
                     />
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-gray-700">Término</label>
-                    <input 
-                      type="datetime-local" 
+                    <input
+                      type="datetime-local"
                       required
-                      className="w-full mt-1 border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      className="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                       value={newSlot.endTime}
-                      onChange={e => setNewSlot({...newSlot, endTime: e.target.value})}
+                      onChange={(event) => setNewSlot({ ...newSlot, endTime: event.target.value })}
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-gray-700">Link do Meet (Opcional)</label>
-                    <input 
-                      type="url" 
+                    <label className="block text-sm font-medium text-gray-700">Link do Meet</label>
+                    <input
+                      type="url"
                       placeholder="https://meet.google.com/..."
-                      className="w-full mt-1 border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500"
+                      className="mt-1 w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
                       value={newSlot.meetLink}
-                      onChange={e => setNewSlot({...newSlot, meetLink: e.target.value})}
+                      onChange={(event) => setNewSlot({ ...newSlot, meetLink: event.target.value })}
                     />
                   </div>
-                  <button type="submit" className="w-full bg-blue-600 text-white font-bold py-2 rounded-lg hover:bg-blue-700 transition-colors">
-                    Salvar Horário
+                  <button type="submit" className="w-full rounded-lg bg-blue-600 py-2 font-bold text-white transition-colors hover:bg-blue-700">
+                    Salvar horário
                   </button>
                 </form>
               </div>
             </div>
-            
+
             <div className="lg:col-span-2">
-              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="overflow-hidden rounded-xl border border-gray-200 bg-white shadow-sm">
                 <table className="min-w-full divide-y divide-gray-200">
                   <thead className="bg-gray-50">
                     <tr>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Horário</th>
-                      <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
-                      <th className="px-6 py-4 text-right text-xs font-medium text-gray-500 uppercase">Ações</th>
+                      <th className="px-6 py-4 text-left text-xs font-medium uppercase text-gray-500">Horário</th>
+                      <th className="px-6 py-4 text-left text-xs font-medium uppercase text-gray-500">Status</th>
+                      <th className="px-6 py-4 text-right text-xs font-medium uppercase text-gray-500">Ações</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {slots.map(slot => (
+                    {slots.map((slot) => (
                       <tr key={slot.id}>
                         <td className="px-6 py-4 text-sm text-gray-900">
                           {new Date(slot.startTime).toLocaleString('pt-BR')} - {new Date(slot.endTime).toLocaleTimeString('pt-BR')}
                         </td>
                         <td className="px-6 py-4">
                           {slot.agent ? (
-                            <span className="text-green-600 font-medium">Reservado por {slot.agent.name}</span>
+                            <span className="font-medium text-green-600">Reservado por {slot.agent.name}</span>
                           ) : (
-                            <span className="text-gray-400 italic">Disponível</span>
+                            <span className="italic text-gray-400">Disponível</span>
                           )}
                         </td>
                         <td className="px-6 py-4 text-right">
                           {!slot.agent && (
-                            <button onClick={() => deleteSlot(slot.id)} className="text-red-600 hover:text-red-900 text-sm font-bold">
+                            <button onClick={() => deleteSlot(slot.id)} className="text-sm font-bold text-red-600 hover:text-red-900">
                               Remover
                             </button>
                           )}
@@ -266,55 +292,41 @@ export default function ColaboradorDashboard() {
         )}
       </main>
 
-      {/* Modal de Análise */}
       {selectedAgent && (
-        <div className="fixed inset-0 bg-gray-900/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-8">
-              <div className="flex justify-between items-start mb-6">
-                <h2 className="text-2xl font-bold text-gray-900">Análise Missiológica</h2>
-                <button onClick={() => setSelectedAgent(null)} className="text-gray-400 hover:text-gray-600">
-                  <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" /></svg>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-6 backdrop-blur-sm">
+          <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-[40px] bg-white p-12 shadow-2xl">
+            <div className="mb-10 flex items-start justify-between">
+              <div>
+                <h2 className="text-4xl font-bold text-gray-900">Análise do onboarding</h2>
+                <p className="mt-2 text-gray-400">
+                  Agente: <span className="font-bold">{selectedAgent.name}</span>
+                </p>
+              </div>
+              <button onClick={() => setSelectedAgent(null)} className="rounded-full p-2 text-gray-400 hover:bg-gray-100">
+                ×
+              </button>
+            </div>
+
+            <div className="space-y-8">
+              {selectedAgent.answers.map((answer, index) => (
+                <div key={`${selectedAgent.id}-${index}`} className="rounded-3xl border border-gray-100 bg-gray-50 p-8">
+                  <h3 className="mb-3 text-lg font-bold text-gray-900">{answer.question.title}</h3>
+                  <p className="whitespace-pre-wrap text-gray-600">{answer.text}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-10 flex justify-end gap-4">
+              <button onClick={() => setSelectedAgent(null)} className="rounded-2xl bg-gray-100 px-8 py-4 font-bold text-gray-700">
+                Fechar
+              </button>
+              {selectedAgent.status === 'SUBMITTED' && (
+                <button
+                  onClick={() => void approveForInterview()}
+                  className="rounded-2xl bg-blue-600 px-8 py-4 font-bold text-white transition hover:bg-blue-700"
+                >
+                  Aprovar para entrevista
                 </button>
-              </div>
-
-              <div className="mb-8 space-y-6">
-                <h3 className="text-lg font-semibold text-gray-700 border-b pb-2">Respostas do Questionário</h3>
-                {selectedAgent.answers.map((ans, idx) => (
-                  <div key={idx} className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                    <p className="text-sm font-bold text-gray-900 mb-2">{ans.question.title}</p>
-                    <p className="text-gray-600 italic">"{ans.text}"</p>
-                  </div>
-                ))}
-              </div>
-
-              {selectedAgent.status === 'SUBMITTED' ? (
-                <div className="bg-blue-50 p-6 rounded-xl border border-blue-100 sm:flex items-center justify-between">
-                  <div>
-                    <h3 className="text-lg font-bold text-blue-900">Aprovar Triagem?</h3>
-                    <p className="text-blue-700 text-sm">O agente será notificado para escolher um horário de entrevista.</p>
-                  </div>
-                  <button 
-                    onClick={approveForInterview}
-                    className="mt-4 sm:mt-0 bg-blue-600 text-white px-6 py-2 rounded-lg font-bold hover:bg-blue-700 transition"
-                  >
-                    Liberar Agendamento
-                  </button>
-                </div>
-              ) : selectedAgent.status === 'QUALIFIED' ? (
-                <div className="bg-purple-50 p-6 rounded-xl border border-purple-100 text-center text-purple-800">
-                  Aguardando o agente selecionar um horário na agenda.
-                </div>
-              ) : (
-                <div className="bg-green-50 p-6 rounded-xl border border-green-100 text-center">
-                  <p className="text-green-800 font-medium">Entrevista agendada!</p>
-                  <button 
-                    onClick={() => window.open(selectedAgent.interviewLink, '_blank')}
-                    className="mt-2 text-blue-600 font-bold hover:underline"
-                  >
-                    Link do Meet (Nova Aba)
-                  </button>
-                </div>
               )}
             </div>
           </div>

@@ -1,261 +1,168 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import Link from 'next/link';
+import { useEffect, useState } from 'react';
+import { useSession } from 'next-auth/react';
 
-type AgentStatus = 'ENTERED' | 'SUBMITTED' | 'QUALIFIED' | 'SCHEDULED' | 'FEEDBACK_PROVIDED' | 'APPROVED' | 'REJECTED';
+import { apiFetch } from '../../../lib/api';
 
-type Announcement = {
-  id: string;
-  title: string;
-  content: string;
-  type: 'SYSTEM' | 'MISSION' | 'OPPORTUNITY';
-  createdAt: string;
-};
-
-type Connection = {
-  id: string;
-  sender: { id: string, name: string, vocationType: string };
-  receiver: { id: string, name: string, vocationType: string };
-};
-
-type FollowedInitiative = {
-  empreendimento: {
-    id: string;
-    name: string;
-    category: string;
-    logoUrl?: string;
-  };
+type DashboardData = {
+  connections: number;
+  following: number;
+  announcements: { id: string; title: string; content: string; type: string; createdAt: string }[];
+  serviceRequests: { id: string; category: string; status: string; description: string; createdAt: string }[];
+  empreendimentos: { id: string; name: string; category: string; type: string }[];
 };
 
 export default function AgentDashboard() {
-  const [activeTab, setActiveTab] = useState<'feed' | 'pessoas' | 'iniciativas' | 'servicos'>('feed');
-  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [connections, setConnections] = useState<Connection[]>([]);
-  const [following, setFollowing] = useState<FollowedInitiative[]>([]);
-  
-  // MOCK Agent Data (In a real app, this would come from session/API)
-  const agent = {
-    id: 'agent-123',
-    name: 'Matheus Albuquerque',
-    vocationType: 'Tecnologia & Missões',
-    status: 'APPROVED' as AgentStatus,
-  };
+  const { data: session, status } = useSession();
+  const [dashboard, setDashboard] = useState<DashboardData | null>(null);
+  const [agent, setAgent] = useState<{ name: string; vocationType: string; status: string } | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchDashboardData();
-  }, []);
+    if (status !== 'authenticated') {
+      return;
+    }
 
-  const fetchDashboardData = async () => {
+    void loadDashboard();
+  }, [status]);
+
+  const loadDashboard = async () => {
     try {
-      const [annRes, connRes, followRes] = await Promise.all([
-        fetch('http://localhost:3001/api/announcements'),
-        fetch(`http://localhost:3001/api/connections/${agent.id}`),
-        fetch(`http://localhost:3001/api/platform/following/${agent.id}`),
+      const [agentProfile, dashboardData] = await Promise.all([
+        apiFetch('/agents/me', { session }),
+        apiFetch('/agents/me/dashboard', { session }),
       ]);
-      
-      if (annRes.ok) setAnnouncements(await annRes.json());
-      if (connRes.ok) setConnections(await connRes.json());
-      if (followRes.ok) setFollowing(await followRes.json());
-    } catch (e) {
-      console.error('Error fetching dashboard data:', e);
+
+      setAgent(agentProfile);
+      setDashboard(dashboardData);
+    } catch (requestError) {
+      setError((requestError as Error).message);
     }
   };
 
+  if (status === 'loading') {
+    return <div className="p-10 text-center">Carregando sessão...</div>;
+  }
+
+  if (status !== 'authenticated') {
+    return <div className="p-10 text-center">Faça login para acessar o dashboard.</div>;
+  }
+
   return (
-    <div className="min-h-screen bg-slate-50 font-sans pb-20">
-      {/* Platform Sub-Header / Navigation */}
-      <div className="bg-white border-b border-slate-200 sticky top-0 z-40">
-        <div className="container mx-auto px-6 h-16 flex items-center justify-between">
-          <div className="flex gap-8 h-full">
-            {[
-              { id: 'feed', label: 'Início', icon: '🏠' },
-              { id: 'pessoas', label: 'Minha Rede', icon: '👥' },
-              { id: 'iniciativas', label: 'Iniciativas', icon: '🚀' },
-              { id: 'servicos', label: 'Serviços', icon: '🛠️' },
-            ].map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id as any)}
-                className={`flex items-center gap-2 px-4 h-full border-b-2 transition-all font-bold text-sm uppercase tracking-wider ${
-                  activeTab === tab.id ? 'border-primary text-primary' : 'border-transparent text-slate-500 hover:text-slate-700'
-                }`}
-              >
-                <span>{tab.icon}</span>
-                {tab.label}
-              </button>
-            ))}
+    <div className="min-h-screen bg-slate-50 pb-20">
+      <div className="border-b border-slate-200 bg-white sticky top-0 z-40">
+        <div className="container mx-auto flex h-16 items-center justify-between px-6">
+          <div className="flex gap-6 text-sm font-bold uppercase tracking-wider text-slate-500">
+            <Link href="/agent/dashboard" className="text-primary">Início</Link>
+            <Link href="/agent/profile">Perfil</Link>
+            <Link href="/agent/status">Onboarding</Link>
+            <Link href="/agent/empreendimentos">Iniciativas</Link>
+            <Link href="/agent/service-requests">Solicitações</Link>
           </div>
-          <div className="flex items-center gap-4">
-             <div className="w-10 h-10 rounded-xl bg-orange-100 flex items-center justify-center text-primary font-black">MA</div>
+          <div className="rounded-xl bg-orange-100 px-3 py-2 text-sm font-bold text-primary">
+            {agent?.status ?? 'Sem status'}
           </div>
         </div>
       </div>
 
       <main className="container mx-auto px-6 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
-          {/* Left Column: Profile Snapshot */}
-          <div className="lg:col-span-3 space-y-6">
-            <div className="bg-white rounded-3xl border border-slate-200 overflow-hidden shadow-sm">
+        {error && <div className="mb-6 rounded-2xl border border-red-100 bg-red-50 p-4 text-red-600">{error}</div>}
+
+        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
+          <div className="space-y-6 lg:col-span-3">
+            <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
               <div className="h-20 bg-gradient-to-r from-primary to-orange-400"></div>
-              <div className="px-6 pb-6 -mt-10">
-                <div className="w-20 h-20 rounded-2xl bg-white p-1 shadow-lg mb-4">
-                  <div className="w-full h-full rounded-xl bg-slate-100 flex items-center justify-center text-3xl font-black text-primary border border-slate-50">MA</div>
+              <div className="-mt-10 px-6 pb-6">
+                <div className="mb-4 h-20 w-20 rounded-2xl bg-white p-1 shadow-lg">
+                  <div className="flex h-full w-full items-center justify-center rounded-xl border border-slate-50 bg-slate-100 text-3xl font-black text-primary">
+                    {(agent?.name ?? 'A').charAt(0)}
+                  </div>
                 </div>
-                <h3 className="text-xl font-display font-bold text-slate-900">{agent.name}</h3>
-                <p className="text-sm text-slate-500 font-medium mb-4">{agent.vocationType}</p>
-                <div className="pt-4 border-t border-slate-100 flex justify-between text-xs font-bold uppercase tracking-widest text-slate-400">
+                <h3 className="text-xl font-bold text-slate-900">{agent?.name ?? 'Agente'}</h3>
+                <p className="mb-4 text-sm font-medium text-slate-500">{agent?.vocationType ?? 'Atualize seu perfil'}</p>
+                <div className="flex justify-between border-t border-slate-100 pt-4 text-xs font-bold uppercase tracking-widest text-slate-400">
                   <span>Conexões</span>
-                  <span className="text-primary">{connections.length}</span>
+                  <span className="text-primary">{dashboard?.connections ?? 0}</span>
                 </div>
               </div>
             </div>
 
-            <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-              <h4 className="font-bold text-slate-900 mb-4 text-sm uppercase tracking-widest">Minhas Iniciativas</h4>
-              <Link href="/agent/empreendimentos/create" className="text-xs font-bold text-primary hover:underline">+ Criar Novo Projeto</Link>
+            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h4 className="mb-4 text-sm font-bold uppercase tracking-widest text-slate-900">Ações rápidas</h4>
+              <div className="space-y-3 text-sm font-bold">
+                <Link href="/onboarding" className="block rounded-2xl bg-slate-50 px-4 py-3 text-slate-700">
+                  Atualizar onboarding
+                </Link>
+                <Link href="/agent/empreendimentos/create" className="block rounded-2xl bg-slate-50 px-4 py-3 text-slate-700">
+                  Nova iniciativa
+                </Link>
+                <Link href="/agent/service-requests" className="block rounded-2xl bg-slate-50 px-4 py-3 text-slate-700">
+                  Solicitar apoio
+                </Link>
+              </div>
             </div>
           </div>
 
-          {/* Center Column: Main Content / Feed */}
-          <div className="lg:col-span-6 space-y-6">
-            
-            {activeTab === 'feed' && (
-              <div className="space-y-6">
-                {/* Official Post Composer (Staff Only simulation UI) */}
-                <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-                  <div className="flex gap-4 items-center">
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">GD</div>
-                    <div className="flex-1 bg-slate-50 rounded-2xl px-6 py-3 text-slate-400 font-medium text-sm">
-                       Apenas a Globus Dei publica novidades oficiais aqui...
-                    </div>
-                  </div>
-                </div>
-
-                {/* Announcement List */}
-                {announcements.length > 0 ? announcements.map((ann) => (
-                  <div key={ann.id} className="bg-white rounded-3xl border border-slate-200 p-8 shadow-sm hover:shadow-md transition-all">
-                    <div className="flex justify-between items-start mb-6">
-                      <div className="flex items-center gap-3">
-                         <div className="w-12 h-12 bg-slate-900 rounded-2xl flex items-center justify-center">
-                            <img src="/logo.png" className="h-6 w-auto brightness-200" alt="GD" />
-                         </div>
-                         <div>
-                            <h4 className="font-bold text-slate-900">Globus Dei Oficial</h4>
-                            <p className="text-xs text-slate-400 font-bold uppercase tracking-tighter">{new Date(ann.createdAt).toLocaleDateString('pt-BR')}</p>
-                         </div>
-                      </div>
-                      <span className="px-3 py-1 bg-orange-50 text-primary text-[10px] font-black uppercase rounded-lg border border-orange-100">
-                        {ann.type}
+          <div className="space-y-6 lg:col-span-6">
+            <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
+              <h2 className="mb-6 text-2xl font-bold text-slate-900">Atualizações oficiais</h2>
+              <div className="space-y-5">
+                {dashboard?.announcements?.length ? dashboard.announcements.map((announcement) => (
+                  <div key={announcement.id} className="rounded-3xl border border-slate-100 bg-slate-50 p-6">
+                    <div className="mb-3 flex items-center justify-between">
+                      <span className="text-xs font-black uppercase text-primary">{announcement.type}</span>
+                      <span className="text-xs text-slate-400">
+                        {new Date(announcement.createdAt).toLocaleDateString('pt-BR')}
                       </span>
                     </div>
-                    <h3 className="text-2xl font-display font-bold text-slate-900 mb-4">{ann.title}</h3>
-                    <p className="text-slate-600 leading-relaxed font-normal whitespace-pre-wrap">{ann.content}</p>
-                    <div className="mt-8 pt-6 border-t border-slate-50 flex gap-4">
-                       <button className="text-primary font-bold text-sm hover:underline">Ver Detalhes</button>
-                    </div>
+                    <h3 className="mb-2 text-xl font-bold text-slate-900">{announcement.title}</h3>
+                    <p className="whitespace-pre-wrap text-slate-600">{announcement.content}</p>
                   </div>
                 )) : (
-                  <div className="text-center py-20 bg-white rounded-[40px] border border-dashed border-slate-200">
-                     <p className="text-slate-400 font-medium italic">Nenhuma atualização oficial no momento.</p>
-                  </div>
+                  <p className="rounded-3xl border border-dashed border-slate-200 p-12 text-center text-slate-400">
+                    Nenhuma atualização oficial no momento.
+                  </p>
                 )}
               </div>
-            )}
-
-            {activeTab === 'pessoas' && (
-              <div className="bg-white rounded-[40px] border border-slate-200 p-10 min-h-[500px]">
-                <h2 className="text-3xl font-display font-bold text-slate-900 mb-8 tracking-tight">Expandir Rede Profissional</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* Discovery Cards (Mocks) */}
-                  {[
-                    { name: 'Dr. Lucas Ferreira', voc: 'Saúde & Missões', loc: 'Angola' },
-                    { name: 'Ana Clara Santos', voc: 'Educação Infantil', loc: 'Brasil' },
-                    { name: 'Roberto Lima', voc: 'Engenharia Civil', loc: 'Peru' },
-                  ].map((p, i) => (
-                    <div key={i} className="p-6 border border-slate-100 rounded-3xl bg-slate-50/50 hover:bg-white hover:shadow-xl transition-all group">
-                       <div className="w-12 h-12 bg-white rounded-xl mb-4 shadow-sm group-hover:scale-110 transition-transform"></div>
-                       <h4 className="font-bold text-slate-900">{p.name}</h4>
-                       <p className="text-xs text-slate-500 font-medium mb-6">{p.voc} • {p.loc}</p>
-                       <button className="w-full py-2 bg-white border border-primary text-primary font-bold rounded-xl text-sm hover:bg-primary hover:text-white transition-colors">
-                         Conectar
-                       </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'iniciativas' && (
-              <div className="bg-white rounded-[40px] border border-slate-200 p-10 min-h-[500px]">
-                <h2 className="text-3xl font-display font-bold text-slate-900 mb-8 tracking-tight">Destaques da Rede</h2>
-                <div className="space-y-6">
-                  {following.length > 0 ? following.map((item) => (
-                    <div key={item.empreendimento.id} className="flex items-center justify-between p-6 bg-slate-50 rounded-3xl border border-slate-100">
-                       <div className="flex items-center gap-4">
-                          <div className="w-12 h-12 bg-white rounded-xl border border-slate-100"></div>
-                          <div>
-                             <h4 className="font-bold text-slate-900">{item.empreendimento.name}</h4>
-                             <p className="text-xs text-slate-500 font-bold uppercase">{item.empreendimento.category}</p>
-                          </div>
-                       </div>
-                       <button className="text-slate-400 font-bold text-sm hover:text-primary transition-colors">Acompanhando</button>
-                    </div>
-                  )) : (
-                    <p className="text-slate-400 italic">Você ainda não segue nenhuma iniciativa. Explore acima!</p>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'servicos' && (
-              <div className="bg-white rounded-[40px] border border-slate-200 p-10">
-                <div className="flex justify-between items-center mb-10">
-                   <h2 className="text-3xl font-display font-bold text-slate-900 tracking-tight">Suporte Técnico</h2>
-                   <button className="px-6 py-2 bg-primary text-white font-bold rounded-2xl text-sm shadow-lg shadow-orange-100 hover:scale-105 active:scale-95 transition-all">Novo Pedido</button>
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                   {[
-                     { label: 'Apoio Psicológico', icon: '🧠' },
-                     { label: 'Assessoria Jurídica', icon: '⚖️' },
-                     { label: 'Suporte em TI', icon: '💻' },
-                     { label: 'Mentoria Missionária', icon: '✨' },
-                   ].map((s, i) => (
-                     <div key={i} className="p-6 bg-slate-50 rounded-3xl border border-slate-100 flex flex-col items-center text-center hover:border-primary transition-all">
-                        <span className="text-3xl mb-4">{s.icon}</span>
-                        <h4 className="font-bold text-slate-900 text-sm whitespace-nowrap">{s.label}</h4>
-                     </div>
-                   ))}
-                </div>
-              </div>
-            )}
-
+            </div>
           </div>
 
-          {/* Right Column: Active Status & Notifications */}
-          <div className="lg:col-span-3 space-y-6">
-             <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm">
-                <h4 className="font-bold text-slate-900 mb-6 text-sm uppercase tracking-widest border-b border-slate-50 pb-4">Status da Conta</h4>
-                <div className="flex items-center gap-3">
-                   <div className="w-3 h-3 rounded-full bg-green-500 animate-pulse"></div>
-                   <span className="text-sm font-bold text-slate-700">Membro Verificado</span>
+          <div className="space-y-6 lg:col-span-3">
+            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+              <h4 className="mb-4 text-sm font-bold uppercase tracking-widest text-slate-900">Indicadores</h4>
+              <div className="space-y-4 text-sm">
+                <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
+                  <span>Seguindo iniciativas</span>
+                  <span className="font-bold text-primary">{dashboard?.following ?? 0}</span>
                 </div>
-                <p className="mt-4 text-xs text-slate-400 leading-relaxed font-medium">Você tem acesso total aos recursos exclusivos e ao fundo missionário.</p>
-             </div>
+                <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
+                  <span>Solicitações abertas</span>
+                  <span className="font-bold text-primary">{dashboard?.serviceRequests?.length ?? 0}</span>
+                </div>
+                <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
+                  <span>Empreendimentos</span>
+                  <span className="font-bold text-primary">{dashboard?.empreendimentos?.length ?? 0}</span>
+                </div>
+              </div>
+            </div>
 
-             <div className="bg-slate-900 rounded-[32px] p-8 text-white relative overflow-hidden">
-                <div className="relative z-10">
-                   <h4 className="font-display font-bold text-xl mb-4">Próximo Evento</h4>
-                   <p className="text-orange-400 text-xs font-black uppercase tracking-widest mb-6 underline underline-offset-4 decoration-white/20">LIVE: Impacto Tecnológico</p>
-                   <p className="text-sm text-slate-400 mb-8 leading-relaxed font-normal">Participe da nossa próxima conferência global online para networking.</p>
-                   <button className="w-full py-3 bg-primary text-white font-bold rounded-2xl text-sm hover:bg-orange-600 transition-colors">Garantir Vaga</button>
-                </div>
-                <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full -translate-y-12 translate-x-12 blur-3xl"></div>
-             </div>
+            <div className="rounded-[32px] bg-slate-900 p-8 text-white">
+              <h4 className="mb-4 text-xl font-bold">Últimas solicitações</h4>
+              <div className="space-y-4 text-sm">
+                {dashboard?.serviceRequests?.length ? dashboard.serviceRequests.map((request) => (
+                  <div key={request.id} className="rounded-2xl bg-white/5 p-4">
+                    <div className="mb-1 font-bold">{request.category}</div>
+                    <div className="mb-2 text-slate-400">{request.status}</div>
+                    <p className="line-clamp-3 text-slate-300">{request.description}</p>
+                  </div>
+                )) : (
+                  <p className="text-slate-400">Nenhuma solicitação registrada.</p>
+                )}
+              </div>
+            </div>
           </div>
-
         </div>
       </main>
     </div>

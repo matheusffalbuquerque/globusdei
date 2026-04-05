@@ -2,10 +2,15 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+
+import { apiFetch } from '../../../../lib/api';
 
 export default function CreateEmpreendimento() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -24,10 +29,11 @@ export default function CreateEmpreendimento() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
+    setError(null);
     try {
-      const res = await fetch('http://localhost:3001/api/empreendimentos', {
+      await apiFetch('/empreendimentos', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        session,
         body: JSON.stringify({
           ...formData,
           establishedDate: new Date(formData.establishedDate).toISOString(),
@@ -35,16 +41,21 @@ export default function CreateEmpreendimento() {
           socialLinks: {}, // Optional JSON field
         }),
       });
-
-      if (res.ok) {
-        router.push('/agent/empreendimentos');
-      }
+      router.push('/agent/empreendimentos');
     } catch (err) {
-      console.error(err);
+      setError((err as Error).message);
     } finally {
       setLoading(false);
     }
   };
+
+  if (status === 'loading') {
+    return <div className="p-10 text-center">Carregando sessão...</div>;
+  }
+
+  if (status !== 'authenticated') {
+    return <div className="p-10 text-center">Faça login para criar uma iniciativa.</div>;
+  }
 
   return (
     <div className="min-h-screen bg-white p-8">
@@ -60,6 +71,7 @@ export default function CreateEmpreendimento() {
         <p className="text-gray-500 mb-12">Conte-nos sobre o seu projeto missionário ou social.</p>
 
         <form onSubmit={handleSubmit} className="space-y-12">
+          {error && <div className="rounded-2xl border border-red-100 bg-red-50 p-4 text-red-600">{error}</div>}
           {/* Sessão 1: Dados Básicos */}
           <section className="space-y-6">
             <h2 className="text-xl font-bold border-b border-gray-100 pb-3">Informações Gerais</h2>
