@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,15 +7,20 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-/// Onboarding Phase Enum for tracking User Admission
 enum AgentStatus {
-  ENTERED             // Just registered, preparing application
-  SUBMITTED           // Questionnaire completed, pending analysis
-  QUALIFIED           // Approved by staff, ready to pick interview slot
-  SCHEDULED           // Interview scheduled with google meet link
-  FEEDBACK_PROVIDED   // Interview finished, evaluation emitted
-  APPROVED            // Fully integrated into the ecosystem
-  REJECTED            // Application denied
+  ENTERED
+  SUBMITTED
+  QUALIFIED
+  SCHEDULED
+  APPROVED
+  REJECTED
+}
+
+enum CollaboratorRole {
+  ADMIN
+  PEOPLE_MANAGER
+  PROJECT_MANAGER
+  RESOURCE_MANAGER
 }
 
 enum EmpreendimentoType {
@@ -80,6 +82,7 @@ enum ServiceRequestCategory {
   MEDICAL
   SPIRITUAL
   MENTORSHIP
+  LEGAL
 }
 
 enum ServiceRequestStatus {
@@ -89,279 +92,308 @@ enum ServiceRequestStatus {
   CLOSED
 }
 
-/// Agent model representing a user acting as a missionary, student, or professional seeking support.
-/// Strictly implementing the Agent interface requirements from the shared domain models.
-model Agent {
-  id              String   @id @default(uuid())
-  name            String
-  email           String   @unique
-  /// The specific role vocation context of this agent
-  vocationType    String
-  /// Comprehensive background detailing needs and history
-  description     String   @db.Text
-  isActive        Boolean  @default(true)
-  
-  /// Identifiers or relations to the Empreendimento initiatives the agent belongs to.
-  empreendimentos EmpreendimentoAgent[]
-
-  /// Networking & Following
-  sentConnections     Connection[] @relation("SentConnections")
-  receivedConnections Connection[] @relation("ReceivedConnections")
-  followedIniciativas EmpreendimentoFollow[]
-  serviceRequests     ServiceRequest[]
-
-  /// ONBOARDING STATE MACHINE
-  status          AgentStatus @default(ENTERED)
-  
-  /// New Scheduling Relation
-  scheduledSlot   AvailabilitySlot? @relation(fields: [scheduledSlotId], references: [id])
-  scheduledSlotId String?           @unique
-
-  /// Contains the Google Meet link or external URL once status is SCHEDULED
-  interviewLink   String?
-  interviewDate   DateTime?
-  /// UUID of the Collaborator handling the evaluation
-  interviewerId   String?
-  /// Missiological Feedback provided after the interview
-  feedback        String?     @db.Text
-  
-  /// Form Answers array submitted by the agent
-  answers         Answer[]
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+enum AnnouncementType {
+  SYSTEM
+  MISSION
+  OPPORTUNITY
+  EVENT
 }
 
-/// Networking between Agents
-model Connection {
-  id            String           @id @default(uuid())
-  senderId      String
-  receiverId    String
-  status        ConnectionStatus @default(PENDING)
-  
-  sender        Agent            @relation("SentConnections", fields: [senderId], references: [id], onDelete: Cascade)
-  receiver      Agent            @relation("ReceivedConnections", fields: [receiverId], references: [id], onDelete: Cascade)
+enum FinancialEntryType {
+  INCOME
+  EXPENSE
+  ADJUSTMENT
+  TRANSFER
+}
 
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
+enum FinancialTargetType {
+  ORGANIZATION
+  AGENT
+  EMPREENDIMENTO
+}
+
+model Agent {
+  id                String                 @id @default(uuid())
+  authSubject       String?                @unique
+  name              String
+  email             String                 @unique
+  phone             String?
+  vocationType      String
+  description       String                 @db.Text
+  publicBio         String?                @db.Text
+  privateNotes      String?                @db.Text
+  city              String?
+  country           String?
+  isActive          Boolean                @default(true)
+  status            AgentStatus            @default(ENTERED)
+  scheduledSlotId   String?                @unique
+  scheduledSlot     AvailabilitySlot?      @relation(fields: [scheduledSlotId], references: [id])
+  interviewLink     String?
+  interviewDate     DateTime?
+  interviewerId     String?
+  feedback          String?                @db.Text
+  ownedEmpreendimentos Empreendimento[]      @relation("EmpreendimentoOwner")
+  sentInvites       EmpreendimentoInvite[]   @relation("EmpreendimentoInviter")
+  empreendimentos   EmpreendimentoMember[]
+  sentConnections   Connection[]           @relation("SentConnections")
+  receivedConnections Connection[]         @relation("ReceivedConnections")
+  followedIniciativas EmpreendimentoFollow[]
+  serviceRequests   ServiceRequest[]
+  answers           Answer[]
+  createdAt         DateTime               @default(now())
+  updatedAt         DateTime               @updatedAt
+}
+
+model Collaborator {
+  id                    String             @id @default(uuid())
+  authSubject           String             @unique
+  name                  String
+  email                 String             @unique
+  isActive              Boolean            @default(true)
+  roles                 CollaboratorRole[]
+  expertiseAreas        String[]
+  notes                 String?            @db.Text
+  availabilitySlots     AvailabilitySlot[]
+  assignedServiceRequests ServiceRequest[] @relation("AssignedRequests")
+  managedEmpreendimentos Empreendimento[]  @relation("InternalResponsible")
+  announcements         Announcement[]     @relation("AnnouncementAuthor")
+  serviceLogs           ServiceLog[]
+  financialEntries      FinancialEntry[]
+  recordedInvestments   Investment[]
+  recordedAllocations   Allocation[]
+  createdAt             DateTime           @default(now())
+  updatedAt             DateTime           @updatedAt
+}
+
+model Connection {
+  id          String           @id @default(uuid())
+  senderId    String
+  receiverId  String
+  status      ConnectionStatus @default(PENDING)
+  sender      Agent            @relation("SentConnections", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver    Agent            @relation("ReceivedConnections", fields: [receiverId], references: [id], onDelete: Cascade)
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 
   @@unique([senderId, receiverId])
 }
 
-/// Agent following an Empreendimento
 model EmpreendimentoFollow {
-  agentId           String
-  empreendimentoId  String
-  
-  agent             Agent          @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  empreendimento    Empreendimento @relation(fields: [empreendimentoId], references: [id], onDelete: Cascade)
-
-  createdAt         DateTime       @default(now())
+  agentId          String
+  empreendimentoId String
+  agent            Agent          @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  empreendimento   Empreendimento @relation(fields: [empreendimentoId], references: [id], onDelete: Cascade)
+  createdAt        DateTime       @default(now())
 
   @@id([agentId, empreendimentoId])
 }
 
-/// Official announcements from Globus Dei Staff to the Agent Feed
 model Announcement {
-  id              String   @id @default(uuid())
-  title           String
-  content         String   @db.Text
-  /// SYSTEM, MISSION, OPPORTUNITY
-  type            String   @default("SYSTEM")
-  
-  /// Optional link to a specific initiative or event
-  targetId        String?  
-  authorId        String   // Staff Id
-  
-  createdAt       DateTime @default(now())
+  id         String           @id @default(uuid())
+  title      String
+  content    String           @db.Text
+  type       AnnouncementType @default(SYSTEM)
+  targetId   String?
+  authorId   String
+  author     Collaborator     @relation("AnnouncementAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
 }
 
-/// Service requests created by Agents seeking specific platform support
 model ServiceRequest {
-  id              String   @id @default(uuid())
-  agentId         String
-  agent           Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  
-  category        ServiceRequestCategory
-  status          ServiceRequestStatus @default(OPEN)
-  description     String   @db.Text
-  
-  /// Internal Staff handling the request
-  assignedStaffId String?
-  internalNotes   String?  @db.Text
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                     String               @id @default(uuid())
+  agentId                String
+  agent                  Agent                @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  category               ServiceRequestCategory
+  status                 ServiceRequestStatus @default(OPEN)
+  description            String               @db.Text
+  assignedCollaboratorId String?
+  assignedCollaborator   Collaborator?        @relation("AssignedRequests", fields: [assignedCollaboratorId], references: [id])
+  internalNotes          String?              @db.Text
+  createdAt              DateTime             @default(now())
+  updatedAt              DateTime             @updatedAt
 }
 
-/// Empreendimento model representing an initiative, project, or organization.
 model Empreendimento {
-  id              String   @id @default(uuid())
-  name            String
-  /// Core mission statement and initiative objectives
-  description     String   @db.Text
-  establishedDate DateTime
-  
-  type            EmpreendimentoType
-  category        EmpreendimentoCategory
-  
-  /// Social networks and portfolios
-  socialLinks     Json?    // Stores { instagram, youtube, website, etc. }
-  portfolioUrl    String?
-  location        String?
-  actuationRegions String? @db.Text
-  logoUrl         String?
-  bannerUrl       String?
-
-  /// Financial and Needs Management
-  monthlyExpenses   Float     @default(0)
-  incomeSources     String?   @db.Text
-  needType          NeedType  @default(MAINTENANCE)
-  receivesInvestments Boolean @default(false)
-
-  /// Bank Verification (Restricted access)
-  isBankVerified    Boolean   @default(false)
-  bankDetails       String?   @db.Text // AES-256 Encrypted on Application Layer
-  
-  /// Staff Management / Internal Control
-  priorityScore      Int            @default(0) // 0 to 100
-  followUpStatus     FollowUpStatus @default(OPEN)
-  internalNotes      String?        @db.Text
-  internalResponsibleId String?     // Link to Staff id
-  
-  /// Relationships
-  ownerId           String
-  agents            EmpreendimentoAgent[]
-  invites           EmpreendimentoInvite[]
-  followers         EmpreendimentoFollow[]
-  serviceLogs       ServiceLog[]
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id                    String                 @id @default(uuid())
+  name                  String
+  description           String                 @db.Text
+  establishedDate       DateTime
+  type                  EmpreendimentoType
+  category              EmpreendimentoCategory
+  socialLinks           Json?
+  portfolioUrl          String?
+  location              String?
+  actuationRegions      String?                @db.Text
+  logoUrl               String?
+  bannerUrl             String?
+  monthlyExpenses       Float                  @default(0)
+  incomeSources         String?                @db.Text
+  needType              NeedType               @default(MAINTENANCE)
+  receivesInvestments   Boolean                @default(false)
+  isBankVerified        Boolean                @default(false)
+  bankDetails           String?                @db.Text
+  priorityScore         Int                    @default(0)
+  followUpStatus        FollowUpStatus         @default(OPEN)
+  internalNotes         String?                @db.Text
+  internalResponsibleId String?
+  internalResponsible   Collaborator?          @relation("InternalResponsible", fields: [internalResponsibleId], references: [id])
+  ownerId               String
+  owner                 Agent                  @relation("EmpreendimentoOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  agents                EmpreendimentoMember[]
+  invites               EmpreendimentoInvite[]
+  followers             EmpreendimentoFollow[]
+  serviceLogs           ServiceLog[]
+  createdAt             DateTime               @default(now())
+  updatedAt             DateTime               @updatedAt
 }
 
-/// Join table for the many-to-many relationship bridging Agents and Empreendimentos.
-model EmpreendimentoAgent {
-  agentId           String
-  empreendimentoId  String
-  role              EmpreendimentoAgentRole @default(CONTRIBUTOR)
-  
-  agent             Agent          @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  empreendimento    Empreendimento @relation(fields: [empreendimentoId], references: [id], onDelete: Cascade)
+model EmpreendimentoMember {
+  agentId          String
+  empreendimentoId String
+  role             EmpreendimentoAgentRole @default(CONTRIBUTOR)
+  agent            Agent                   @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  empreendimento   Empreendimento          @relation(fields: [empreendimentoId], references: [id], onDelete: Cascade)
+  createdAt        DateTime                @default(now())
 
   @@id([agentId, empreendimentoId])
 }
 
-/// Event model representing online or physical sessions organized by Globus Dei.
-/// Required by business specs to cluster online/offline events over the operational year.
 model Event {
-  id              String   @id @default(uuid())
-  title           String
-  description     String   @db.Text
-  date            DateTime
-  location        String?
-  isOnline        Boolean  @default(false)
-
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id            String       @id @default(uuid())
+  title         String
+  description   String       @db.Text
+  date          DateTime
+  location      String?
+  isOnline      Boolean      @default(false)
+  createdById   String?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
 }
 
-/// AuditLog mapped strictly for LGPD constraints - tracking sensitive data access.
-/// Records actions like: view sensitive missions data, elevation of privileges, or login faults.
 model AuditLog {
-  id              String   @id @default(uuid())
-  /// The Keycloak Identity UUID or System Service who performed the action
-  actorId         String   
-  /// Types: SECURITY, TECHNICAL, AUDIT
-  actionType      String   
-  /// Specific description (e.g., VIEW_SENSITIVE_DATA, INVESTMENT_APPROVAL)
-  actionDetail    String   
-  timestamp       DateTime @default(now())
-  ipAddress       String?
+  id           String   @id @default(uuid())
+  actorId      String
+  actionType   String
+  actionDetail String
+  ipAddress    String?
+  createdAt    DateTime @default(now())
 }
 
-/// Dynamic Onboarding Questions definable by Staff
 model Question {
-  id              String   @id @default(uuid())
-  title           String
-  /// If true, the agent must fulfill this to submit the onboarding application
-  isRequired      Boolean  @default(true)
-  
-  answers         Answer[]
-  
-  createdAt       DateTime @default(now())
+  id         String   @id @default(uuid())
+  title      String
+  isRequired Boolean  @default(true)
+  answers    Answer[]
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
 
-/// A specific Agent's answer to an Onboarding Question
 model Answer {
-  id              String   @id @default(uuid())
-  agentId         String
-  questionId      String
-  
-  text            String   @db.Text
-  
-  agent           Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  question        Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  
-  createdAt       DateTime @default(now())
+  id         String   @id @default(uuid())
+  agentId    String
+  questionId String
+  text       String   @db.Text
+  agent      Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
   @@unique([agentId, questionId])
 }
 
-/// Staff members who manage the platform and conduct interviews
-model Staff {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  slots     AvailabilitySlot[]
-  
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-}
-
-/// Time slots offered by Staff for interviews
 model AvailabilitySlot {
-  id              String   @id @default(uuid())
-  startTime       DateTime
-  endTime         DateTime
-  staffId         String
-  staff           Staff    @relation(fields: [staffId], references: [id], onDelete: Cascade)
-  
-  // The agent who claimed this slot
-  agent           Agent?
-  
-  meetLink        String?  // Custom Meet link for this session
-  
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id             String       @id @default(uuid())
+  startTime      DateTime
+  endTime        DateTime
+  collaboratorId String
+  collaborator   Collaborator @relation(fields: [collaboratorId], references: [id], onDelete: Cascade)
+  agent          Agent?
+  meetLink       String?
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 }
 
-/// Invitation system to link Agents to Empreendimentos
 model EmpreendimentoInvite {
-  id                String   @id @default(uuid())
+  id                String                  @id @default(uuid())
   empreendimentoId  String
-  empreendimento    Empreendimento @relation(fields: [empreendimentoId], references: [id], onDelete: Cascade)
-  
-  email             String   // Target agent email
+  empreendimento    Empreendimento          @relation(fields: [empreendimentoId], references: [id], onDelete: Cascade)
+  email             String
   role              EmpreendimentoAgentRole @default(CONTRIBUTOR)
-  status            InviteStatus @default(PENDING)
-  token             String   @unique // For link-based acceptance
-  
-  inviterId         String   // Agent who created the invite
-  
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  status            InviteStatus            @default(PENDING)
+  token             String                  @unique
+  inviterId         String
+  inviter           Agent                   @relation("EmpreendimentoInviter", fields: [inviterId], references: [id], onDelete: Cascade)
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
 }
 
-/// Periodic Internal Logs created by Staff for tracking Empreendimento status
 model ServiceLog {
-  id                String   @id @default(uuid())
+  id                String       @id @default(uuid())
   empreendimentoId  String
   empreendimento    Empreendimento @relation(fields: [empreendimentoId], references: [id], onDelete: Cascade)
-  
-  staffId           String   // Column for keycloak or local staff id
-  action            String   // e.g., STATUS_CHANGE, NOTE_ADDED, PRIORITY_ADJUSTED
-  content           String   @db.Text
-  
-  createdAt         DateTime @default(now())
+  collaboratorId    String
+  collaborator      Collaborator @relation(fields: [collaboratorId], references: [id], onDelete: Cascade)
+  action            String
+  content           String       @db.Text
+  createdAt         DateTime     @default(now())
+}
+
+model ExpenseCategory {
+  id          String             @id @default(uuid())
+  name        String             @unique
+  description String?
+  entryType   FinancialEntryType @default(EXPENSE)
+  createdAt   DateTime           @default(now())
+  updatedAt   DateTime           @updatedAt
+  entries     FinancialEntry[]
+}
+
+model Investment {
+  id            String              @id @default(uuid())
+  amount        Float
+  description   String?             @db.Text
+  targetType    FinancialTargetType
+  targetId      String?
+  targetName    String?
+  recordedById  String
+  recordedBy    Collaborator        @relation(fields: [recordedById], references: [id], onDelete: Cascade)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  financialEntry FinancialEntry?
+}
+
+model Allocation {
+  id            String              @id @default(uuid())
+  amount        Float
+  description   String?             @db.Text
+  targetType    FinancialTargetType
+  targetId      String
+  targetName    String
+  recordedById  String
+  recordedBy    Collaborator        @relation(fields: [recordedById], references: [id], onDelete: Cascade)
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+  financialEntry FinancialEntry?
+}
+
+model FinancialEntry {
+  id             String              @id @default(uuid())
+  type           FinancialEntryType
+  amount         Float
+  description    String              @db.Text
+  occurredAt     DateTime            @default(now())
+  targetType     FinancialTargetType?
+  targetId       String?
+  targetName     String?
+  categoryId     String?
+  category       ExpenseCategory?    @relation(fields: [categoryId], references: [id])
+  recordedById   String
+  recordedBy     Collaborator        @relation(fields: [recordedById], references: [id], onDelete: Cascade)
+  investmentId   String?             @unique
+  investment     Investment?         @relation(fields: [investmentId], references: [id])
+  allocationId   String?             @unique
+  allocation     Allocation?         @relation(fields: [allocationId], references: [id])
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
 }

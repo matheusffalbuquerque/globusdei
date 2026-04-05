@@ -1,87 +1,78 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { ConnectionStatus } from '@prisma/client';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+
+import { AgentRepository } from '../agent/agent.repository';
+import { ConnectionRepository } from './connection.repository';
+import type { AuthenticatedUser } from '../auth/user-context.interface';
 
 @Injectable()
 export class ConnectionService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private readonly connections: ConnectionRepository,
+    private readonly agents: AgentRepository,
+  ) {}
 
-  /**
-   * Sends a connection request from one agent to another.
-   * Strictly restricted to Agent-to-Agent connections.
-   */
-  async sendRequest(senderId: string, receiverId: string) {
-    if (senderId === receiverId) {
+  async request(user: AuthenticatedUser, receiverId: string) {
+    const sender = await this.agents.upsertFromIdentity({
+      authSubject: user.sub,
+      email: user.email,
+      name: user.name,
+    });
+
+    if (sender.id === receiverId) {
       throw new BadRequestException('You cannot connect with yourself.');
     }
 
-    // Check if agents exist
-    const [sender, receiver] = await Promise.all([
-      this.prisma.agent.findUnique({ where: { id: senderId } }),
-      this.prisma.agent.findUnique({ where: { id: receiverId } }),
-    ]);
-
-    if (!sender || !receiver) {
-      throw new NotFoundException('One or both agents not found.');
+    const receiver = await this.connections.findAgent(receiverId);
+    if (!receiver) {
+      throw new NotFoundException('Receiver not found.');
     }
 
-    // Check existing connection
-    const existing = await this.prisma.connection.findFirst({
-      where: {
-        OR: [
-          { senderId, receiverId },
-          { senderId: receiverId, receiverId: senderId },
-        ],
-      },
-    });
-
+    const existing = await this.connections.findExisting(sender.id, receiverId);
     if (existing) {
       throw new BadRequestException('Connection already exists or is pending.');
     }
 
-    return this.prisma.connection.create({
-      data: {
-        senderId,
-        receiverId,
-        status: ConnectionStatus.PENDING,
-      },
-    });
+    return this.connections.create(sender.id, receiverId);
   }
 
-  async acceptRequest(receiverId: string, connectionId: string) {
-    const conn = await this.prisma.connection.findUnique({ where: { id: connectionId } });
-    
-    if (!conn) throw new NotFoundException('Connection not found.');
-    if (conn.receiverId !== receiverId) throw new BadRequestException('Access denied.');
-    if (conn.status !== ConnectionStatus.PENDING) throw new BadRequestException('Connection not pending.');
-
-    return this.prisma.connection.update({
-      where: { id: connectionId },
-      data: { status: ConnectionStatus.ACCEPTED },
+  async accept(user: AuthenticatedUser, connectionId: string) {
+    const receiver = await this.agents.upsertFromIdentity({
+      authSubject: user.sub,
+      email: user.email,
+      name: user.name,
     });
+    const connection = await this.connections.findById(connectionId);
+
+    if (!connection) {
+      throw new NotFoundException('Connection not found.');
+    }
+
+    if (connection.receiverId !== receiver.id) {
+      throw new BadRequestException('Only the receiver can accept this request.');
+    }
+
+    return this.connections.accept(connectionId);
   }
 
-  async listConnections(agentId: string) {
-    return this.prisma.connection.findMany({
-      where: {
-        OR: [
-          { senderId: agentId, status: ConnectionStatus.ACCEPTED },
-          { receiverId: agentId, status: ConnectionStatus.ACCEPTED },
-        ],
-      },
-      include: {
-        sender: { select: { id: true, name: true, vocationType: true } },
-        receiver: { select: { id: true, name: true, vocationType: true } },
-      },
+  async list(user: AuthenticatedUser) {
+    const agent = await this.agents.upsertFromIdentity({
+      authSubject: user.sub,
+      email: user.email,
+      name: user.name,
     });
+    return this.connections.listAccepted(agent.id);
   }
 
-  async listPending(agentId: string) {
-    return this.prisma.connection.findMany({
-      where: { receiverId: agentId, status: ConnectionStatus.PENDING },
-      include: {
-        sender: { select: { id: true, name: true, vocationType: true } },
-      },
+  async listPending(user: AuthenticatedUser) {
+    const agent = await this.agents.upsertFromIdentity({
+      authSubject: user.sub,
+      email: user.email,
+      name: user.name,
     });
+    return this.connections.listPending(agent.id);
   }
 }

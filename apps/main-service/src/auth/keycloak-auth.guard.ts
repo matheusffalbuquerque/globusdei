@@ -1,47 +1,125 @@
-import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  Injectable,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Logger } from '@nestjs/common';
-// In a full implementation, we typically verify token signature against Keycloak JWKS via jsonwebtoken/jwks-rsa
-// For architectural groundwork and LGPD tracking, we extract and enforce barrier points here.
+import * as jwt from 'jsonwebtoken';
+import jwksClient from 'jwks-rsa';
 
-/**
- * Keycloak Global JWT Auth Guard.
- * Centralizer of Security Access Control (RBAC).
- * It will extract the Authorization header, validate the Realm issuer and roles.
- */
+import type { AuthenticatedUser } from './user-context.interface';
+
 @Injectable()
 export class KeycloakAuthGuard implements CanActivate {
   private readonly logger = new Logger(KeycloakAuthGuard.name);
+  private readonly issuer =
+    process.env.KEYCLOAK_ISSUER ?? 'http://localhost:8080/realms/globusdei';
+  private readonly audience = process.env.KEYCLOAK_CLIENT_ID;
+  private readonly jwks = jwksClient({
+    jwksUri:
+      process.env.KEYCLOAK_JWKS_URI ??
+      `${this.issuer}/protocol/openid-connect/certs`,
+    cache: true,
+    cacheMaxEntries: 5,
+    cacheMaxAge: 10 * 60 * 1000,
+    rateLimit: true,
+    jwksRequestsPerMinute: 10,
+  });
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const authHeader = request.headers.authorization;
+    const authorization = request.headers.authorization;
 
-    if (!authHeader) {
-      this.logger.warn(`Rejected unauthenticated access attempt (Missing Token)`);
-      throw new UnauthorizedException('Authentication required');
+    if (authorization?.startsWith('Bearer ')) {
+      const token = authorization.substring('Bearer '.length);
+      request.user = await this.verifyToken(token);
+      return true;
     }
 
-    const token = authHeader.split(' ')[1];
-    if (!token) {
-      throw new UnauthorizedException('Malformed token structure');
+    const devUser = this.getDevelopmentUser(request.headers);
+    if (devUser) {
+      request.user = devUser;
+      return true;
     }
 
-    // Logic dynamically evaluating JWT signature vs KC_ISSUER via JWKS happens here.
-    // Simulating token decryption payload logic
+    this.logger.warn('Rejected unauthenticated access attempt.');
+    throw new UnauthorizedException('Authentication required.');
+  }
+
+  private async verifyToken(token: string): Promise<AuthenticatedUser> {
     try {
-      // payload = verify(token, publicKey)
-      const mockDecodedToken = {
-        sub: '8223c21a-fc34-4b52-b13c-7c050a41d723', // Mapped actorId
-        realm_access: { roles: ['manage-account'] },
-        preferred_username: 'colaborador.gestor',
+      const decoded = jwt.decode(token, { complete: true });
+      if (!decoded || typeof decoded === 'string' || !decoded.header.kid) {
+        throw new Error('Missing JWT header metadata.');
+      }
+
+      const signingKey = await this.jwks.getSigningKey(decoded.header.kid);
+      const verifyOptions: jwt.VerifyOptions = {
+        algorithms: ['RS256'],
+        issuer: this.issuer,
       };
 
-      // Injection of user identity back to the Request context 
-      request.user = mockDecodedToken;
-      return true;
-    } catch (e) {
-      this.logger.error(`Token validation payload failure:`, e);
-      throw new UnauthorizedException('Invalid or expired token segment');
+      if (this.audience) {
+        verifyOptions.audience = this.audience;
+      }
+
+      const payload = jwt.verify(
+        token,
+        signingKey.getPublicKey(),
+        verifyOptions,
+      ) as jwt.JwtPayload;
+
+      if (!payload.sub) {
+        throw new Error('JWT subject is required.');
+      }
+
+      const realmRoles = Array.isArray(payload.realm_access?.roles)
+        ? payload.realm_access.roles
+        : [];
+
+      return {
+        sub: payload.sub,
+        email: payload.email ?? payload.preferred_username ?? '',
+        name: payload.name ?? payload.preferred_username ?? payload.email ?? 'Usuário',
+        preferredUsername: payload.preferred_username ?? payload.email ?? payload.sub,
+        realmRoles,
+        accessToken: token,
+      };
+    } catch (error) {
+      this.logger.error('Token signature validation failed.', error as Error);
+      throw new UnauthorizedException('Invalid or expired token.');
     }
+  }
+
+  private getDevelopmentUser(headers: Record<string, string | string[] | undefined>): AuthenticatedUser | null {
+    if (process.env.NODE_ENV === 'production') {
+      return null;
+    }
+
+    const sub = this.getHeaderValue(headers['x-dev-user-sub']);
+    const email = this.getHeaderValue(headers['x-dev-user-email']);
+    const name = this.getHeaderValue(headers['x-dev-user-name']);
+    const rolesHeader = this.getHeaderValue(headers['x-dev-user-roles']);
+
+    if (!sub || !email) {
+      return null;
+    }
+
+    return {
+      sub,
+      email,
+      name: name ?? email,
+      preferredUsername: email,
+      realmRoles: rolesHeader ? rolesHeader.split(',').map((role) => role.trim()) : [],
+    };
+  }
+
+  private getHeaderValue(value?: string | string[]): string | undefined {
+    if (Array.isArray(value)) {
+      return value[0];
+    }
+
+    return value;
   }
 }

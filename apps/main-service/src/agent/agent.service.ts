@@ -1,55 +1,63 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService, AuditType } from '../audit/audit.service';
-import { Prisma } from '@prisma/client';
 
-/**
- * AgentService
- * Encapsulates operations over the "Agent" domain: Missionaries, Students, and Leaders.
- * Adheres strictly to the LGPD Reviewer constraint by logging sensitive data accesses.
- */
+import { AuditService, AuditType } from '../audit/audit.service';
+import type { AuthenticatedUser } from '../auth/user-context.interface';
+import { AgentRepository } from './agent.repository';
+import { UpdateAgentProfileDto } from './dto/update-agent-profile.dto';
+
 @Injectable()
 export class AgentService {
   constructor(
-    private prisma: PrismaService,
-    private audit: AuditService,
+    private readonly agents: AgentRepository,
+    private readonly audit: AuditService,
   ) {}
 
-  /**
-   * Retrieves an Agent profile. Includes an audit log trail as agent data may contain PII.
-   */
-  async findOne(id: string, requesterActorId: string) {
-    const agent = await this.prisma.agent.findUnique({
-      where: { id },
-      include: { empreendimentos: true },
+  async getMe(user: AuthenticatedUser) {
+    return this.agents.upsertFromIdentity({
+      authSubject: user.sub,
+      email: user.email,
+      name: user.name,
     });
-    
+  }
+
+  async findOne(id: string, requester: AuthenticatedUser) {
+    const agent = await this.agents.findById(id);
+
     if (!agent) {
       throw new NotFoundException(`Agent ${id} not found.`);
     }
 
-    // Required by Reviewer LGPD constraint
     await this.audit.logAction(
-      requesterActorId,
+      requester.sub,
       AuditType.AUDIT,
-      `Visualização de dados sensíveis do agente: ${agent.name}`
+      `Visualização de dados do agente ${agent.id}.`,
     );
 
     return agent;
   }
 
-  /**
-   * Register a new agent into the ecosystem.
-   */
-  async create(data: Prisma.AgentCreateInput, requesterActorId: string) {
-    const newAgent = await this.prisma.agent.create({ data });
-    
+  async updateMe(user: AuthenticatedUser, data: UpdateAgentProfileDto) {
+    const agent = await this.getMe(user);
+    const updated = await this.agents.updateProfile(agent.id, data);
+
     await this.audit.logAction(
-      requesterActorId,
+      agent.id,
       AuditType.TECHNICAL,
-      `Novo agente cadastrado: ${newAgent.email}`
+      'Atualização do perfil do agente.',
     );
 
-    return newAgent;
+    return updated;
+  }
+
+  async getDashboard(user: AuthenticatedUser) {
+    const agent = await this.getMe(user);
+
+    await this.audit.logAction(
+      agent.id,
+      AuditType.AUDIT,
+      'Visualização do dashboard do agente.',
+    );
+
+    return this.agents.getDashboard(agent.id);
   }
 }

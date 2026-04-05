@@ -1,46 +1,42 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService, AuditType } from '../audit/audit.service';
-import { Prisma } from '@prisma/client';
 
-/**
- * EventService
- * Manages Globus Dei regional and global missionary events.
- */
+import { AuditService, AuditType } from '../audit/audit.service';
+import { AuthenticatedUser } from '../auth/user-context.interface';
+import { EventRepository } from './event.repository';
+import { CreateEventDto } from './dto/create-event.dto';
+
 @Injectable()
 export class EventService {
   constructor(
-    private prisma: PrismaService,
-    private audit: AuditService,
+    private readonly events: EventRepository,
+    private readonly audit: AuditService,
   ) {}
 
-  async findOne(id: string, requesterActorId: string) {
-    const event = await this.prisma.event.findUnique({
-      where: { id },
-    });
-    
+  listAll() {
+    return this.events.listAll();
+  }
+
+  async findOne(id: string, user: AuthenticatedUser) {
+    const event = await this.events.findById(id);
     if (!event) {
-      throw new NotFoundException(`Event ${id} not found.`);
+      throw new NotFoundException('Event not found.');
     }
 
-    await this.audit.logAction(
-      requesterActorId,
-      AuditType.AUDIT,
-      `Visualização de evento global: ${event.title}`
-    );
-
+    await this.audit.logAction(user.sub, AuditType.AUDIT, `Visualização do evento ${id}.`);
     return event;
   }
 
-  async create(data: Prisma.EventCreateInput, requesterActorId: string) {
-    const novo = await this.prisma.event.create({ data });
-    
-    await this.audit.logAction(
-      requesterActorId,
-      AuditType.TECHNICAL,
-      `Novo evento organizado: ${novo.title}`
-    );
+  async create(dto: CreateEventDto, user: AuthenticatedUser) {
+    const event = await this.events.create({
+      title: dto.title,
+      description: dto.description,
+      date: new Date(dto.date),
+      location: dto.location,
+      isOnline: dto.isOnline ?? false,
+      createdById: user.sub,
+    });
 
-    return novo;
+    await this.audit.logAction(user.sub, AuditType.TECHNICAL, `Criação do evento ${event.id}.`);
+    return event;
   }
 }

@@ -1,30 +1,15 @@
 import { Module } from '@nestjs/common';
-import { EmpreendimentoService } from './empreendimento.service';
-import { EmpreendimentoController } from './empreendimento.controller';
-import { StaffEmpreendimentoController } from './staff-empreendimento.controller';
-import { InviteService } from './invite.service';
-import { ClientsModule, Transport } from '@nestjs/microservices';
 
-/**
- * Empreendimento Module
- */
+import { AgentModule } from '../agent/agent.module';
+import { CollaboratorModule } from '../collaborator/collaborator.module';
+import { EmpreendimentoController } from './empreendimento.controller';
+import { EmpreendimentoRepository } from './empreendimento.repository';
+import { EmpreendimentoService } from './empreendimento.service';
+
 @Module({
-  imports: [
-    ClientsModule.register([
-      {
-        name: 'NOTIFICATION_SERVICE',
-        transport: Transport.RMQ,
-        options: {
-          urls: [process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5673'],
-          queue: 'notification_queue',
-          queueOptions: {
-            durable: false
-          },
-        },
-      },
-    ]),
-  ],
-  controllers: [EmpreendimentoController, StaffEmpreendimentoController],
-  providers: [EmpreendimentoService, InviteService],
+  imports: [AgentModule, CollaboratorModule],
+  controllers: [EmpreendimentoController],
+  providers: [EmpreendimentoRepository, EmpreendimentoService],
+  exports: [EmpreendimentoRepository, EmpreendimentoService],
 })
 export class EmpreendimentoModule {}

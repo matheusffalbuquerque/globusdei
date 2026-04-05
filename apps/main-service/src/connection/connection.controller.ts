@@ -1,28 +1,39 @@
-import { Controller, Post, Get, Param, Body, BadRequestException } from '@nestjs/common';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+
+import { CurrentUser } from '../auth/current-user.decorator';
+import { KeycloakAuthGuard } from '../auth/keycloak-auth.guard';
+import { PoliciesGuard } from '../auth/policies.guard';
+import { RequireRealmRoles } from '../auth/role.decorators';
+import type { AuthenticatedUser } from '../auth/user-context.interface';
+import { CreateConnectionRequestDto } from './dto/create-connection-request.dto';
 import { ConnectionService } from './connection.service';
 
-@Controller('api/connections')
+@ApiTags('connections')
+@ApiBearerAuth()
+@Controller('connections')
+@UseGuards(KeycloakAuthGuard, PoliciesGuard)
+@RequireRealmRoles('agente', 'colaborador', 'administrador')
 export class ConnectionController {
-  constructor(private connectionService: ConnectionService) {}
+  constructor(private readonly connections: ConnectionService) {}
 
-  @Post('request')
-  async request(@Body() body: { senderId: string; receiverId: string }) {
-    if (!body.senderId || !body.receiverId) throw new BadRequestException('Invalid data.');
-    return this.connectionService.sendRequest(body.senderId, body.receiverId);
+  @Get()
+  list(@CurrentUser() user: AuthenticatedUser) {
+    return this.connections.list(user);
+  }
+
+  @Get('pending')
+  listPending(@CurrentUser() user: AuthenticatedUser) {
+    return this.connections.listPending(user);
+  }
+
+  @Post('requests')
+  request(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateConnectionRequestDto) {
+    return this.connections.request(user, dto.receiverId);
   }
 
   @Post(':id/accept')
-  async accept(@Param('id') id: string, @Body() body: { actorId: string }) {
-    return this.connectionService.acceptRequest(body.actorId, id);
-  }
-
-  @Get(':agentId')
-  async getConnections(@Param('agentId') agentId: string) {
-    return this.connectionService.listConnections(agentId);
-  }
-
-  @Get(':agentId/pending')
-  async getPending(@Param('agentId') agentId: string) {
-    return this.connectionService.listPending(agentId);
+  accept(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.connections.accept(user, id);
   }
 }

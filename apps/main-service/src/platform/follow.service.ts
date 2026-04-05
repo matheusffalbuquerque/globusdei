@@ -1,39 +1,50 @@
-import { Injectable, NotFoundException, ConflictException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+
+import { AgentRepository } from '../agent/agent.repository';
+import type { AuthenticatedUser } from '../auth/user-context.interface';
+import { PlatformRepository } from './platform.repository';
 
 @Injectable()
 export class FollowService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private readonly platform: PlatformRepository,
+    private readonly agents: AgentRepository,
+  ) {}
 
-  async follow(agentId: string, empreendimentoId: string) {
-    const emp = await this.prisma.empreendimento.findUnique({ where: { id: empreendimentoId } });
-    if (!emp) throw new NotFoundException('Empreendimento not found.');
-
-    const existing = await this.prisma.empreendimentoFollow.findUnique({
-      where: {
-        agentId_empreendimentoId: { agentId, empreendimentoId },
-      },
+  async follow(user: AuthenticatedUser, empreendimentoId: string) {
+    const agent = await this.agents.upsertFromIdentity({
+      authSubject: user.sub,
+      email: user.email,
+      name: user.name,
     });
+    const empreendimento = await this.platform.findEmpreendimento(empreendimentoId);
+    if (!empreendimento) {
+      throw new NotFoundException('Empreendimento not found.');
+    }
 
-    if (existing) throw new ConflictException('Already following.');
+    const existing = await this.platform.findFollow(agent.id, empreendimentoId);
+    if (existing) {
+      throw new ConflictException('Already following.');
+    }
 
-    return this.prisma.empreendimentoFollow.create({
-      data: { agentId, empreendimentoId },
-    });
+    return this.platform.follow(agent.id, empreendimentoId);
   }
 
-  async unfollow(agentId: string, empreendimentoId: string) {
-    return this.prisma.empreendimentoFollow.delete({
-      where: {
-        agentId_empreendimentoId: { agentId, empreendimentoId },
-      },
+  async unfollow(user: AuthenticatedUser, empreendimentoId: string) {
+    const agent = await this.agents.upsertFromIdentity({
+      authSubject: user.sub,
+      email: user.email,
+      name: user.name,
     });
+    return this.platform.unfollow(agent.id, empreendimentoId);
   }
 
-  async getFollowing(agentId: string) {
-    return this.prisma.empreendimentoFollow.findMany({
-      where: { agentId },
-      include: { empreendimento: true },
+  async getFollowing(user: AuthenticatedUser) {
+    const agent = await this.agents.upsertFromIdentity({
+      authSubject: user.sub,
+      email: user.email,
+      name: user.name,
     });
+    return this.platform.getFollowing(agent.id);
   }
 }

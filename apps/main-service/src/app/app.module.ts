@@ -1,11 +1,15 @@
 import { Module } from '@nestjs/common';
+import { ConfigModule } from '@nestjs/config';
+
+import { CollaboratorModule } from '../collaborator/collaborator.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AuditModule } from '../audit/audit.module';
+import { KeycloakAuthGuard } from '../auth/keycloak-auth.guard';
+import { PoliciesGuard } from '../auth/policies.guard';
 import { AgentModule } from '../agent/agent.module';
 import { EmpreendimentoModule } from '../empreendimento/empreendimento.module';
 import { EventModule } from '../event/event.module';
 import { OnboardingModule } from '../onboarding/onboarding.module';
-import { ConfigModule } from '@nestjs/config';
 import { PlatformModule } from '../platform/platform.module';
 
 import { AppController } from './app.controller';
@@ -16,6 +20,7 @@ import { AppService } from './app.service';
     PrismaModule,
     AuditModule,
     AgentModule,
+    CollaboratorModule,
     EmpreendimentoModule,
     EventModule,
     OnboardingModule,
@@ -23,6 +28,6 @@ import { AppService } from './app.service';
     PlatformModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, KeycloakAuthGuard, PoliciesGuard],
 })
 export class AppModule {}

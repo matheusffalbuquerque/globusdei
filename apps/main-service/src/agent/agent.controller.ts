@@ -1,25 +1,39 @@
-import { Controller, Get, Post, Body, Param } from '@nestjs/common';
-import { AgentService } from './agent.service';
-import { Prisma } from '@prisma/client';
+import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
-/**
- * Agent Controller
- * Exposes core REST APIs meant to be gated by the upcoming OAuth2/OIDC RBAC guards.
- */
+import { CurrentUser } from '../auth/current-user.decorator';
+import { KeycloakAuthGuard } from '../auth/keycloak-auth.guard';
+import { PoliciesGuard } from '../auth/policies.guard';
+import { RequireRealmRoles } from '../auth/role.decorators';
+import type { AuthenticatedUser } from '../auth/user-context.interface';
+import { UpdateAgentProfileDto } from './dto/update-agent-profile.dto';
+import { AgentService } from './agent.service';
+
+@ApiTags('agents')
+@ApiBearerAuth()
 @Controller('agents')
+@UseGuards(KeycloakAuthGuard, PoliciesGuard)
+@RequireRealmRoles('agente', 'colaborador', 'administrador')
 export class AgentController {
   constructor(private readonly agentService: AgentService) {}
 
-  @Get(':id')
-  async getAgent(@Param('id') id: string) {
-    // Hardcoded mock user ID until AuthGuard Keycloak sets Request context
-    const reqUserId = 'SYSTEM_ADMIN_MOCK'; 
-    return this.agentService.findOne(id, reqUserId);
+  @Get('me')
+  getMe(@CurrentUser() user: AuthenticatedUser) {
+    return this.agentService.getMe(user);
   }
 
-  @Post()
-  async createAgent(@Body() data: Prisma.AgentCreateInput) {
-    const reqUserId = 'SYSTEM_ADMIN_MOCK';
-    return this.agentService.create(data, reqUserId);
+  @Patch('me')
+  updateMe(@CurrentUser() user: AuthenticatedUser, @Body() dto: UpdateAgentProfileDto) {
+    return this.agentService.updateMe(user, dto);
+  }
+
+  @Get('me/dashboard')
+  getDashboard(@CurrentUser() user: AuthenticatedUser) {
+    return this.agentService.getDashboard(user);
+  }
+
+  @Get(':id')
+  getAgent(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.agentService.findOne(id, user);
   }
 }

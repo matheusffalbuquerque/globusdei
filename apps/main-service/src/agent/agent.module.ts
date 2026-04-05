@@ -1,13 +1,12 @@
 import { Module } from '@nestjs/common';
-import { AgentService } from './agent.service';
-import { AgentController } from './agent.controller';
 
-/**
- * Agent Module
- * Encapsulates the Domain operations for the Globus Dei missionary agents.
- */
+import { AgentController } from './agent.controller';
+import { AgentRepository } from './agent.repository';
+import { AgentService } from './agent.service';
+
 @Module({
   controllers: [AgentController],
-  providers: [AgentService],
+  providers: [AgentRepository, AgentService],
+  exports: [AgentRepository, AgentService],
 })
 export class AgentModule {}

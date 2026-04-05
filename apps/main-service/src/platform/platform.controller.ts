@@ -1,58 +1,66 @@
-import { Controller, Post, Get, Param, Body, BadRequestException, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { CollaboratorRole } from '@prisma/client';
+
+import { CurrentUser } from '../auth/current-user.decorator';
+import { KeycloakAuthGuard } from '../auth/keycloak-auth.guard';
+import { PoliciesGuard } from '../auth/policies.guard';
+import { RequireCollaboratorRoles, RequireRealmRoles } from '../auth/role.decorators';
+import type { AuthenticatedUser } from '../auth/user-context.interface';
+import { CreateServiceRequestDto } from './dto/create-service-request.dto';
+import { UpdateServiceRequestStatusDto } from './dto/update-service-request-status.dto';
 import { FollowService } from './follow.service';
 import { ServiceRequestService } from './service-request.service';
-import { ServiceRequestCategory, ServiceRequestStatus } from '@prisma/client';
 
-@Controller('api/platform')
+@ApiTags('platform')
+@ApiBearerAuth()
+@Controller('platform')
+@UseGuards(KeycloakAuthGuard, PoliciesGuard)
+@RequireRealmRoles('agente', 'colaborador', 'administrador')
 export class PlatformController {
   constructor(
-    private followService: FollowService,
-    private serviceRequestService: ServiceRequestService
+    private readonly follows: FollowService,
+    private readonly serviceRequests: ServiceRequestService,
   ) {}
 
-  // FOLLOW INICIATIVAS
   @Post('follow/:empreendimentoId')
-  async follow(@Param('empreendimentoId') empreendimentoId: string, @Body() body: { agentId: string }) {
-    if (!body.agentId) throw new BadRequestException('Agent ID required.');
-    return this.followService.follow(body.agentId, empreendimentoId);
+  follow(@CurrentUser() user: AuthenticatedUser, @Param('empreendimentoId') empreendimentoId: string) {
+    return this.follows.follow(user, empreendimentoId);
   }
 
   @Post('unfollow/:empreendimentoId')
-  async unfollow(@Param('empreendimentoId') empreendimentoId: string, @Body() body: { agentId: string }) {
-    if (!body.agentId) throw new BadRequestException('Agent ID required.');
-    return this.followService.unfollow(body.agentId, empreendimentoId);
+  unfollow(@CurrentUser() user: AuthenticatedUser, @Param('empreendimentoId') empreendimentoId: string) {
+    return this.follows.unfollow(user, empreendimentoId);
   }
 
-  @Get('following/:agentId')
-  async getFollowing(@Param('agentId') agentId: string) {
-    return this.followService.getFollowing(agentId);
+  @Get('following')
+  getFollowing(@CurrentUser() user: AuthenticatedUser) {
+    return this.follows.getFollowing(user);
   }
 
-  // SERVICE REQUESTS
-  @Post('service-request')
-  async createRequest(
-    @Body() body: { agentId: string; category: ServiceRequestCategory; description: string }
-  ) {
-    if (!body.agentId || !body.category || !body.description) throw new BadRequestException('Invalid request data.');
-    return this.serviceRequestService.createRequest(body.agentId, body.category, body.description);
+  @Post('service-requests')
+  createServiceRequest(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateServiceRequestDto) {
+    return this.serviceRequests.createRequest(user, dto.category, dto.description);
   }
 
-  @Get('service-requests/:agentId')
-  async listForAgent(@Param('agentId') agentId: string) {
-    return this.serviceRequestService.listForAgent(agentId);
+  @Get('service-requests/mine')
+  listMyServiceRequests(@CurrentUser() user: AuthenticatedUser) {
+    return this.serviceRequests.listForAgent(user);
   }
 
-  // STAFF ONLY (Simulated for now)
-  @Get('admin/service-requests')
-  async listAllRequests() {
-    return this.serviceRequestService.listForAllStaff();
+  @Get('service-requests')
+  @RequireCollaboratorRoles(CollaboratorRole.ADMIN, CollaboratorRole.PEOPLE_MANAGER, CollaboratorRole.PROJECT_MANAGER)
+  listAllServiceRequests() {
+    return this.serviceRequests.listForCollaborators();
   }
 
-  @Post('admin/service-requests/:id/status')
-  async updateRequestStatus(
+  @Patch('service-requests/:id/status')
+  @RequireCollaboratorRoles(CollaboratorRole.ADMIN, CollaboratorRole.PEOPLE_MANAGER, CollaboratorRole.PROJECT_MANAGER)
+  updateStatus(
+    @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
-    @Body() body: { status: ServiceRequestStatus; internalNotes?: string; assignedStaffId?: string }
+    @Body() dto: UpdateServiceRequestStatusDto,
   ) {
-    return this.serviceRequestService.updateStatus(id, body.status, body.internalNotes, body.assignedStaffId);
+    return this.serviceRequests.updateStatus(user, id, dto.status, dto.internalNotes);
   }
 }

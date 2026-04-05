@@ -1,34 +1,73 @@
-import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
-import { Logger } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Injectable,
+  Logger,
+} from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { CollaboratorRole } from '@prisma/client';
+import { PrismaService } from '../prisma/prisma.service';
+import { COLLABORATOR_ROLES_KEY, REALM_ROLES_KEY } from './role.decorators';
+import type { AuthenticatedUser } from './user-context.interface';
 
-/**
- * Policies Guard mapped specifically from the "Políticas de Segurança em Camadas" guidelines.
- * ABAC/RBAC layer asserting granular object-level claims.
- */
 @Injectable()
 export class PoliciesGuard implements CanActivate {
   private readonly logger = new Logger(PoliciesGuard.name);
 
+  constructor(
+    private readonly reflector: Reflector,
+    private readonly prisma: PrismaService,
+  ) {}
+
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const user = request.user;
-    
-    // As explicitly specified in the Reviewer constraints, implement policies like:
-    // canViewAgent(user, agentId), canManageInvestment(user, investmentId)
-    
-    if (!user || !user.realm_access?.roles) {
-      this.logger.warn(`Policy rejection: User context without defined roles attempting strict operation.`);
-      throw new ForbiddenException('Missing resource privileges in Context');
+    const user = request.user as AuthenticatedUser | undefined;
+    const realmRoles = this.reflector.getAllAndOverride<string[]>(REALM_ROLES_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]) ?? [];
+    const collaboratorRoles =
+      this.reflector.getAllAndOverride<CollaboratorRole[]>(COLLABORATOR_ROLES_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ]) ?? [];
+
+    if (!user) {
+      throw new ForbiddenException('Missing authenticated user context.');
     }
 
-    const { roles } = user.realm_access;
-    
-    // Simulating checking broad manage privilege
-    if (roles.includes('manage-account') || roles.includes('admin')) {
-      return true;
+    if (realmRoles.length > 0 && !realmRoles.some((role) => user.realmRoles.includes(role))) {
+      this.logger.warn(`Realm role mismatch for actor ${user.sub}.`);
+      throw new ForbiddenException('Missing required realm role.');
     }
 
-    this.logger.warn(`ABAC Violation: User ${user.sub} failed fine-grained policy check`);
-    throw new ForbiddenException('ABAC policy evaluation returned negative assertion');
+    if (collaboratorRoles.length > 0) {
+      const collaborator = await this.ensureCollaborator(user);
+      const hasRole = collaboratorRoles.some((role) => collaborator.roles.includes(role));
+
+      if (!hasRole) {
+        this.logger.warn(`Collaborator role mismatch for actor ${user.sub}.`);
+        throw new ForbiddenException('Missing required collaborator role.');
+      }
+
+      request.collaborator = collaborator;
+    }
+
+    return true;
+  }
+
+  private async ensureCollaborator(user: AuthenticatedUser) {
+    const existing = await this.prisma.collaborator.findFirst({
+      where: {
+        OR: [{ authSubject: user.sub }, { email: user.email }],
+      },
+    });
+
+    if (existing) {
+      return existing;
+    }
+
+    throw new ForbiddenException('Missing local collaborator profile.');
   }
 }

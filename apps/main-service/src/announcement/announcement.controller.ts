@@ -1,30 +1,42 @@
-import { Controller, Post, Get, Param, Body, UnauthorizedException, Delete } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { CollaboratorRole } from '@prisma/client';
+
+import { CurrentUser } from '../auth/current-user.decorator';
+import { KeycloakAuthGuard } from '../auth/keycloak-auth.guard';
+import { PoliciesGuard } from '../auth/policies.guard';
+import { RequireCollaboratorRoles, RequireRealmRoles } from '../auth/role.decorators';
+import type { AuthenticatedUser } from '../auth/user-context.interface';
+import { CreateAnnouncementDto } from './dto/create-announcement.dto';
 import { AnnouncementService } from './announcement.service';
 
-@Controller('api/announcements')
+@ApiTags('announcements')
+@ApiBearerAuth()
+@Controller('announcements')
+@UseGuards(KeycloakAuthGuard, PoliciesGuard)
+@RequireRealmRoles('agente', 'colaborador', 'administrador')
 export class AnnouncementController {
-  constructor(private announcementService: AnnouncementService) {}
-
-  @Post()
-  async create(
-    @Body() body: { title: string; content: string; type: string; authorId: string; targetId?: string }
-  ) {
-    // In production, authorId comes from JWT
-    return this.announcementService.create(body.title, body.content, body.type, body.authorId, body.targetId);
-  }
+  constructor(private readonly announcements: AnnouncementService) {}
 
   @Get()
-  async listRecent() {
-    return this.announcementService.getRecentForAgent();
+  listRecent() {
+    return this.announcements.listRecent();
   }
 
   @Get('all')
-  async listAll() {
-    return this.announcementService.listAll();
+  listAll() {
+    return this.announcements.listAll();
+  }
+
+  @Post()
+  @RequireCollaboratorRoles(CollaboratorRole.ADMIN, CollaboratorRole.PROJECT_MANAGER)
+  create(@Body() dto: CreateAnnouncementDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.announcements.create(dto, user);
   }
 
   @Delete(':id')
-  async delete(@Param('id') id: string) {
-    return this.announcementService.delete(id);
+  @RequireCollaboratorRoles(CollaboratorRole.ADMIN, CollaboratorRole.PROJECT_MANAGER)
+  delete(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.announcements.delete(id, user);
   }
 }

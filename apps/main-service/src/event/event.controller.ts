@@ -1,23 +1,36 @@
-import { Controller, Get, Post, Body, Param } from '@nestjs/common';
-import { EventService } from './event.service';
-import { Prisma } from '@prisma/client';
+import { Body, Controller, Get, Param, Post, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { CollaboratorRole } from '@prisma/client';
 
-/**
- * Event Controller
- */
+import { CurrentUser } from '../auth/current-user.decorator';
+import { KeycloakAuthGuard } from '../auth/keycloak-auth.guard';
+import { PoliciesGuard } from '../auth/policies.guard';
+import { RequireCollaboratorRoles, RequireRealmRoles } from '../auth/role.decorators';
+import { AuthenticatedUser } from '../auth/user-context.interface';
+import { CreateEventDto } from './dto/create-event.dto';
+import { EventService } from './event.service';
+
+@ApiTags('events')
+@ApiBearerAuth()
 @Controller('events')
+@UseGuards(KeycloakAuthGuard, PoliciesGuard)
+@RequireRealmRoles('agente', 'colaborador', 'administrador')
 export class EventController {
-  constructor(private readonly eventService: EventService) {}
+  constructor(private readonly events: EventService) {}
+
+  @Get()
+  listAll() {
+    return this.events.listAll();
+  }
 
   @Get(':id')
-  async getEvent(@Param('id') id: string) {
-    const reqUserId = 'SYSTEM_ADMIN_MOCK'; 
-    return this.eventService.findOne(id, reqUserId);
+  findOne(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.events.findOne(id, user);
   }
 
   @Post()
-  async createEvent(@Body() data: Prisma.EventCreateInput) {
-    const reqUserId = 'SYSTEM_ADMIN_MOCK';
-    return this.eventService.create(data, reqUserId);
+  @RequireCollaboratorRoles(CollaboratorRole.ADMIN, CollaboratorRole.PROJECT_MANAGER)
+  create(@Body() dto: CreateEventDto, @CurrentUser() user: AuthenticatedUser) {
+    return this.events.create(dto, user);
   }
 }

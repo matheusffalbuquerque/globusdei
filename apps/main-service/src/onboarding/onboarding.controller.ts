@@ -1,128 +1,110 @@
-import { Controller, Get, Post, Put, Body, Param } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Post,
+  Put,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { CollaboratorRole } from '@prisma/client';
+
+import { CurrentUser } from '../auth/current-user.decorator';
+import { KeycloakAuthGuard } from '../auth/keycloak-auth.guard';
+import { PoliciesGuard } from '../auth/policies.guard';
+import {
+  RequireCollaboratorRoles,
+  RequireRealmRoles,
+} from '../auth/role.decorators';
+import type { AuthenticatedUser } from '../auth/user-context.interface';
+import { ClaimSlotDto } from './dto/claim-slot.dto';
+import { CreateQuestionDto } from './dto/create-question.dto';
+import { CreateSlotDto } from './dto/create-slot.dto';
+import { ProvideFeedbackDto } from './dto/provide-feedback.dto';
+import { SubmitOnboardingDto } from './dto/submit-onboarding.dto';
 import { OnboardingService } from './onboarding.service';
-import { QuestionService } from './question.service';
-import { StaffService } from './staff.service';
-import { Prisma } from '@prisma/client';
 
-/**
- * OnboardingController — HTTP gateway for the Agent admission lifecycle.
- *
- * Exposes three public-facing phases:
- *  1. Agent submits the onboarding questionnaire (POST :agentId/submit)
- *  2. Staff schedules a Google Meet interview    (PUT  :agentId/schedule)
- *  3. Staff provides post-interview feedback      (PUT  :agentId/feedback)
- *
- * Also exposes read-only endpoints for listing questions and pending Agents.
- *
- * @note Authentication/authorisation via Keycloak OIDC is pending integration.
- *       The staffId is temporarily mocked — see TODO comments below.
- */
+@ApiTags('onboarding')
+@ApiBearerAuth()
 @Controller('onboarding')
+@UseGuards(KeycloakAuthGuard, PoliciesGuard)
+@RequireRealmRoles('agente', 'colaborador', 'administrador')
 export class OnboardingController {
-  constructor(
-    private readonly onboarding: OnboardingService,
-    private readonly questions: QuestionService,
-    private readonly staff: StaffService,
-  ) {}
+  constructor(private readonly onboarding: OnboardingService) {}
 
-  /**
-   * GET /onboarding/questions
-   * Returns all active onboarding questions for the Agent-facing questionnaire form.
-   */
   @Get('questions')
-  async getQuestions() {
-    return this.questions.findAll();
+  getQuestions() {
+    return this.onboarding.getQuestions();
   }
 
-  /**
-   * GET /onboarding/pending-analysis
-   * Staff utility: retrieves all Agents with status SUBMITTED or SCHEDULED,
-   * including their questionnaire answers, for missiological review.
-   */
+  @Post('questions')
+  @RequireCollaboratorRoles(CollaboratorRole.ADMIN, CollaboratorRole.PEOPLE_MANAGER)
+  createQuestion(@Body() dto: CreateQuestionDto) {
+    return this.onboarding.createQuestion(dto.title, dto.isRequired ?? true);
+  }
+
+  @Get('status')
+  getStatus(@CurrentUser() user: AuthenticatedUser) {
+    return this.onboarding.getStatus(user);
+  }
+
+  @Post('submit')
+  submit(@CurrentUser() user: AuthenticatedUser, @Body() dto: SubmitOnboardingDto) {
+    return this.onboarding.submitAnswers(user, dto.answers);
+  }
+
   @Get('pending-analysis')
-  async extractPendingAgents() {
+  @RequireCollaboratorRoles(CollaboratorRole.ADMIN, CollaboratorRole.PEOPLE_MANAGER)
+  getPendingAgents() {
     return this.onboarding.getPendingAgents();
   }
 
-  /**
-   * GET /onboarding/slots
-   * Agent utility: retrieves all available (unclaimed) interview slots.
-   */
-  @Get('slots')
-  async getAvailableSlots() {
-    return this.staff.getAvailableSlots();
-  }
-
-  /**
-   * POST /onboarding/questions
-   * Admin endpoint: creates a new onboarding question in the catalogue.
-   * @param data - Question payload (title, isRequired).
-   */
-  @Post('questions')
-  async addQuestion(@Body() data: Prisma.QuestionCreateInput) {
-    return this.questions.create(data);
-  }
-
-  /**
-   * POST /onboarding/:agentId/submit
-   * Agent submits questionnaire answers — transitions status from ENTERED → SUBMITTED.
-   * @param agentId - UUID of the Agent submitting the form.
-   * @param payload - Object containing an array of { questionId, text } answer pairs.
-   */
-  @Post(':agentId/submit')
-  async submitForm(
-    @Param('agentId') agentId: string,
-    @Body() payload: { answers: { questionId: string; text: string }[] }
-  ) {
-    return this.onboarding.submitAnswers(agentId, payload.answers);
-  }
-
-  /**
-   * PATCH /onboarding/:agentId/approve
-   * Staff approves questionnaire for a SUBMITTED agent (→ QUALIFIED).
-   * Indicating the agent is now ready to pick an interview slot.
-   */
   @Post(':agentId/approve')
-  async approveQuestionnaire(
+  @RequireCollaboratorRoles(CollaboratorRole.ADMIN, CollaboratorRole.PEOPLE_MANAGER)
+  approve(
     @Param('agentId') agentId: string,
+    @CurrentUser() user: AuthenticatedUser,
   ) {
-    // TODO: Extract staffId from Keycloak JWT token
-    const staffId = 'STAFF_MOCK_UUID';
-    return this.onboarding.approveQuestionnaire(agentId, staffId);
+    return this.onboarding.approveQuestionnaire(agentId, user);
   }
 
-  /**
-   * POST /onboarding/:agentId/claim-slot
-   * Agent picks an available interview slot (QUALIFIED → SCHEDULED).
-   */
-  @Post(':agentId/claim-slot')
-  async claimInterviewSlot(
-    @Param('agentId') agentId: string,
-    @Body() payload: { slotId: string }
-  ) {
-    return this.onboarding.claimSlot(agentId, payload.slotId);
+  @Get('slots')
+  getAvailableSlots() {
+    return this.onboarding.getAvailableSlots();
   }
 
-  /**
-   * PUT /onboarding/:agentId/feedback
-   * Staff provides missiological feedback and approves or rejects the Agent (→ APPROVED | REJECTED).
-   * @param agentId - UUID of the Agent being evaluated.
-   * @param payload - feedbackText string and boolean approve flag.
-   *
-   * TODO: Same LGPD concern as scheduleInterview — staffId must come from the JWT token.
-   */
+  @Get('collaborator/slots')
+  @RequireCollaboratorRoles(CollaboratorRole.ADMIN, CollaboratorRole.PEOPLE_MANAGER)
+  getCollaboratorSlots(@CurrentUser() user: AuthenticatedUser) {
+    return this.onboarding.getCollaboratorSlots(user);
+  }
+
+  @Post('collaborator/slots')
+  @RequireCollaboratorRoles(CollaboratorRole.ADMIN, CollaboratorRole.PEOPLE_MANAGER)
+  createSlot(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateSlotDto) {
+    return this.onboarding.createSlot(user, dto.startTime, dto.endTime, dto.meetLink);
+  }
+
+  @Delete('collaborator/slots/:slotId')
+  @RequireCollaboratorRoles(CollaboratorRole.ADMIN, CollaboratorRole.PEOPLE_MANAGER)
+  deleteSlot(@CurrentUser() user: AuthenticatedUser, @Param('slotId') slotId: string) {
+    return this.onboarding.deleteSlot(user, slotId);
+  }
+
+  @Post('claim-slot')
+  claimSlot(@CurrentUser() user: AuthenticatedUser, @Body() dto: ClaimSlotDto) {
+    return this.onboarding.claimSlot(user, dto.slotId);
+  }
+
   @Put(':agentId/feedback')
-  async emitFeedback(
+  @RequireCollaboratorRoles(CollaboratorRole.ADMIN, CollaboratorRole.PEOPLE_MANAGER)
+  provideFeedback(
     @Param('agentId') agentId: string,
-    @Body() payload: { feedbackText: string; approve: boolean }
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: ProvideFeedbackDto,
   ) {
-    // TODO: Extract staffId from Keycloak JWT token (request context)
-    const staffId = 'STAFF_MOCK_UUID';
-    return this.onboarding.provideFeedback(
-      agentId,
-      staffId,
-      payload.feedbackText,
-      payload.approve,
-    );
+    return this.onboarding.provideFeedback(agentId, user, dto.feedbackText, dto.approve);
   }
 }

@@ -1,33 +1,15 @@
 import { Module } from '@nestjs/common';
-import { ClientsModule, Transport } from '@nestjs/microservices';
-import { OnboardingService } from './onboarding.service';
-import { QuestionService } from './question.service';
-import { OnboardingController } from './onboarding.controller';
-import { StaffController } from './staff.controller';
-import { StaffService } from './staff.service';
 
-/**
- * OnboardingModule — encapsulates the full Agent admission lifecycle.
- * Registers the OnboardingController, OnboardingService, and QuestionService.
- * Relies on PrismaModule (globally registered) for database access.
- */
+import { AgentModule } from '../agent/agent.module';
+import { CollaboratorModule } from '../collaborator/collaborator.module';
+import { OnboardingController } from './onboarding.controller';
+import { OnboardingRepository } from './onboarding.repository';
+import { OnboardingService } from './onboarding.service';
+
 @Module({
-  imports: [
-    ClientsModule.register([
-      {
-        name: 'NOTIFICATION_SERVICE',
-        transport: Transport.RMQ,
-        options: {
-          urls: [process.env.RABBITMQ_URL || 'amqp://guest:guest@localhost:5673'],
-          queue: 'notification_queue',
-          queueOptions: {
-            durable: false
-          },
-        },
-      },
-    ]),
-  ],
-  controllers: [OnboardingController, StaffController],
-  providers: [OnboardingService, QuestionService, StaffService],
+  imports: [AgentModule, CollaboratorModule],
+  controllers: [OnboardingController],
+  providers: [OnboardingRepository, OnboardingService],
+  exports: [OnboardingRepository, OnboardingService],
 })
 export class OnboardingModule {}

@@ -1,40 +1,53 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { PrismaService } from '../prisma/prisma.service';
+import { ForbiddenException, Injectable } from '@nestjs/common';
+import { AnnouncementType } from '@prisma/client';
+
+import { AuditService, AuditType } from '../audit/audit.service';
+import type { AuthenticatedUser } from '../auth/user-context.interface';
+import { CollaboratorRepository } from '../collaborator/collaborator.repository';
+import { AnnouncementRepository } from './announcement.repository';
+import { CreateAnnouncementDto } from './dto/create-announcement.dto';
 
 @Injectable()
 export class AnnouncementService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private readonly announcements: AnnouncementRepository,
+    private readonly collaborators: CollaboratorRepository,
+    private readonly audit: AuditService,
+  ) {}
 
-  /**
-   * Creates a platform announcement (Staff only action).
-   */
-  async create(title: string, content: string, type: string, authorId: string, targetId?: string) {
-    return this.prisma.announcement.create({
-      data: {
-        title,
-        content,
-        type,
-        authorId,
-        targetId,
-      },
-    });
+  listRecent() {
+    return this.announcements.listRecent(10);
   }
 
-  async listAll() {
-    return this.prisma.announcement.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: 20, // Limit to recent
-    });
+  listAll() {
+    return this.announcements.listRecent(30);
   }
 
-  async getRecentForAgent() {
-    return this.prisma.announcement.findMany({
-      orderBy: { createdAt: 'desc' },
-      take: 10,
-    });
+  async create(dto: CreateAnnouncementDto, user: AuthenticatedUser) {
+    const collaborator = await this.collaborators.findBySubjectOrEmail(user.sub, user.email);
+    if (!collaborator) {
+      throw new ForbiddenException('Missing local collaborator profile.');
+    }
+
+    const announcement = await this.announcements.create(
+      dto.title,
+      dto.content,
+      dto.type ?? AnnouncementType.SYSTEM,
+      collaborator.id,
+      dto.targetId,
+    );
+
+    await this.audit.logAction(
+      collaborator.id,
+      AuditType.TECHNICAL,
+      `Criação do announcement ${announcement.id}.`,
+    );
+
+    return announcement;
   }
 
-  async delete(id: string) {
-    return this.prisma.announcement.delete({ where: { id } });
+  async delete(id: string, user: AuthenticatedUser) {
+    await this.audit.logAction(user.sub, AuditType.SECURITY, `Remoção do announcement ${id}.`);
+    return this.announcements.delete(id);
   }
 }

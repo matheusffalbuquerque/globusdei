@@ -1,161 +1,204 @@
-import { Injectable, BadRequestException, NotFoundException, Logger, Inject } from '@nestjs/common';
-import { ClientProxy } from '@nestjs/microservices';
-import { PrismaService } from '../prisma/prisma.service';
-import { AuditService, AuditType } from '../audit/audit.service';
-import { AgentStatus } from '@prisma/client';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
+import { AgentStatus, CollaboratorRole } from '@prisma/client';
 
-/**
- * OnboardingService — implements the Agent admission state machine.
- *
- * Manages the multi-phase onboarding workflow:
- *  Phase 1 — Agent submits questionnaire answers (ENTERED → SUBMITTED)
- *  Phase 2 — Staff reviews questionnaire and qualifies agent (SUBMITTED → QUALIFIED)
- *  Phase 3 — Agent picks an interview slot (QUALIFIED → SCHEDULED)
- *  Phase 4 — Staff provides final feedback and decision (SCHEDULED → APPROVED | REJECTED)
- *
- * All state transitions are recorded via AuditService for LGPD traceability.
- */
+import { AgentRepository } from '../agent/agent.repository';
+import { AuditService, AuditType } from '../audit/audit.service';
+import type { AuthenticatedUser } from '../auth/user-context.interface';
+import { CollaboratorRepository } from '../collaborator/collaborator.repository';
+import { OnboardingRepository } from './onboarding.repository';
+
 @Injectable()
 export class OnboardingService {
-  private readonly logger = new Logger(OnboardingService.name);
-
   constructor(
-    private prisma: PrismaService,
-    private audit: AuditService,
-    @Inject('NOTIFICATION_SERVICE') private client: ClientProxy,
+    private readonly onboarding: OnboardingRepository,
+    private readonly agents: AgentRepository,
+    private readonly collaborators: CollaboratorRepository,
+    private readonly audit: AuditService,
   ) {}
 
-  /**
-   * Phase 1: Submits onboarding questionnaire answers and advances status to SUBMITTED
-   */
-  async submitAnswers(agentId: string, answers: { questionId: string; text: string }[]) {
-    // Check if agent exists
-    const agent = await this.prisma.agent.findUnique({ where: { id: agentId } });
-    if (!agent) throw new NotFoundException('Agent profile not resolved.');
-    if (agent.status !== AgentStatus.ENTERED) throw new BadRequestException(`Invalid state transition from ${agent.status}`);
-
-    const newAnswers = await this.prisma.$transaction(async (tx) => {
-      // 1. Save answers
-      for (const ans of answers) {
-        await tx.answer.upsert({
-          where: { agentId_questionId: { agentId, questionId: ans.questionId } },
-          update: { text: ans.text },
-          create: { agentId, questionId: ans.questionId, text: ans.text },
-        });
-      }
-      
-      // 2. Commit State to SUBMITTED
-      return tx.agent.update({
-        where: { id: agentId },
-        data: { status: AgentStatus.SUBMITTED },
-      });
-    });
-
-    await this.audit.logAction(agentId, AuditType.TECHNICAL, `Submission of Onboarding Questionnaire payload`);
-    return newAnswers;
+  getQuestions() {
+    return this.onboarding.findQuestions();
   }
 
-  /**
-   * Staff Utilities: Fetch agents pending analysis and their answers
-   */
-   async getPendingAgents() {
-    return this.prisma.agent.findMany({
-      where: {
-        status: { in: [AgentStatus.SUBMITTED, AgentStatus.QUALIFIED, AgentStatus.SCHEDULED] }
-      },
-      include: {
-        answers: {
-          include: { question: true }
-        },
-        scheduledSlot: {
-          include: { staff: true }
-        }
-      },
-      orderBy: { updatedAt: 'desc' }
-    });
+  createQuestion(title: string, isRequired = true) {
+    return this.onboarding.createQuestion(title, isRequired);
   }
 
-  /**
-   * Phase 2: Staff reviews the questionnaire and moves to QUALIFIED
-   */
-  async approveQuestionnaire(agentId: string, staffId: string) {
-    const agent = await this.prisma.agent.findUnique({ where: { id: agentId } });
-    if (!agent) throw new NotFoundException('Agent profile not found.');
-    if (agent.status !== AgentStatus.SUBMITTED) throw new BadRequestException(`Agent must be in SUBMITTED state, current: ${agent.status}`);
-
-    const updatedAgent = await this.prisma.agent.update({
-      where: { id: agentId },
-      data: { status: AgentStatus.QUALIFIED },
+  async submitAnswers(user: AuthenticatedUser, answers: { questionId: string; text: string }[]) {
+    const agent = await this.agents.upsertFromIdentity({
+      authSubject: user.sub,
+      email: user.email,
+      name: user.name,
     });
+    const currentAgent = await this.onboarding.findAgentById(agent.id);
 
-    await this.audit.logAction(staffId, AuditType.AUDIT, `Approved questionnaire for agent ${agentId}. Status: QUALIFIED.`);
-    
-    // Emit notification event
-    this.client.emit('onboarding_qualified', {
-      email: updatedAgent.email,
-      name: updatedAgent.name,
-    });
+    if (!currentAgent) {
+      throw new NotFoundException('Agent not found.');
+    }
 
-    return updatedAgent;
+    if (
+      currentAgent.status !== AgentStatus.ENTERED &&
+      currentAgent.status !== AgentStatus.REJECTED
+    ) {
+      throw new BadRequestException(`Invalid onboarding state ${currentAgent.status}.`);
+    }
+
+    const requiredQuestions = (await this.onboarding.findQuestions()).filter((question) => question.isRequired);
+    const provided = new Map(answers.map((answer) => [answer.questionId, answer.text.trim()]));
+    const missing = requiredQuestions.filter((question) => !provided.get(question.id));
+
+    if (missing.length > 0) {
+      throw new BadRequestException(
+        `Missing required answers for: ${missing.map((question) => question.title).join(', ')}`,
+      );
+    }
+
+    const submitted = await this.onboarding.submitAnswers(agent.id, answers);
+    await this.audit.logAction(agent.id, AuditType.TECHNICAL, 'Submissão do onboarding.');
+    return submitted;
   }
 
-  /**
-   * Phase 3: Agent picks an available slot, moving to SCHEDULED
-   */
-  async claimSlot(agentId: string, slotId: string) {
-    const agent = await this.prisma.agent.findUnique({ where: { id: agentId } });
-    if (!agent) throw new NotFoundException('Agent profile not found.');
-    if (agent.status !== AgentStatus.QUALIFIED) throw new BadRequestException(`Agent must be QUALIFIED to claim a slot, current: ${agent.status}`);
-
-    const slot = await this.prisma.availabilitySlot.findUnique({ 
-      where: { id: slotId },
-      include: { agent: true, staff: true } 
-    });
-    if (!slot) throw new NotFoundException('Availability slot not found.');
-    if (slot.agent) throw new BadRequestException('Slot already claimed.');
-
-    // 1. Update agent status and link the slot
-    const updatedAgent = await this.prisma.agent.update({
-      where: { id: agentId },
-      data: {
-        status: AgentStatus.SCHEDULED,
-        scheduledSlotId: slotId,
-        interviewDate: slot.startTime,
-        interviewLink: slot.meetLink,
-        interviewerId: slot.staffId,
-      },
+  async getStatus(user: AuthenticatedUser) {
+    const agent = await this.agents.upsertFromIdentity({
+      authSubject: user.sub,
+      email: user.email,
+      name: user.name,
     });
 
-    // Emit notification event
-    this.client.emit('onboarding_scheduled', {
-      email: updatedAgent.email,
-      name: updatedAgent.name,
-      date: slot.startTime.toLocaleString('pt-BR'),
-      meetLink: slot.meetLink,
-    });
-
-    return updatedAgent;
+    return this.onboarding.findAgentById(agent.id);
   }
 
-  /**
-   * Phase 3: Staff provides post-interview feedback and approval
-   */
-  async provideFeedback(agentId: string, staffId: string, feedbackText: string, approve: boolean) {
-    const agent = await this.prisma.agent.findUnique({ where: { id: agentId } });
-    if (!agent) throw new NotFoundException('Agent missing.');
-    if (agent.status !== AgentStatus.SCHEDULED) throw new BadRequestException(`Action requires SCHEDULED, got ${agent.status}`);
+  getPendingAgents() {
+    return this.onboarding.findPendingAgents();
+  }
 
-    const outcomeStatus = approve ? AgentStatus.APPROVED : AgentStatus.REJECTED;
+  async approveQuestionnaire(agentId: string, user: AuthenticatedUser) {
+    const collaborator = await this.ensurePeopleManager(user);
+    const agent = await this.onboarding.findAgentById(agentId);
 
-    const evaluatedAgent = await this.prisma.agent.update({
-      where: { id: agentId },
-      data: {
-        status: outcomeStatus,
-        feedback: feedbackText,
-      },
+    if (!agent) {
+      throw new NotFoundException('Agent not found.');
+    }
+
+    if (agent.status !== AgentStatus.SUBMITTED) {
+      throw new BadRequestException('Agent must be SUBMITTED before approval.');
+    }
+
+    const updated = await this.onboarding.approveQuestionnaire(agentId);
+    await this.audit.logAction(
+      collaborator.id,
+      AuditType.AUDIT,
+      `Aprovação do questionário do agente ${agentId}.`,
+    );
+    return updated;
+  }
+
+  getAvailableSlots() {
+    return this.onboarding.findAvailableSlots();
+  }
+
+  async getCollaboratorSlots(user: AuthenticatedUser) {
+    const collaborator = await this.ensurePeopleManager(user);
+    return this.onboarding.findCollaboratorSlots(collaborator.id);
+  }
+
+  async createSlot(
+    user: AuthenticatedUser,
+    startTime: string,
+    endTime: string,
+    meetLink?: string,
+  ) {
+    const collaborator = await this.ensurePeopleManager(user);
+    return this.onboarding.createSlot(
+      collaborator.id,
+      new Date(startTime),
+      new Date(endTime),
+      meetLink,
+    );
+  }
+
+  async deleteSlot(user: AuthenticatedUser, slotId: string) {
+    await this.ensurePeopleManager(user);
+    const deleted = await this.onboarding.deleteSlot(slotId);
+
+    if (!deleted) {
+      throw new NotFoundException('Slot not found.');
+    }
+
+    return deleted;
+  }
+
+  async claimSlot(user: AuthenticatedUser, slotId: string) {
+    const agent = await this.agents.upsertFromIdentity({
+      authSubject: user.sub,
+      email: user.email,
+      name: user.name,
     });
+    const agentStatus = await this.onboarding.findAgentById(agent.id);
 
-    await this.audit.logAction(staffId, AuditType.AUDIT, `Feedback concluded. Result: ${outcomeStatus}`);
-    return evaluatedAgent;
+    if (!agentStatus) {
+      throw new NotFoundException('Agent not found.');
+    }
+
+    if (agentStatus.status !== AgentStatus.QUALIFIED) {
+      throw new BadRequestException('Agent must be QUALIFIED before claiming a slot.');
+    }
+
+    const claimed = await this.onboarding.claimSlot(agent.id, slotId);
+    if (!claimed) {
+      throw new NotFoundException('Slot not found.');
+    }
+
+    await this.audit.logAction(agent.id, AuditType.TECHNICAL, `Agendamento do slot ${slotId}.`);
+    return claimed;
+  }
+
+  async provideFeedback(
+    agentId: string,
+    user: AuthenticatedUser,
+    feedbackText: string,
+    approve: boolean,
+  ) {
+    const collaborator = await this.ensurePeopleManager(user);
+    const agent = await this.onboarding.findAgentById(agentId);
+
+    if (!agent) {
+      throw new NotFoundException('Agent not found.');
+    }
+
+    if (agent.status !== AgentStatus.SCHEDULED) {
+      throw new BadRequestException('Agent must be SCHEDULED before feedback.');
+    }
+
+    const updated = await this.onboarding.provideFeedback(agentId, approve, feedbackText);
+    await this.audit.logAction(
+      collaborator.id,
+      AuditType.AUDIT,
+      `Feedback do onboarding do agente ${agentId}.`,
+    );
+    return updated;
+  }
+
+  private async ensurePeopleManager(user: AuthenticatedUser) {
+    const collaborator = await this.collaborators.findBySubjectOrEmail(user.sub, user.email);
+
+    if (!collaborator) {
+      throw new ForbiddenException('Local collaborator profile not found.');
+    }
+
+    const allowed =
+      collaborator.roles.includes(CollaboratorRole.ADMIN) ||
+      collaborator.roles.includes(CollaboratorRole.PEOPLE_MANAGER);
+
+    if (!allowed) {
+      throw new ForbiddenException('Collaborator cannot manage onboarding.');
+    }
+
+    return collaborator;
   }
 }

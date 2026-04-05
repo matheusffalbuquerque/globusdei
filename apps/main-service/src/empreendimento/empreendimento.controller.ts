@@ -1,71 +1,102 @@
-import { Controller, Get, Post, Patch, Body, Param, Query } from '@nestjs/common';
-import { EmpreendimentoService } from './empreendimento.service';
-import { InviteService } from './invite.service';
-import { Prisma, EmpreendimentoAgentRole } from '@prisma/client';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { CollaboratorRole } from '@prisma/client';
 
-/**
- * Empreendimento Controller
- * Exposes core REST APIs for the main enterprise platform.
- */
+import { CurrentUser } from '../auth/current-user.decorator';
+import { KeycloakAuthGuard } from '../auth/keycloak-auth.guard';
+import { PoliciesGuard } from '../auth/policies.guard';
+import {
+  RequireCollaboratorRoles,
+  RequireRealmRoles,
+} from '../auth/role.decorators';
+import type { AuthenticatedUser } from '../auth/user-context.interface';
+import { CreateEmpreendimentoDto } from './dto/create-empreendimento.dto';
+import { CreateEmpreendimentoInviteDto } from './dto/create-empreendimento-invite.dto';
+import { UpdateEmpreendimentoDto } from './dto/update-empreendimento.dto';
+import { UpdateEmpreendimentoInternalDto } from './dto/update-empreendimento-internal.dto';
+import { EmpreendimentoService } from './empreendimento.service';
+
+@ApiTags('empreendimentos')
+@ApiBearerAuth()
 @Controller('empreendimentos')
+@UseGuards(KeycloakAuthGuard, PoliciesGuard)
+@RequireRealmRoles('agente', 'colaborador', 'administrador')
 export class EmpreendimentoController {
-  constructor(
-    private readonly empService: EmpreendimentoService,
-    private readonly inviteService: InviteService,
-  ) {}
+  constructor(private readonly empreendimentos: EmpreendimentoService) {}
+
+  @Get()
+  listAll() {
+    return this.empreendimentos.listAll();
+  }
+
+  @Get('mine')
+  listMine(@CurrentUser() user: AuthenticatedUser) {
+    return this.empreendimentos.listMine(user);
+  }
+
+  @Get('invites/my')
+  listMyInvites(@CurrentUser() user: AuthenticatedUser) {
+    return this.empreendimentos.listMyInvites(user);
+  }
+
+  @Post('invites/:token/accept')
+  acceptInvite(@Param('token') token: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.empreendimentos.acceptInvite(token, user);
+  }
 
   @Get(':id')
-  async getEmpreendimento(@Param('id') id: string) {
-    const reqUserId = 'SYSTEM_ADMIN_MOCK'; 
-    return this.empService.findOne(id, reqUserId);
+  findOne(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.empreendimentos.findOne(id, user);
+  }
+
+  @Get(':id/members')
+  listMembers(@Param('id') id: string) {
+    return this.empreendimentos.listMembers(id);
   }
 
   @Post()
-  async createEmpreendimento(@Body() data: Prisma.EmpreendimentoCreateInput) {
-    // TODO: Extract ownerId from current JWT context
-    const ownerId = 'MOCK_AGENT_ID';
-    return this.empService.create(data, ownerId);
+  create(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateEmpreendimentoDto) {
+    return this.empreendimentos.create(user, dto);
   }
 
   @Patch(':id')
-  async updateEmpreendimento(@Param('id') id: string, @Body() data: Partial<Prisma.EmpreendimentoUpdateInput>) {
-    const actorId = 'MOCK_AGENT_ID';
-    return this.empService.update(id, data, actorId);
-  }
-
-  /**
-   * GET /empreendimentos/:id/bank
-   * Secure view of bank details (Only owner or staff)
-   */
-  @Get(':id/bank')
-  async getBankDetails(@Param('id') id: string) {
-    return this.empService.viewBankDetails(id);
-  }
-
-  /**
-   * INVITATION SYSTEM
-   */
-
-  @Get('invites/my-invites')
-  async getMyInvites(@Query('email') email: string) {
-    return this.inviteService.listMyInvites(email);
-  }
-
-  @Post('invites/send')
-  async sendInvite(
-    @Body() payload: { empreendimentoId: string, email: string, role?: EmpreendimentoAgentRole }
+  update(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: UpdateEmpreendimentoDto,
   ) {
-    const inviterId = 'MOCK_AGENT_ID';
-    return this.inviteService.createInvite(
-      payload.empreendimentoId,
-      inviterId,
-      payload.email,
-      payload.role || EmpreendimentoAgentRole.CONTRIBUTOR
-    );
+    return this.empreendimentos.update(id, user, dto);
   }
 
-  @Post('invites/accept')
-  async acceptInvite(@Body() payload: { token: string, agentId: string }) {
-    return this.inviteService.acceptInvite(payload.token, payload.agentId);
+  @Patch(':id/internal')
+  @RequireCollaboratorRoles(CollaboratorRole.ADMIN, CollaboratorRole.PROJECT_MANAGER)
+  updateInternal(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: UpdateEmpreendimentoInternalDto,
+  ) {
+    return this.empreendimentos.updateInternal(id, user, dto);
+  }
+
+  @Get(':id/bank')
+  getBankDetails(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.empreendimentos.getBankDetails(id, user);
+  }
+
+  @Post(':id/invites')
+  createInvite(
+    @Param('id') id: string,
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreateEmpreendimentoInviteDto,
+  ) {
+    return this.empreendimentos.createInvite(id, user, dto);
   }
 }
