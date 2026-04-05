@@ -49,11 +49,11 @@ export default function RootLayout({
               <a href="#" className="hover:text-primary transition-colors text-slate-700">Oportunidades</a>
             </nav>
             
-            <div className="flex items-center gap-4">
-              <Link href="/login" className="text-sm font-medium hover:text-primary transition-colors text-slate-700">
+            <div className="flex items-center gap-3">
+              <Link href="/login" className="text-sm font-medium text-slate-600 hover:text-primary transition-colors px-3 py-2 rounded-xl hover:bg-slate-50">
                 Entrar
               </Link>
-              <Link href="/register" className="text-sm font-medium bg-primary text-white px-5 py-2 rounded shadow-sm hover:opacity-90 transition-opacity">
+              <Link href="/register" className="text-sm font-semibold bg-primary text-white px-4 py-2 rounded-xl hover:bg-primary/90 active:scale-95 transition-all">
                 Criar Conta
               </Link>
             </div>
