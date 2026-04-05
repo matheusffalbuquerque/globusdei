@@ -133,7 +133,15 @@ Aqui estão todos os detalhes de como deverá ser desenvolvido o sistema GlobusD
                 - SBOM e controle de dependências
             7. Testes contínuos 
             
-
-
+Sobre a gestão financeira:
+    - Os colaborados com papel de gestor de recursos, poderão fazer o controle financeiro da organização.
+    - Ele deve ter uma dashboard específica para isso, com possibilidade de cadastrar entradas e saídas no fluxo de caixa.
+    - Todos os agentes podem fazer doações que ficará chamado de 'investimento'.
+    - Todos os colaborados também podem realizar aportes para apoiar iniciativas e agentes.
+    - É possível investir em agentes e empreendimentos direto no perfil deles, portanto deve ter um botão ou seção para isso.
+    - Essas doações feitas na plataforma, por qualquer pessoa, serão automaticamente registradas no fluxo de caixa.
+    - O gestor de recursos, terá também uma dashboard de aplicações, onde ele pode enviar recursos para os agentes e iniciativas.
+    - Deve ter um histórico de investimentos nos agentes e iniciativas.
+    - Os gastos podem ter varias naturezas como bolsa, apoio, compras, infrestrutura e etc.
 
     
