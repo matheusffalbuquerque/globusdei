@@ -1,10 +1,18 @@
+import { getServerSession } from 'next-auth';
+import { redirect } from 'next/navigation';
 import { ReactNode } from 'react';
 
 /**
  * Core authenticated layout wrapper specifically for the internal agent/missionary portal.
  * Ensures the side-nav and top-bar are distinctly separate from the public landing pages.
  */
-export default function DashboardLayout({ children }: { children: ReactNode }) {
+export default async function DashboardLayout({ children }: { children: ReactNode }) {
+  const session = await getServerSession();
+
+  if (!session) {
+    redirect('/login?callbackUrl=/dashboard');
+  }
+
   return (
     <div className="flex min-h-[calc(100vh-145px)] border-t border-border">
       {/* Sidebar - strictly adhering to the classic minimalist design */}

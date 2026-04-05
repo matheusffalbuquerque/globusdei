@@ -19,7 +19,7 @@ export default function LoginPage() {
       redirect: false,
       email,
       password,
-      callbackUrl: '/',
+      callbackUrl: '/dashboard',
     });
 
     if (result?.error) {
