@@ -1,8 +1,24 @@
 'use client';
 
-import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 import { useState } from 'react';
+
+/**
+ * Redireciona para a página de registro nativa do Keycloak.
+ * O Keycloak irá retornar o usuário já autenticado via OIDC após o cadastro.
+ */
+function redirectToKeycloakRegister() {
+  const issuer =
+    process.env.NEXT_PUBLIC_KEYCLOAK_ISSUER ||
+    'http://localhost:8085/realms/globusdei';
+  const clientId =
+    process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID || 'globusdei-web';
+  const redirectUri = encodeURIComponent(
+    `${window.location.origin}/api/auth/callback/keycloak`,
+  );
+  const registrationUrl = `${issuer}/protocol/openid-connect/registrations?client_id=${clientId}&response_type=code&scope=openid+email+profile&redirect_uri=${redirectUri}`;
+  window.location.href = registrationUrl;
+}
 
 export default function RegisterPage() {
   const [formData, setFormData] = useState({
@@ -14,8 +30,7 @@ export default function RegisterPage() {
 
   const handleRegister = (e: React.FormEvent) => {
     e.preventDefault();
-    // Redirecting to keycloak for registration or custom backend register
-    signIn('keycloak');
+    redirectToKeycloakRegister();
   };
 
   return (
@@ -29,14 +44,14 @@ export default function RegisterPage() {
 
         <div className="flex flex-col sm:flex-row gap-4 mb-10">
           <button 
-            onClick={() => signIn('keycloak')}
+            onClick={redirectToKeycloakRegister}
             className="flex-1 flex items-center justify-center gap-3 py-4 border-2 border-slate-100 rounded-2xl font-bold text-slate-700 hover:bg-slate-50 transition-all"
           >
             <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-5 h-5" alt="Google" />
             Google
           </button>
           <button 
-            onClick={() => signIn('keycloak')}
+            onClick={redirectToKeycloakRegister}
             className="flex-1 flex items-center justify-center gap-3 py-4 border-2 border-slate-100 rounded-2xl font-bold text-slate-700 hover:bg-slate-50 transition-all"
           >
             <img src="https://upload.wikimedia.org/wikipedia/commons/5/51/Facebook_f_logo_%282019%29.svg" className="w-5 h-5" alt="Facebook" />
