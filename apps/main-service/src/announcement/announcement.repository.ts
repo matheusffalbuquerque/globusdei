@@ -15,7 +15,15 @@ export class AnnouncementRepository {
 
   listRecent(limit = 10) {
     return this.prisma.announcement.findMany({
-      include: { author: true },
+      select: {
+        id: true,
+        title: true,
+        content: true,
+        type: true,
+        targetId: true,
+        createdAt: true,
+        updatedAt: true,
+      },
       orderBy: { createdAt: 'desc' },
       take: limit,
     });

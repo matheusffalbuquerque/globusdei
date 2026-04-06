@@ -14,7 +14,7 @@ import type { AuthenticatedUser } from './user-context.interface';
 export class KeycloakAuthGuard implements CanActivate {
   private readonly logger = new Logger(KeycloakAuthGuard.name);
   private readonly issuer =
-    process.env.KEYCLOAK_ISSUER ?? 'http://localhost:8080/realms/globusdei';
+    process.env.KEYCLOAK_ISSUER ?? 'http://localhost:8085/realms/globusdei';
   private readonly audience = process.env.KEYCLOAK_CLIENT_ID;
   private readonly jwks = jwksClient({
     jwksUri:
@@ -60,10 +60,6 @@ export class KeycloakAuthGuard implements CanActivate {
         issuer: this.issuer,
       };
 
-      if (this.audience) {
-        verifyOptions.audience = this.audience;
-      }
-
       const payload = jwt.verify(
         token,
         signingKey.getPublicKey(),
@@ -73,6 +69,8 @@ export class KeycloakAuthGuard implements CanActivate {
       if (!payload.sub) {
         throw new Error('JWT subject is required.');
       }
+
+      this.assertClientBinding(payload);
 
       const realmRoles = Array.isArray(payload.realm_access?.roles)
         ? payload.realm_access.roles
@@ -89,6 +87,28 @@ export class KeycloakAuthGuard implements CanActivate {
     } catch (error) {
       this.logger.error('Token signature validation failed.', error as Error);
       throw new UnauthorizedException('Invalid or expired token.');
+    }
+  }
+
+  /**
+   * Keycloak access tokens may expose the client id on `azp`, `aud`, or both.
+   * This keeps client validation strict without rejecting valid realm-issued tokens.
+   */
+  private assertClientBinding(payload: jwt.JwtPayload) {
+    if (!this.audience) {
+      return;
+    }
+
+    const audiences = Array.isArray(payload.aud)
+      ? payload.aud
+      : payload.aud
+        ? [payload.aud]
+        : [];
+    const isBoundToClient =
+      audiences.includes(this.audience) || payload.azp === this.audience;
+
+    if (!isBoundToClient) {
+      throw new Error('JWT client binding mismatch.');
     }
   }
 
