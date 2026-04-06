@@ -90,14 +90,32 @@ const handler = NextAuth({
      * Captures and preserves the Bearer access_token issued by Keycloak down to the client layout.
      * This ensures client-side react components can securely trigger requests against the isolated Nx Microservices.
      */
-    async jwt({ token, account }) {
-      // Upon initial sign in, append the provider token details
-      if (account) {
-        token.accessToken = account.access_token;
-        const payload = decodePayload(account.access_token);
+    async jwt({ token, account, user }) {
+      /**
+       * Credentials login returns the accessToken on `user`, while OAuth-based flows
+       * expose it on `account`. The callback supports both to keep the dashboard
+       * flows consistent across login modes.
+       */
+      const accessToken =
+        account?.access_token ?? (user as { accessToken?: string } | undefined)?.accessToken;
+      const payload =
+        decodePayload(accessToken) ??
+        ((user as { realmRoles?: string[]; id?: string } | undefined)
+          ? {
+              realm_access: { roles: (user as { realmRoles?: string[] }).realmRoles ?? [] },
+              sub: (user as { id?: string }).id,
+            }
+          : null);
+
+      if (accessToken) {
+        token.accessToken = accessToken;
+      }
+
+      if (payload) {
         token.realmRoles = payload?.realm_access?.roles ?? [];
         token.sub = payload?.sub;
       }
+
       return token;
     },
     async session({ session, token }) {

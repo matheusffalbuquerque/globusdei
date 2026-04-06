@@ -1,10 +1,17 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useSession } from 'next-auth/react';
 
+import { useAgentPortal } from '../../../components/portal/AgentPortalShell';
 import { apiFetch } from '../../../lib/api';
+import {
+  formatAgentStatus,
+  formatServiceRequestCategory,
+  formatServiceRequestStatus,
+  type AppSession,
+} from '../../../lib/auth';
 
 type DashboardData = {
   connections: number;
@@ -14,157 +21,216 @@ type DashboardData = {
   empreendimentos: { id: string; name: string; category: string; type: string }[];
 };
 
+/**
+ * AgentDashboard presents the operational cockpit for an authenticated agent.
+ */
 export default function AgentDashboard() {
-  const { data: session, status } = useSession();
+  const { data: session } = useSession();
+  const { agent } = useAgentPortal();
   const [dashboard, setDashboard] = useState<DashboardData | null>(null);
-  const [agent, setAgent] = useState<{ name: string; vocationType: string; status: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (status !== 'authenticated') {
+    if (!session) {
       return;
     }
 
-    void loadDashboard();
-  }, [status]);
+    void apiFetch('/agents/me/dashboard', { session: session as AppSession })
+      .then(setDashboard)
+      .catch((requestError) => setError((requestError as Error).message));
+  }, [session]);
 
-  const loadDashboard = async () => {
-    try {
-      const [agentProfile, dashboardData] = await Promise.all([
-        apiFetch('/agents/me', { session }),
-        apiFetch('/agents/me/dashboard', { session }),
-      ]);
-
-      setAgent(agentProfile);
-      setDashboard(dashboardData);
-    } catch (requestError) {
-      setError((requestError as Error).message);
+  const onboardingAlert = useMemo(() => {
+    if (!agent?.status) {
+      return {
+        title: 'Complete seu cadastro operacional',
+        description: 'Preencha o onboarding para liberar análise e próximos passos.',
+        href: '/onboarding',
+        cta: 'Abrir onboarding',
+      };
     }
-  };
 
-  if (status === 'loading') {
-    return <div className="p-10 text-center">Carregando sessão...</div>;
-  }
+    if (agent.status === 'ENTERED' || agent.status === 'REJECTED') {
+      return {
+        title: 'Há ações pendentes no seu onboarding',
+        description:
+          agent.status === 'REJECTED'
+            ? 'Sua análise retornou com ajustes. Reenvie o questionário.'
+            : 'Seu questionário ainda não foi submetido para análise.',
+        href: '/onboarding',
+        cta: 'Resolver agora',
+      };
+    }
 
-  if (status !== 'authenticated') {
-    return <div className="p-10 text-center">Faça login para acessar o dashboard.</div>;
-  }
+    if (agent.status === 'QUALIFIED') {
+      return {
+        title: 'Você já pode agendar sua entrevista',
+        description: 'Escolha um horário disponível para avançar no fluxo de aprovação.',
+        href: '/agent/status',
+        cta: 'Agendar horário',
+      };
+    }
+
+    return null;
+  }, [agent?.status]);
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
-      <div className="border-b border-slate-200 bg-white sticky top-0 z-40">
-        <div className="container mx-auto flex h-16 items-center justify-between px-6">
-          <div className="flex gap-6 text-sm font-bold uppercase tracking-wider text-slate-500">
-            <Link href="/agent/dashboard" className="text-primary">Início</Link>
-            <Link href="/agent/profile">Perfil</Link>
-            <Link href="/agent/status">Onboarding</Link>
-            <Link href="/agent/empreendimentos">Iniciativas</Link>
-            <Link href="/agent/service-requests">Solicitações</Link>
+    <div className="space-y-6">
+      <section className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+        <div className="flex flex-col gap-6 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <div className="text-xs font-bold uppercase tracking-[0.25em] text-slate-400">Visão geral</div>
+            <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">
+              {agent?.name ? `Olá, ${agent.name.split(' ')[0]}` : 'Olá'}
+            </h1>
+            <p className="mt-3 max-w-2xl text-slate-600">
+              Acompanhe seu avanço no onboarding, suas conexões, iniciativas e as demandas abertas na plataforma.
+            </p>
           </div>
-          <div className="rounded-xl bg-orange-100 px-3 py-2 text-sm font-bold text-primary">
-            {agent?.status ?? 'Sem status'}
+
+          <div className="rounded-3xl bg-slate-950 px-5 py-4 text-white">
+            <div className="text-xs font-bold uppercase tracking-[0.25em] text-slate-400">Status atual</div>
+            <div className="mt-2 text-lg font-bold">{formatAgentStatus(agent?.status)}</div>
+            <div className="mt-1 text-sm text-slate-300">{agent?.vocationType || 'Vocação ainda não informada'}</div>
           </div>
         </div>
-      </div>
+      </section>
 
-      <main className="container mx-auto px-6 py-8">
-        {error && <div className="mb-6 rounded-2xl border border-red-100 bg-red-50 p-4 text-red-600">{error}</div>}
-
-        <div className="grid grid-cols-1 gap-8 lg:grid-cols-12">
-          <div className="space-y-6 lg:col-span-3">
-            <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
-              <div className="h-20 bg-gradient-to-r from-primary to-orange-400"></div>
-              <div className="-mt-10 px-6 pb-6">
-                <div className="mb-4 h-20 w-20 rounded-2xl bg-white p-1 shadow-lg">
-                  <div className="flex h-full w-full items-center justify-center rounded-xl border border-slate-50 bg-slate-100 text-3xl font-black text-primary">
-                    {(agent?.name ?? 'A').charAt(0)}
-                  </div>
-                </div>
-                <h3 className="text-xl font-bold text-slate-900">{agent?.name ?? 'Agente'}</h3>
-                <p className="mb-4 text-sm font-medium text-slate-500">{agent?.vocationType ?? 'Atualize seu perfil'}</p>
-                <div className="flex justify-between border-t border-slate-100 pt-4 text-xs font-bold uppercase tracking-widest text-slate-400">
-                  <span>Conexões</span>
-                  <span className="text-primary">{dashboard?.connections ?? 0}</span>
-                </div>
-              </div>
+      {onboardingAlert && (
+        <section className="rounded-[32px] border border-orange-200 bg-orange-50 p-6 shadow-sm">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div>
+              <div className="text-sm font-black uppercase tracking-[0.2em] text-orange-600">Ação prioritária</div>
+              <h2 className="mt-2 text-xl font-bold text-slate-900">{onboardingAlert.title}</h2>
+              <p className="mt-2 text-slate-600">{onboardingAlert.description}</p>
             </div>
+            <Link
+              href={onboardingAlert.href}
+              className="inline-flex items-center justify-center rounded-2xl bg-orange-600 px-5 py-3 text-sm font-bold text-white"
+            >
+              {onboardingAlert.cta}
+            </Link>
+          </div>
+        </section>
+      )}
 
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h4 className="mb-4 text-sm font-bold uppercase tracking-widest text-slate-900">Ações rápidas</h4>
-              <div className="space-y-3 text-sm font-bold">
-                <Link href="/onboarding" className="block rounded-2xl bg-slate-50 px-4 py-3 text-slate-700">
-                  Atualizar onboarding
-                </Link>
-                <Link href="/agent/empreendimentos/create" className="block rounded-2xl bg-slate-50 px-4 py-3 text-slate-700">
-                  Nova iniciativa
-                </Link>
-                <Link href="/agent/service-requests" className="block rounded-2xl bg-slate-50 px-4 py-3 text-slate-700">
-                  Solicitar apoio
-                </Link>
-              </div>
+      {error && (
+        <div className="rounded-3xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
+          {error}
+        </div>
+      )}
+
+      <section className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+        {[
+          { label: 'Conexões ativas', value: dashboard?.connections ?? 0 },
+          { label: 'Iniciativas acompanhadas', value: dashboard?.following ?? 0 },
+          { label: 'Solicitações abertas', value: dashboard?.serviceRequests?.length ?? 0 },
+          { label: 'Empreendimentos vinculados', value: dashboard?.empreendimentos?.length ?? 0 },
+        ].map((item) => (
+          <article key={item.label} className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="text-xs font-bold uppercase tracking-[0.25em] text-slate-400">{item.label}</div>
+            <div className="mt-4 text-4xl font-black tracking-tight text-slate-900">{item.value}</div>
+          </article>
+        ))}
+      </section>
+
+      <section className="grid grid-cols-1 gap-6 xl:grid-cols-[1.4fr_1fr]">
+        <article className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+          <div className="mb-6 flex items-center justify-between">
+            <div>
+              <div className="text-xs font-bold uppercase tracking-[0.25em] text-slate-400">Comunicação oficial</div>
+              <h2 className="mt-2 text-2xl font-bold text-slate-900">Anúncios e atualizações</h2>
             </div>
+            <Link href="/agent/service-requests" className="text-sm font-bold text-orange-600">
+              Ver minhas demandas
+            </Link>
           </div>
 
-          <div className="space-y-6 lg:col-span-6">
-            <div className="rounded-3xl border border-slate-200 bg-white p-8 shadow-sm">
-              <h2 className="mb-6 text-2xl font-bold text-slate-900">Atualizações oficiais</h2>
-              <div className="space-y-5">
-                {dashboard?.announcements?.length ? dashboard.announcements.map((announcement) => (
-                  <div key={announcement.id} className="rounded-3xl border border-slate-100 bg-slate-50 p-6">
-                    <div className="mb-3 flex items-center justify-between">
-                      <span className="text-xs font-black uppercase text-primary">{announcement.type}</span>
-                      <span className="text-xs text-slate-400">
-                        {new Date(announcement.createdAt).toLocaleDateString('pt-BR')}
-                      </span>
-                    </div>
-                    <h3 className="mb-2 text-xl font-bold text-slate-900">{announcement.title}</h3>
-                    <p className="whitespace-pre-wrap text-slate-600">{announcement.content}</p>
+          <div className="space-y-4">
+            {(dashboard?.announcements ?? []).length > 0 ? (
+              dashboard?.announcements.map((announcement) => (
+                <div key={announcement.id} className="rounded-3xl border border-slate-100 bg-slate-50 p-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <span className="rounded-full bg-orange-100 px-3 py-1 text-[11px] font-black uppercase tracking-[0.2em] text-orange-700">
+                      {announcement.type}
+                    </span>
+                    <span className="text-xs font-medium text-slate-400">
+                      {new Date(announcement.createdAt).toLocaleDateString('pt-BR')}
+                    </span>
                   </div>
-                )) : (
-                  <p className="rounded-3xl border border-dashed border-slate-200 p-12 text-center text-slate-400">
-                    Nenhuma atualização oficial no momento.
+                  <h3 className="mt-4 text-lg font-bold text-slate-900">{announcement.title}</h3>
+                  <p className="mt-2 whitespace-pre-wrap text-sm leading-6 text-slate-600">
+                    {announcement.content}
                   </p>
-                )}
+                </div>
+              ))
+            ) : (
+              <div className="rounded-3xl border border-dashed border-slate-200 p-10 text-center text-sm font-medium text-slate-400">
+                Nenhum anúncio recente publicado para a sua rede.
               </div>
-            </div>
+            )}
           </div>
+        </article>
 
-          <div className="space-y-6 lg:col-span-3">
-            <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <h4 className="mb-4 text-sm font-bold uppercase tracking-widest text-slate-900">Indicadores</h4>
-              <div className="space-y-4 text-sm">
-                <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
-                  <span>Seguindo iniciativas</span>
-                  <span className="font-bold text-primary">{dashboard?.following ?? 0}</span>
-                </div>
-                <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
-                  <span>Solicitações abertas</span>
-                  <span className="font-bold text-primary">{dashboard?.serviceRequests?.length ?? 0}</span>
-                </div>
-                <div className="flex items-center justify-between rounded-2xl bg-slate-50 px-4 py-3">
-                  <span>Empreendimentos</span>
-                  <span className="font-bold text-primary">{dashboard?.empreendimentos?.length ?? 0}</span>
-                </div>
-              </div>
+        <div className="space-y-6">
+          <article className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-slate-900">Solicitações recentes</h2>
+              <Link href="/agent/service-requests" className="text-sm font-bold text-orange-600">
+                Gerenciar
+              </Link>
             </div>
 
-            <div className="rounded-[32px] bg-slate-900 p-8 text-white">
-              <h4 className="mb-4 text-xl font-bold">Últimas solicitações</h4>
-              <div className="space-y-4 text-sm">
-                {dashboard?.serviceRequests?.length ? dashboard.serviceRequests.map((request) => (
-                  <div key={request.id} className="rounded-2xl bg-white/5 p-4">
-                    <div className="mb-1 font-bold">{request.category}</div>
-                    <div className="mb-2 text-slate-400">{request.status}</div>
-                    <p className="line-clamp-3 text-slate-300">{request.description}</p>
+            <div className="space-y-3">
+              {(dashboard?.serviceRequests ?? []).length > 0 ? (
+                dashboard?.serviceRequests.slice(0, 4).map((request) => (
+                  <div key={request.id} className="rounded-2xl bg-slate-50 p-4">
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-sm font-bold text-slate-900">
+                        {formatServiceRequestCategory(request.category)}
+                      </div>
+                      <div className="text-[11px] font-black uppercase tracking-[0.2em] text-orange-700">
+                        {formatServiceRequestStatus(request.status)}
+                      </div>
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">{request.description}</p>
                   </div>
-                )) : (
-                  <p className="text-slate-400">Nenhuma solicitação registrada.</p>
-                )}
-              </div>
+                ))
+              ) : (
+                <div className="rounded-2xl border border-dashed border-slate-200 p-6 text-sm text-slate-400">
+                  Nenhuma solicitação registrada.
+                </div>
+              )}
             </div>
-          </div>
+          </article>
+
+          <article className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-xl font-bold text-slate-900">Empreendimentos</h2>
+              <Link href="/agent/empreendimentos" className="text-sm font-bold text-orange-600">
+                Abrir gestão
+              </Link>
+            </div>
+
+            <div className="space-y-3">
+              {(dashboard?.empreendimentos ?? []).length > 0 ? (
+                dashboard?.empreendimentos.slice(0, 4).map((empreendimento) => (
+                  <div key={empreendimento.id} className="rounded-2xl bg-slate-50 p-4">
+                    <div className="text-sm font-bold text-slate-900">{empreendimento.name}</div>
+                    <div className="mt-1 text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">
+                      {empreendimento.type} • {empreendimento.category}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="rounded-2xl border border-dashed border-slate-200 p-6 text-sm text-slate-400">
+                  Você ainda não possui empreendimentos vinculados.
+                </div>
+              )}
+            </div>
+          </article>
         </div>
-      </main>
+      </section>
     </div>
   );
 }
