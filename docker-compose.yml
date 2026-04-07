@@ -70,6 +70,9 @@ services:
       KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-root}
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+      # Google OAuth2 Identity Provider credentials
+      KC_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      KC_GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
     ports:
       - "8085:8080"
     depends_on:
