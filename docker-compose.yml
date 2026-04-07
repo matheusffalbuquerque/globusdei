@@ -70,13 +70,38 @@ services:
       KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-root}
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
-      # Google OAuth2 Identity Provider credentials
-      KC_GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
-      KC_GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
     ports:
       - "8085:8080"
     depends_on:
       - postgres
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/realms/globusdei"]
+      interval: 15s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+    networks:
+      - globusdei-network
+
+  # Injects real Google OAuth2 credentials into Keycloak via Admin REST API.
+  # This runs every startup so credentials are always up to date.
+  keycloak-config:
+    image: curlimages/curl:8
+    container_name: globusdei-keycloak-config
+    restart: "no"
+    depends_on:
+      keycloak:
+        condition: service_healthy
+    environment:
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM:-globusdei}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin2}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-Admin@2024}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+    volumes:
+      - ./keycloak/configure-google-idp.sh:/configure-google-idp.sh
+    entrypoint: ["/bin/sh", "/configure-google-idp.sh"]
     networks:
       - globusdei-network
 
