@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { signOut, useSession } from 'next-auth/react';
+import { useSession } from 'next-auth/react';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { apiFetch } from '../../lib/api';
@@ -195,21 +195,7 @@ export function CollaboratorPortalShell({ children }: { children: ReactNode }) {
                   </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                  <Link
-                    href="/"
-                    className="rounded-2xl border border-slate-200 px-4 py-2 text-sm font-semibold text-slate-600"
-                  >
-                    Voltar ao site
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => void signOut({ callbackUrl: '/' })}
-                    className="rounded-2xl bg-slate-900 px-4 py-2 text-sm font-semibold text-white"
-                  >
-                    Sair
-                  </button>
-                </div>
+
               </div>
             </header>
 
