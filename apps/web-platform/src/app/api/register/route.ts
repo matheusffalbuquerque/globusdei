@@ -11,9 +11,7 @@ const KEYCLOAK_ADMIN_USERNAME =
 const KEYCLOAK_ADMIN_PASSWORD =
   process.env.KEYCLOAK_ADMIN_PASSWORD || 'Admin@2024';
 
-/**
- * Obtém um token de administrador no realm master via client_credentials / password grant.
- */
+/** Obtém um token de administrador no realm master via password grant. */
 async function getAdminToken(): Promise<string> {
   const res = await fetch(
     `${KEYCLOAK_URL}/realms/master/protocol/openid-connect/token`,
@@ -36,6 +34,44 @@ async function getAdminToken(): Promise<string> {
 
   const data = await res.json();
   return data.access_token as string;
+}
+
+/** Busca o ID e nome de uma realm role pelo nome. */
+async function getRealmRole(
+  adminToken: string,
+  roleName: string,
+): Promise<{ id: string; name: string }> {
+  const res = await fetch(
+    `${KEYCLOAK_URL}/admin/realms/${KEYCLOAK_REALM}/roles/${encodeURIComponent(roleName)}`,
+    { headers: { Authorization: `Bearer ${adminToken}` } },
+  );
+  if (!res.ok) {
+    throw new Error(`Role '${roleName}' não encontrada: ${res.status}`);
+  }
+  return res.json();
+}
+
+/** Atribui uma lista de realm roles a um usuário. */
+async function assignRealmRoles(
+  adminToken: string,
+  userId: string,
+  roles: { id: string; name: string }[],
+): Promise<void> {
+  const res = await fetch(
+    `${KEYCLOAK_URL}/admin/realms/${KEYCLOAK_REALM}/users/${userId}/role-mappings/realm`,
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${adminToken}`,
+      },
+      body: JSON.stringify(roles),
+    },
+  );
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Falha ao atribuir roles: ${res.status} — ${text}`);
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -102,14 +138,33 @@ export async function POST(req: NextRequest) {
 
     if (!createRes.ok) {
       const errBody = await createRes.text();
-      console.error('[register] Keycloak error:', createRes.status, errBody);
+      console.error('[register] Keycloak create user error:', createRes.status, errBody);
       return NextResponse.json(
         { error: 'Erro ao criar conta. Tente novamente.' },
         { status: 500 },
       );
     }
 
-    // Keycloak retorna 201 sem body — sucesso
+    // Keycloak retorna 201 com header Location: .../users/{id}
+    const locationHeader = createRes.headers.get('Location') ?? '';
+    const userId = locationHeader.split('/').pop();
+
+    if (!userId) {
+      console.error('[register] Não foi possível extrair userId do header Location:', locationHeader);
+      // Usuário foi criado mas sem role — ainda retorna sucesso para não bloquear
+      return NextResponse.json({ message: 'Conta criada com sucesso!' }, { status: 201 });
+    }
+
+    // --- Atribuir role 'agente' ao novo usuário ---
+    try {
+      const agenteRole = await getRealmRole(adminToken, 'agente');
+      await assignRealmRoles(adminToken, userId, [agenteRole]);
+      console.log(`[register] Role 'agente' atribuída ao usuário ${userId} (${email})`);
+    } catch (roleErr) {
+      // Não bloqueia o cadastro se a atribuição de role falhar
+      console.error('[register] Falha ao atribuir role agente:', roleErr);
+    }
+
     return NextResponse.json(
       { message: 'Conta criada com sucesso!' },
       { status: 201 },
