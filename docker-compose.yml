@@ -74,24 +74,17 @@ services:
       - "8085:8080"
     depends_on:
       - postgres
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/realms/globusdei"]
-      interval: 15s
-      timeout: 5s
-      retries: 12
-      start_period: 60s
     networks:
       - globusdei-network
 
   # Injects real Google OAuth2 credentials into Keycloak via Admin REST API.
-  # This runs every startup so credentials are always up to date.
+  # The script has its own wait loop — no healthcheck dependency needed.
   keycloak-config:
     image: curlimages/curl:latest
     container_name: globusdei-keycloak-config
     restart: "no"
     depends_on:
-      keycloak:
-        condition: service_healthy
+      - keycloak
     environment:
       KEYCLOAK_URL: http://keycloak:8080
       KEYCLOAK_REALM: ${KEYCLOAK_REALM:-globusdei}
