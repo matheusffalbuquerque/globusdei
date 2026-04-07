@@ -86,7 +86,7 @@ services:
   # Injects real Google OAuth2 credentials into Keycloak via Admin REST API.
   # This runs every startup so credentials are always up to date.
   keycloak-config:
-    image: curlimages/curl:8
+    image: curlimages/curl:latest
     container_name: globusdei-keycloak-config
     restart: "no"
     depends_on:
