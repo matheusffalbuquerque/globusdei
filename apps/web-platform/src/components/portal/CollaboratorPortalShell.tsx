@@ -17,6 +17,7 @@ import {
   Inbox,
   Megaphone,
   BadgeDollarSign,
+  ClipboardList,
   ChevronRight,
   Loader2,
 } from 'lucide-react';
@@ -139,6 +140,12 @@ export function CollaboratorPortalShell({ children }: { children: ReactNode }) {
       icon: BadgeDollarSign,
       visible: permissions.canViewFinance,
       badge: !permissions.canManageFinance ? 'Leitura' : undefined,
+    },
+    {
+      href: '/colaborador/onboarding',
+      label: 'Onboarding',
+      icon: ClipboardList,
+      visible: permissions.canManageOnboarding,
     },
   ];
 

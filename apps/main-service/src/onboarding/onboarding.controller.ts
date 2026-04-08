@@ -4,6 +4,7 @@ import {
   Delete,
   Get,
   Param,
+  Patch,
   Post,
   Put,
   UseGuards,
@@ -24,6 +25,7 @@ import { CreateQuestionDto } from './dto/create-question.dto';
 import { CreateSlotDto } from './dto/create-slot.dto';
 import { ProvideFeedbackDto } from './dto/provide-feedback.dto';
 import { SubmitOnboardingDto } from './dto/submit-onboarding.dto';
+import { UpdateQuestionDto } from './dto/update-question.dto';
 import { OnboardingService } from './onboarding.service';
 
 @ApiTags('onboarding')
@@ -43,6 +45,18 @@ export class OnboardingController {
   @RequireCollaboratorRoles(CollaboratorRole.ADMIN, CollaboratorRole.PEOPLE_MANAGER)
   createQuestion(@Body() dto: CreateQuestionDto) {
     return this.onboarding.createQuestion(dto.title, dto.isRequired ?? true);
+  }
+
+  @Patch('questions/:id')
+  @RequireCollaboratorRoles(CollaboratorRole.ADMIN, CollaboratorRole.PEOPLE_MANAGER)
+  updateQuestion(@Param('id') id: string, @Body() dto: UpdateQuestionDto) {
+    return this.onboarding.updateQuestion(id, dto);
+  }
+
+  @Delete('questions/:id')
+  @RequireCollaboratorRoles(CollaboratorRole.ADMIN, CollaboratorRole.PEOPLE_MANAGER)
+  deleteQuestion(@Param('id') id: string) {
+    return this.onboarding.deleteQuestion(id);
   }
 
   @Get('status')

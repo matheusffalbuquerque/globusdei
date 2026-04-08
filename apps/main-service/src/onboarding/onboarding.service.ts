@@ -29,6 +29,18 @@ export class OnboardingService {
     return this.onboarding.createQuestion(title, isRequired);
   }
 
+  updateQuestion(id: string, data: { title?: string; isRequired?: boolean }) {
+    return this.onboarding.updateQuestion(id, data);
+  }
+
+  async deleteQuestion(id: string) {
+    const deleted = await this.onboarding.deleteQuestion(id);
+    if (!deleted) {
+      throw new NotFoundException('Question not found.');
+    }
+    return deleted;
+  }
+
   async submitAnswers(user: AuthenticatedUser, answers: { questionId: string; text: string }[]) {
     const agent = await this.agents.upsertFromIdentity({
       authSubject: user.sub,

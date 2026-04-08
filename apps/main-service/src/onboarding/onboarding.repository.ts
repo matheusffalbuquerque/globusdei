@@ -19,6 +19,19 @@ export class OnboardingRepository {
     });
   }
 
+  updateQuestion(id: string, data: { title?: string; isRequired?: boolean }) {
+    return this.prisma.question.update({
+      where: { id },
+      data,
+    });
+  }
+
+  async deleteQuestion(id: string) {
+    const question = await this.prisma.question.findUnique({ where: { id } });
+    if (!question) return null;
+    return this.prisma.question.delete({ where: { id } });
+  }
+
   findAgentById(agentId: string) {
     return this.prisma.agent.findUnique({
       where: { id: agentId },
