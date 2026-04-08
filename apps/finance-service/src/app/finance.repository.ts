@@ -57,10 +57,11 @@ export class FinanceRepository {
     return this.prisma.expenseCategory.delete({ where: { id } });
   }
 
-  listEntries(filters?: { type?: FinancialEntryType; from?: Date; to?: Date }) {
+  listEntries(filters?: { type?: FinancialEntryType; from?: Date; to?: Date; targetId?: string }) {
     return this.prisma.financialEntry.findMany({
       where: {
         ...(filters?.type ? { type: filters.type } : {}),
+        ...(filters?.targetId ? { targetId: filters.targetId } : {}),
         ...(filters?.from || filters?.to
           ? {
               occurredAt: {
@@ -96,6 +97,19 @@ export class FinanceRepository {
 
   deleteEntry(id: string) {
     return this.prisma.financialEntry.delete({ where: { id } });
+  }
+
+  updateEntry(
+    id: string,
+    data: Partial<{
+      type: FinancialEntryType;
+      amount: number;
+      description: string;
+      occurredAt: Date;
+      categoryId: string | null;
+    }>,
+  ) {
+    return this.prisma.financialEntry.update({ where: { id }, data });
   }
 
   listInvestments(filters?: { from?: Date; to?: Date }) {

@@ -33,11 +33,12 @@ export class FinanceService {
     return this.finance.listEmpreendimentos();
   }
 
-  listEntries(filters?: { type?: FinancialEntryType; from?: string; to?: string }) {
+  listEntries(filters?: { type?: FinancialEntryType; from?: string; to?: string; targetId?: string }) {
     return this.finance.listEntries({
       type: filters?.type,
       from: filters?.from ? new Date(filters.from) : undefined,
       to: filters?.to ? new Date(filters.to) : undefined,
+      targetId: filters?.targetId,
     });
   }
 
@@ -63,6 +64,18 @@ export class FinanceService {
   async deleteEntry(user: AuthenticatedUser, id: string) {
     await this.ensureWriter(user);
     return this.finance.deleteEntry(id);
+  }
+
+  async updateEntry(
+    user: AuthenticatedUser,
+    id: string,
+    data: Partial<{ type: FinancialEntryType; amount: number; description: string; occurredAt: string; categoryId: string | null }>,
+  ) {
+    await this.ensureWriter(user);
+    return this.finance.updateEntry(id, {
+      ...data,
+      occurredAt: data.occurredAt ? new Date(data.occurredAt) : undefined,
+    });
   }
 
   listCategories() {

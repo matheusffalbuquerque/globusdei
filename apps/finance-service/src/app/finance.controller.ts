@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { CollaboratorRole, FinancialEntryType } from '@prisma/client';
 
@@ -42,18 +42,26 @@ export class FinanceController {
   @ApiQuery({ name: 'type', required: false, enum: FinancialEntryType })
   @ApiQuery({ name: 'from', required: false })
   @ApiQuery({ name: 'to', required: false })
+  @ApiQuery({ name: 'targetId', required: false })
   listEntries(
     @Query('type') type?: FinancialEntryType,
     @Query('from') from?: string,
     @Query('to') to?: string,
+    @Query('targetId') targetId?: string,
   ) {
-    return this.finance.listEntries({ type, from, to });
+    return this.finance.listEntries({ type, from, to, targetId });
   }
 
   @Post('entries')
   @RequireCollaboratorRoles(CollaboratorRole.ADMIN, CollaboratorRole.RESOURCE_MANAGER)
   createEntry(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateFinancialEntryDto) {
     return this.finance.createEntry(user, dto);
+  }
+
+  @Patch('entries/:id')
+  @RequireCollaboratorRoles(CollaboratorRole.ADMIN, CollaboratorRole.RESOURCE_MANAGER)
+  updateEntry(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string, @Body() body: Partial<CreateFinancialEntryDto>) {
+    return this.finance.updateEntry(user, id, body);
   }
 
   @Delete('entries/:id')
