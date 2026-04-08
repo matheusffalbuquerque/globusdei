@@ -19,17 +19,25 @@ export class CollaboratorRepository {
     authSubject: string;
     email: string;
     name: string;
-    roles: CollaboratorRole[];
+    /** Roles derivados do realm do Keycloak — sincronizados automaticamente quando o
+     *  colaborador ainda não possui roles atribuídos localmente. */
+    realmDerivedRoles: CollaboratorRole[];
   }) {
     const existing = await this.findBySubjectOrEmail(params.authSubject, params.email);
 
     if (existing) {
+      // Sincroniza roles apenas se o colaborador ainda não tiver roles locais definidos,
+      // preservando qualquer atribuição manual feita por um ADMIN.
+      const shouldSyncRoles =
+        existing.roles.length === 0 && params.realmDerivedRoles.length > 0;
+
       return this.prisma.collaborator.update({
         where: { id: existing.id },
         data: {
           authSubject: params.authSubject,
           email: params.email,
           name: params.name,
+          ...(shouldSyncRoles ? { roles: params.realmDerivedRoles } : {}),
         },
       });
     }
@@ -39,7 +47,7 @@ export class CollaboratorRepository {
         authSubject: params.authSubject,
         email: params.email,
         name: params.name,
-        roles: params.roles,
+        roles: params.realmDerivedRoles,
         expertiseAreas: [],
       },
     });

@@ -5,6 +5,21 @@ import { AuditService, AuditType } from '../audit/audit.service';
 import type { AuthenticatedUser } from '../auth/user-context.interface';
 import { CollaboratorRepository } from './collaborator.repository';
 
+/**
+ * Mapeia realm roles do Keycloak para roles locais de colaborador.
+ * Permite que o realm role 'gestor_recurso' conceda RESOURCE_MANAGER automaticamente.
+ */
+function deriveRolesFromRealm(realmRoles: string[]): CollaboratorRole[] {
+  const derived: CollaboratorRole[] = [];
+
+  if (realmRoles.includes('administrador')) derived.push(CollaboratorRole.ADMIN);
+  if (realmRoles.includes('gestor_recurso')) derived.push(CollaboratorRole.RESOURCE_MANAGER);
+  if (realmRoles.includes('gestor_projetos')) derived.push(CollaboratorRole.PROJECT_MANAGER);
+  if (realmRoles.includes('gestor_pessoas')) derived.push(CollaboratorRole.PEOPLE_MANAGER);
+
+  return derived;
+}
+
 @Injectable()
 export class CollaboratorService {
   constructor(
@@ -13,11 +28,13 @@ export class CollaboratorService {
   ) {}
 
   async getMe(user: AuthenticatedUser) {
+    const realmDerivedRoles = deriveRolesFromRealm(user.realmRoles ?? []);
+
     const collaborator = await this.collaborators.upsertFromIdentity({
       authSubject: user.sub,
       email: user.email,
       name: user.name,
-      roles: [],
+      realmDerivedRoles,
     });
 
     return collaborator;
