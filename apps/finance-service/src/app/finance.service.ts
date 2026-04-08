@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import {
   CollaboratorRole,
+  FinancialEntryType,
   FinancialTargetType,
 } from '@prisma/client';
 
@@ -24,8 +25,20 @@ export class FinanceService {
     return this.finance.getDashboard();
   }
 
-  listEntries() {
-    return this.finance.listEntries();
+  listAgents() {
+    return this.finance.listAgents();
+  }
+
+  listEmpreendimentos() {
+    return this.finance.listEmpreendimentos();
+  }
+
+  listEntries(filters?: { type?: FinancialEntryType; from?: string; to?: string }) {
+    return this.finance.listEntries({
+      type: filters?.type,
+      from: filters?.from ? new Date(filters.from) : undefined,
+      to: filters?.to ? new Date(filters.to) : undefined,
+    });
   }
 
   async createEntry(user: AuthenticatedUser, dto: CreateFinancialEntryDto) {
@@ -38,12 +51,18 @@ export class FinanceService {
       type: dto.type,
       amount: dto.amount,
       description: dto.description,
+      occurredAt: dto.occurredAt ? new Date(dto.occurredAt) : undefined,
       targetType: dto.targetType,
       targetId: dto.targetId,
       targetName,
       categoryId: dto.categoryId,
       recordedById: collaborator.id,
     });
+  }
+
+  async deleteEntry(user: AuthenticatedUser, id: string) {
+    await this.ensureWriter(user);
+    return this.finance.deleteEntry(id);
   }
 
   listCategories() {
@@ -55,8 +74,16 @@ export class FinanceService {
     return this.finance.createCategory(dto.name, dto.description, dto.entryType ?? 'EXPENSE');
   }
 
-  listInvestments() {
-    return this.finance.listInvestments();
+  async deleteCategory(user: AuthenticatedUser, id: string) {
+    await this.ensureWriter(user);
+    return this.finance.deleteCategory(id);
+  }
+
+  listInvestments(filters?: { from?: string; to?: string }) {
+    return this.finance.listInvestments({
+      from: filters?.from ? new Date(filters.from) : undefined,
+      to: filters?.to ? new Date(filters.to) : undefined,
+    });
   }
 
   async createInvestment(user: AuthenticatedUser, dto: CreateInvestmentDto) {
@@ -73,8 +100,11 @@ export class FinanceService {
     });
   }
 
-  listAllocations() {
-    return this.finance.listAllocations();
+  listAllocations(filters?: { from?: string; to?: string }) {
+    return this.finance.listAllocations({
+      from: filters?.from ? new Date(filters.from) : undefined,
+      to: filters?.to ? new Date(filters.to) : undefined,
+    });
   }
 
   async createAllocation(user: AuthenticatedUser, dto: CreateAllocationDto) {

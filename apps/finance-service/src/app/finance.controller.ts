@@ -1,6 +1,6 @@
-import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
-import { CollaboratorRole } from '@prisma/client';
+import { Body, Controller, Delete, Get, Param, Post, Query, UseGuards } from '@nestjs/common';
+import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { CollaboratorRole, FinancialEntryType } from '@prisma/client';
 
 import { CurrentUser } from '../auth/current-user.decorator';
 import { KeycloakAuthGuard } from '../auth/keycloak-auth.guard';
@@ -26,9 +26,28 @@ export class FinanceController {
     return this.finance.getDashboard();
   }
 
+  // ── Targets (para popular selects nos formulários) ────────────────────────
+  @Get('targets/agents')
+  listAgents() {
+    return this.finance.listAgents();
+  }
+
+  @Get('targets/empreendimentos')
+  listEmpreendimentos() {
+    return this.finance.listEmpreendimentos();
+  }
+
+  // ── Lançamentos ───────────────────────────────────────────────────────────
   @Get('entries')
-  listEntries() {
-    return this.finance.listEntries();
+  @ApiQuery({ name: 'type', required: false, enum: FinancialEntryType })
+  @ApiQuery({ name: 'from', required: false })
+  @ApiQuery({ name: 'to', required: false })
+  listEntries(
+    @Query('type') type?: FinancialEntryType,
+    @Query('from') from?: string,
+    @Query('to') to?: string,
+  ) {
+    return this.finance.listEntries({ type, from, to });
   }
 
   @Post('entries')
@@ -37,9 +56,18 @@ export class FinanceController {
     return this.finance.createEntry(user, dto);
   }
 
+  @Delete('entries/:id')
+  @RequireCollaboratorRoles(CollaboratorRole.ADMIN, CollaboratorRole.RESOURCE_MANAGER)
+  deleteEntry(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.finance.deleteEntry(user, id);
+  }
+
+  // ── Investimentos ─────────────────────────────────────────────────────────
   @Get('investments')
-  listInvestments() {
-    return this.finance.listInvestments();
+  @ApiQuery({ name: 'from', required: false })
+  @ApiQuery({ name: 'to', required: false })
+  listInvestments(@Query('from') from?: string, @Query('to') to?: string) {
+    return this.finance.listInvestments({ from, to });
   }
 
   @Post('investments')
@@ -48,9 +76,12 @@ export class FinanceController {
     return this.finance.createInvestment(user, dto);
   }
 
+  // ── Repasses ──────────────────────────────────────────────────────────────
   @Get('allocations')
-  listAllocations() {
-    return this.finance.listAllocations();
+  @ApiQuery({ name: 'from', required: false })
+  @ApiQuery({ name: 'to', required: false })
+  listAllocations(@Query('from') from?: string, @Query('to') to?: string) {
+    return this.finance.listAllocations({ from, to });
   }
 
   @Post('allocations')
@@ -59,6 +90,7 @@ export class FinanceController {
     return this.finance.createAllocation(user, dto);
   }
 
+  // ── Categorias ────────────────────────────────────────────────────────────
   @Get('categories')
   listCategories() {
     return this.finance.listCategories();
@@ -68,5 +100,11 @@ export class FinanceController {
   @RequireCollaboratorRoles(CollaboratorRole.ADMIN, CollaboratorRole.RESOURCE_MANAGER)
   createCategory(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateExpenseCategoryDto) {
     return this.finance.createCategory(user, dto);
+  }
+
+  @Delete('categories/:id')
+  @RequireCollaboratorRoles(CollaboratorRole.ADMIN, CollaboratorRole.RESOURCE_MANAGER)
+  deleteCategory(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.finance.deleteCategory(user, id);
   }
 }

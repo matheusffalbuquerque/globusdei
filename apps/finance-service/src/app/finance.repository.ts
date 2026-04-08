@@ -26,6 +26,21 @@ export class FinanceRepository {
     return this.prisma.empreendimento.findUnique({ where: { id } });
   }
 
+  listAgents() {
+    return this.prisma.agent.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true, email: true, vocationType: true, city: true, country: true },
+      orderBy: { name: 'asc' },
+    });
+  }
+
+  listEmpreendimentos() {
+    return this.prisma.empreendimento.findMany({
+      select: { id: true, name: true, type: true, category: true, location: true },
+      orderBy: { name: 'asc' },
+    });
+  }
+
   listCategories() {
     return this.prisma.expenseCategory.findMany({
       orderBy: { name: 'asc' },
@@ -38,11 +53,26 @@ export class FinanceRepository {
     });
   }
 
-  listEntries() {
+  deleteCategory(id: string) {
+    return this.prisma.expenseCategory.delete({ where: { id } });
+  }
+
+  listEntries(filters?: { type?: FinancialEntryType; from?: Date; to?: Date }) {
     return this.prisma.financialEntry.findMany({
+      where: {
+        ...(filters?.type ? { type: filters.type } : {}),
+        ...(filters?.from || filters?.to
+          ? {
+              occurredAt: {
+                ...(filters.from ? { gte: filters.from } : {}),
+                ...(filters.to ? { lte: filters.to } : {}),
+              },
+            }
+          : {}),
+      },
       include: {
         category: true,
-        recordedBy: true,
+        recordedBy: { select: { id: true, name: true } },
         investment: true,
         allocation: true,
       },
@@ -54,6 +84,7 @@ export class FinanceRepository {
     type: FinancialEntryType;
     amount: number;
     description: string;
+    occurredAt?: Date;
     targetType?: FinancialTargetType;
     targetId?: string;
     targetName?: string;
@@ -63,10 +94,23 @@ export class FinanceRepository {
     return this.prisma.financialEntry.create({ data });
   }
 
-  listInvestments() {
+  deleteEntry(id: string) {
+    return this.prisma.financialEntry.delete({ where: { id } });
+  }
+
+  listInvestments(filters?: { from?: Date; to?: Date }) {
     return this.prisma.investment.findMany({
+      where:
+        filters?.from || filters?.to
+          ? {
+              createdAt: {
+                ...(filters.from ? { gte: filters.from } : {}),
+                ...(filters.to ? { lte: filters.to } : {}),
+              },
+            }
+          : undefined,
       include: {
-        recordedBy: true,
+        recordedBy: { select: { id: true, name: true } },
         financialEntry: true,
       },
       orderBy: { createdAt: 'desc' },
@@ -100,10 +144,19 @@ export class FinanceRepository {
     });
   }
 
-  listAllocations() {
+  listAllocations(filters?: { from?: Date; to?: Date }) {
     return this.prisma.allocation.findMany({
+      where:
+        filters?.from || filters?.to
+          ? {
+              createdAt: {
+                ...(filters.from ? { gte: filters.from } : {}),
+                ...(filters.to ? { lte: filters.to } : {}),
+              },
+            }
+          : undefined,
       include: {
-        recordedBy: true,
+        recordedBy: { select: { id: true, name: true } },
         financialEntry: true,
       },
       orderBy: { createdAt: 'desc' },
@@ -156,16 +209,42 @@ export class FinanceRepository {
     );
 
     const recentEntries = await this.prisma.financialEntry.findMany({
-      include: { category: true, recordedBy: true },
+      include: { category: true, recordedBy: { select: { id: true, name: true } } },
       orderBy: { occurredAt: 'desc' },
       take: 10,
     });
+
+    // Agrupamento por mês (últimos 6 meses) para gráfico
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    const monthlyEntries = await this.prisma.financialEntry.findMany({
+      where: { occurredAt: { gte: sixMonthsAgo } },
+      orderBy: { occurredAt: 'asc' },
+    });
+
+    const monthlyMap: Record<string, { income: number; expense: number }> = {};
+    for (const entry of monthlyEntries) {
+      const key = entry.occurredAt.toISOString().slice(0, 7); // "YYYY-MM"
+      if (!monthlyMap[key]) monthlyMap[key] = { income: 0, expense: 0 };
+      if (entry.type === 'INCOME' || entry.type === 'ADJUSTMENT') {
+        monthlyMap[key].income += entry.amount;
+      } else {
+        monthlyMap[key].expense += entry.amount;
+      }
+    }
+
+    const monthlyChart = Object.entries(monthlyMap).map(([month, values]) => ({
+      month,
+      ...values,
+    }));
 
     return {
       balance: totals.totalIncome - totals.totalExpense,
       totalIncome: totals.totalIncome,
       totalExpense: totals.totalExpense,
       recentEntries,
+      monthlyChart,
     };
   }
 }
