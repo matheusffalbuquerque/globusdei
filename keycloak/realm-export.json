@@ -19,6 +19,10 @@
       {
         "name": "administrador",
         "description": "Acesso total ao painel"
+      },
+      {
+        "name": "gestor_recurso",
+        "description": "Gestor de recursos — pode editar fluxos financeiros e aprovar movimentacoes"
       }
     ]
   },
