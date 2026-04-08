@@ -1,45 +1,45 @@
 #!/bin/sh
 # configure-google-idp.sh
-# Injects real Google OAuth credentials into Keycloak via the Admin REST API
-# and configures auto-linking of existing accounts by email (no confirmation page).
+# 1. Injects real Google OAuth credentials into the Keycloak IdP.
+# 2. Creates an auto-link First Broker Login flow so users with an existing
+#    account are silently linked — the "Account already exists" page never shows.
+#
+# ORDER IS CRITICAL:
+#   a) Update IdP credentials (keep default flow for now)
+#   b) Create "google-auto-link" flow (copy of first broker login)
+#   c) Disable confirm-link and review-profile steps in the copy
+#   d) Switch IdP to use the new flow
+
 set -e
 
 KC_URL="${KEYCLOAK_URL:-http://keycloak:8080}"
 KC_REALM="${KEYCLOAK_REALM:-globusdei}"
 KC_ADMIN="${KEYCLOAK_ADMIN:-admin2}"
 KC_ADMIN_PASS="${KEYCLOAK_ADMIN_PASSWORD:-Admin@2024}"
-FLOW_ALIAS="google-auto-link"
+NEW_FLOW="google-auto-link"
 
 # ── Wait for Keycloak ─────────────────────────────────────────────────────────
-echo "[keycloak-config] Waiting for Keycloak to be ready..."
+echo "[keycloak-config] Waiting for Keycloak..."
 RETRIES=40
 until curl -sf -o /dev/null "${KC_URL}/realms/${KC_REALM}" || [ "$RETRIES" -eq 0 ]; do
   RETRIES=$((RETRIES - 1))
   echo "[keycloak-config] Not ready ($RETRIES retries left)..."
   sleep 5
 done
-if [ "$RETRIES" -eq 0 ]; then
-  echo "[keycloak-config] ERROR: Keycloak did not become ready."
-  exit 1
-fi
+[ "$RETRIES" -eq 0 ] && echo "[keycloak-config] ERROR: Keycloak timeout." && exit 1
 
-# ── Get Admin Token ────────────────────────────────────────────────────────────
+# ── Admin Token ────────────────────────────────────────────────────────────────
 echo "[keycloak-config] Getting admin token..."
 TOKEN=$(curl -sf \
   -X POST "${KC_URL}/realms/master/protocol/openid-connect/token" \
   -H "Content-Type: application/x-www-form-urlencoded" \
   -d "client_id=admin-cli&grant_type=password&username=${KC_ADMIN}&password=${KC_ADMIN_PASS}" \
   | sed 's/.*"access_token":"\([^"]*\)".*/\1/')
+[ -z "$TOKEN" ] && echo "[keycloak-config] ERROR: No admin token." && exit 1
 
-if [ -z "$TOKEN" ]; then
-  echo "[keycloak-config] ERROR: Could not obtain admin token."
-  exit 1
-fi
-
-# ── Configure Google IdP ───────────────────────────────────────────────────────
-echo "[keycloak-config] Configuring Google Identity Provider..."
-
-IDP_PAYLOAD='{
+# ── a) Update Google IdP (keep default flow for now) ──────────────────────────
+echo "[keycloak-config] (a) Updating Google IdP credentials..."
+IDP_BASE='{
   "alias": "google",
   "displayName": "Google",
   "providerId": "google",
@@ -49,7 +49,7 @@ IDP_PAYLOAD='{
   "addReadTokenRoleOnCreate": false,
   "authenticateByDefault": false,
   "linkOnly": false,
-  "firstBrokerLoginFlowAlias": "'"${FLOW_ALIAS}"'",
+  "firstBrokerLoginFlowAlias": "first broker login",
   "config": {
     "clientId": "'"${GOOGLE_CLIENT_ID}"'",
     "clientSecret": "'"${GOOGLE_CLIENT_SECRET}"'",
@@ -58,79 +58,83 @@ IDP_PAYLOAD='{
     "useJwksUrl": "true"
   }
 }'
-
-# PUT (update) or POST (create) the IdP
-HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
+ST=$(curl -s -o /dev/null -w "%{http_code}" \
   -X PUT "${KC_URL}/admin/realms/${KC_REALM}/identity-provider/instances/google" \
-  -H "Authorization: Bearer ${TOKEN}" \
-  -H "Content-Type: application/json" \
-  -d "${IDP_PAYLOAD}")
-
-if [ "$HTTP_STATUS" = "204" ]; then
-  echo "[keycloak-config] Google IdP updated."
-elif [ "$HTTP_STATUS" = "404" ]; then
+  -H "Authorization: Bearer ${TOKEN}" -H "Content-Type: application/json" -d "${IDP_BASE}")
+if [ "$ST" = "404" ]; then
   curl -sf -X POST "${KC_URL}/admin/realms/${KC_REALM}/identity-provider/instances" \
-    -H "Authorization: Bearer ${TOKEN}" \
-    -H "Content-Type: application/json" \
-    -d "${IDP_PAYLOAD}" && echo "[keycloak-config] Google IdP created."
+    -H "Authorization: Bearer ${TOKEN}" -H "Content-Type: application/json" -d "${IDP_BASE}"
+  echo "[keycloak-config] Google IdP created (status 201)."
 else
-  echo "[keycloak-config] ERROR: Unexpected status ${HTTP_STATUS} updating IdP."
-  exit 1
+  echo "[keycloak-config] Google IdP updated (status ${ST})."
 fi
 
-# ── Create Auto-Link First Broker Login Flow ───────────────────────────────────
-# This eliminates the "Account already exists" confirmation page.
-echo "[keycloak-config] Setting up auto-link flow (no 'Account already exists' page)..."
-
-# Check if the flow already exists
-FLOW_EXISTS=$(curl -sf "${KC_URL}/admin/realms/${KC_REALM}/authentication/flows" \
-  -H "Authorization: Bearer ${TOKEN}" \
-  | tr '{' '\n' | grep "\"${FLOW_ALIAS}\"" | wc -l | tr -d ' ')
-
-if [ "$FLOW_EXISTS" = "0" ]; then
-  echo "[keycloak-config] Copying first broker login flow..."
-  COPY_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-    -X POST "${KC_URL}/admin/realms/${KC_REALM}/authentication/flows/first%20broker%20login/copy" \
-    -H "Authorization: Bearer ${TOKEN}" \
-    -H "Content-Type: application/json" \
-    -d "{\"newName\": \"${FLOW_ALIAS}\"}")
-
-  if [ "$COPY_STATUS" != "201" ] && [ "$COPY_STATUS" != "409" ]; then
-    echo "[keycloak-config] WARNING: Could not copy flow (status ${COPY_STATUS}). Using default flow."
-    exit 0
-  fi
-  echo "[keycloak-config] Flow '${FLOW_ALIAS}' created."
+# ── b) Create auto-link flow (copy of first broker login) ─────────────────────
+echo "[keycloak-config] (b) Creating '${NEW_FLOW}' flow..."
+COPY_ST=$(curl -s -o /dev/null -w "%{http_code}" \
+  -X POST "${KC_URL}/admin/realms/${KC_REALM}/authentication/flows/first%20broker%20login/copy" \
+  -H "Authorization: Bearer ${TOKEN}" -H "Content-Type: application/json" \
+  -d "{\"newName\": \"${NEW_FLOW}\"}")
+if [ "$COPY_ST" = "201" ]; then
+  echo "[keycloak-config] Flow created."
+elif [ "$COPY_ST" = "409" ]; then
+  echo "[keycloak-config] Flow already exists."
 else
-  echo "[keycloak-config] Flow '${FLOW_ALIAS}' already exists."
+  echo "[keycloak-config] WARNING: Could not create flow (status ${COPY_ST}). Skipping auto-link config."
 fi
 
-# Get all executions of the new flow
+# ── c) Disable confirm-link and review-profile in the new flow ─────────────────
+echo "[keycloak-config] (c) Disabling confirmation steps..."
 EXECUTIONS=$(curl -sf \
-  "${KC_URL}/admin/realms/${KC_REALM}/authentication/flows/${FLOW_ALIAS}/executions" \
+  "${KC_URL}/admin/realms/${KC_REALM}/authentication/flows/${NEW_FLOW}/executions" \
   -H "Authorization: Bearer ${TOKEN}")
 
-# Find and disable "Confirm Link Existing Account" (idp-confirm-link)
-CONFIRM_EXEC=$(echo "$EXECUTIONS" | tr '{' '\n' | grep '"idp-confirm-link"')
-if [ -n "$CONFIRM_EXEC" ]; then
-  UPDATED_EXEC="{$(echo "$CONFIRM_EXEC" | sed 's/"requirement":"[^"]*"/"requirement":"DISABLED"/')}"
-  EXEC_UPDATE_STATUS=$(curl -s -o /dev/null -w "%{http_code}" \
-    -X PUT "${KC_URL}/admin/realms/${KC_REALM}/authentication/flows/${FLOW_ALIAS}/executions" \
-    -H "Authorization: Bearer ${TOKEN}" \
-    -H "Content-Type: application/json" \
-    -d "${UPDATED_EXEC}")
-  echo "[keycloak-config] Confirm Link step disabled (status ${EXEC_UPDATE_STATUS})."
-fi
+# Split JSON array into one object per line by replacing },{ with newline
+EXEC_LINES=$(echo "$EXECUTIONS" | sed 's/},{/}\n{/g')
 
-# Find and disable "Review Profile" step (idp-review-profile) — skip name review page too
-REVIEW_EXEC=$(echo "$EXECUTIONS" | tr '{' '\n' | grep '"idp-review-profile"')
-if [ -n "$REVIEW_EXEC" ]; then
-  UPDATED_REVIEW="{$(echo "$REVIEW_EXEC" | sed 's/"requirement":"[^"]*"/"requirement":"DISABLED"/')}"
-  curl -s -o /dev/null -w "%{http_code}" \
-    -X PUT "${KC_URL}/admin/realms/${KC_REALM}/authentication/flows/${FLOW_ALIAS}/executions" \
-    -H "Authorization: Bearer ${TOKEN}" \
-    -H "Content-Type: application/json" \
-    -d "${UPDATED_REVIEW}" > /dev/null
-  echo "[keycloak-config] Review Profile step disabled."
-fi
+disable_exec() {
+  PROVIDER="$1"
+  OBJ=$(echo "$EXEC_LINES" | grep "\"${PROVIDER}\"")
+  if [ -z "$OBJ" ]; then
+    echo "[keycloak-config] Provider ${PROVIDER} not found in executions."
+    return
+  fi
+  # Replace only the first occurrence of "requirement":"..." to avoid hitting requirementChoices
+  UPDATED=$(echo "$OBJ" | sed 's/"requirement":"[^"]*"/"requirement":"DISABLED"/')
+  UPD_ST=$(curl -s -o /dev/null -w "%{http_code}" \
+    -X PUT "${KC_URL}/admin/realms/${KC_REALM}/authentication/flows/${NEW_FLOW}/executions" \
+    -H "Authorization: Bearer ${TOKEN}" -H "Content-Type: application/json" \
+    -d "${UPDATED}")
+  echo "[keycloak-config] ${PROVIDER} → DISABLED (status ${UPD_ST})."
+}
 
-echo "[keycloak-config] Done. Google login will now auto-link existing accounts by email."
+disable_exec "idp-confirm-link"
+disable_exec "idp-review-profile"
+
+# ── d) Switch Google IdP to use the new auto-link flow ────────────────────────
+echo "[keycloak-config] (d) Switching Google IdP to '${NEW_FLOW}' flow..."
+IDP_FINAL='{
+  "alias": "google",
+  "displayName": "Google",
+  "providerId": "google",
+  "enabled": true,
+  "trustEmail": true,
+  "storeToken": false,
+  "addReadTokenRoleOnCreate": false,
+  "authenticateByDefault": false,
+  "linkOnly": false,
+  "firstBrokerLoginFlowAlias": "'"${NEW_FLOW}"'",
+  "config": {
+    "clientId": "'"${GOOGLE_CLIENT_ID}"'",
+    "clientSecret": "'"${GOOGLE_CLIENT_SECRET}"'",
+    "defaultScope": "openid email profile",
+    "syncMode": "IMPORT",
+    "useJwksUrl": "true"
+  }
+}'
+FINAL_ST=$(curl -s -o /dev/null -w "%{http_code}" \
+  -X PUT "${KC_URL}/admin/realms/${KC_REALM}/identity-provider/instances/google" \
+  -H "Authorization: Bearer ${TOKEN}" -H "Content-Type: application/json" -d "${IDP_FINAL}")
+echo "[keycloak-config] IdP flow updated (status ${FINAL_ST})."
+
+echo "[keycloak-config] Done. Google login will now auto-link accounts — no confirmation page."
