@@ -3,7 +3,23 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
+import {
+  LayoutDashboard,
+  Building2,
+  Inbox,
+  Megaphone,
+  BadgeDollarSign,
+  ChevronRight,
+  Loader2,
+} from 'lucide-react';
 
 import { apiFetch } from '../../lib/api';
 import {
@@ -15,6 +31,12 @@ import {
   type CollaboratorPermissions,
   type CollaboratorProfile,
 } from '../../lib/auth';
+import { Avatar, AvatarFallback } from '../ui/avatar';
+import { Badge } from '../ui/badge';
+import { Separator } from '../ui/separator';
+import { cn } from '../../lib/utils';
+
+// ─── Context ─────────────────────────────────────────────────────────────────
 
 type CollaboratorPortalContextValue = {
   collaborator: CollaboratorProfile | null;
@@ -24,6 +46,18 @@ type CollaboratorPortalContextValue = {
 };
 
 const CollaboratorPortalContext = createContext<CollaboratorPortalContextValue | null>(null);
+
+// ─── Nav item definition ──────────────────────────────────────────────────────
+
+type NavItem = {
+  href: string;
+  label: string;
+  icon: React.ElementType;
+  visible: boolean;
+  badge?: string;
+};
+
+// ─── Shell ────────────────────────────────────────────────────────────────────
 
 /**
  * CollaboratorPortalShell centralizes collaborator profile loading and feature gating.
@@ -40,10 +74,7 @@ export function CollaboratorPortalShell({ children }: { children: ReactNode }) {
   const sessionName = typedSession?.user?.name ?? 'Colaborador';
 
   const loadCollaborator = async () => {
-    if (!typedSession) {
-      return;
-    }
-
+    if (!typedSession) return;
     setIsLoadingProfile(true);
     try {
       const profile = await apiFetch('/collaborators/me', { session: typedSession });
@@ -61,7 +92,6 @@ export function CollaboratorPortalShell({ children }: { children: ReactNode }) {
       router.replace(`/login?callbackUrl=${encodeURIComponent(pathname)}`);
       return;
     }
-
     if (status === 'authenticated' && !isCollaboratorSession(typedSession)) {
       router.replace(getDashboardHome(typedSession));
     }
@@ -78,27 +108,37 @@ export function CollaboratorPortalShell({ children }: { children: ReactNode }) {
     [collaborator],
   );
 
-  const navigation = [
-    { href: '/colaborador/dashboard', label: 'Visão Geral', visible: true },
+  const navigation: NavItem[] = [
+    {
+      href: '/colaborador/dashboard',
+      label: 'Visão Geral',
+      icon: LayoutDashboard,
+      visible: true,
+    },
     {
       href: '/colaborador/empreendimentos',
       label: 'Empreendimentos',
+      icon: Building2,
       visible: permissions.canManageProjects,
     },
     {
       href: '/colaborador/service-requests',
       label: 'Solicitações',
+      icon: Inbox,
       visible: permissions.canManageRequests,
     },
     {
       href: '/colaborador/announcements',
       label: 'Conteúdo',
+      icon: Megaphone,
       visible: true,
     },
     {
       href: '/colaborador/finance',
-      label: permissions.canManageFinance ? 'Financeiro' : 'Financeiro (Leitura)',
+      label: 'Financeiro',
+      icon: BadgeDollarSign,
       visible: permissions.canViewFinance,
+      badge: !permissions.canManageFinance ? 'Leitura' : undefined,
     },
   ];
 
@@ -112,11 +152,16 @@ export function CollaboratorPortalShell({ children }: { children: ReactNode }) {
     [collaborator, isLoadingProfile, permissions],
   );
 
-  if (status === 'loading' || status === 'unauthenticated' || !isCollaboratorSession(typedSession)) {
+  if (
+    status === 'loading' ||
+    status === 'unauthenticated' ||
+    !isCollaboratorSession(typedSession)
+  ) {
     return (
-      <div className="flex min-h-[calc(100vh-145px)] items-center justify-center bg-slate-50">
-        <div className="rounded-3xl border border-slate-200 bg-white px-8 py-6 text-sm font-semibold text-slate-500 shadow-sm">
-          Validando acesso do colaborador...
+      <div className="flex min-h-[calc(100vh-145px)] items-center justify-center bg-muted/30">
+        <div className="flex items-center gap-3 rounded-xl border border-border bg-background px-6 py-4 text-sm font-medium text-muted-foreground shadow-sm">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Validando acesso do colaborador…
         </div>
       </div>
     );
@@ -124,84 +169,118 @@ export function CollaboratorPortalShell({ children }: { children: ReactNode }) {
 
   return (
     <CollaboratorPortalContext.Provider value={contextValue}>
-      <div className="min-h-[calc(100vh-145px)] bg-slate-100">
-        <div className="mx-auto grid min-h-[calc(100vh-145px)] max-w-[1520px] grid-cols-1 xl:grid-cols-[300px_minmax(0,1fr)]">
-          <aside className="border-r border-slate-200 bg-white px-6 py-8">
-            <div className="rounded-3xl border border-slate-200 bg-slate-950 p-5 text-white">
-              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-500/15 text-2xl font-black text-blue-200">
-                {(collaborator?.name ?? sessionName).charAt(0)}
+      <div className="min-h-[calc(100vh-145px)] bg-muted/30">
+        <div className="mx-auto grid min-h-[calc(100vh-145px)] max-w-[1520px] grid-cols-1 xl:grid-cols-[280px_minmax(0,1fr)]">
+
+          {/* ── Sidebar ── */}
+          <aside className="border-r border-border bg-background px-4 py-6">
+            {/* Profile card */}
+            <div className="rounded-xl border border-border bg-slate-950 p-4 text-white">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-10 w-10 shrink-0">
+                  <AvatarFallback className="bg-primary/20 text-sm font-bold text-primary-foreground">
+                    {(collaborator?.name ?? sessionName).charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-white">
+                    {collaborator?.name ?? sessionName}
+                  </p>
+                  <p className="truncate text-xs text-slate-400">Portal do colaborador</p>
+                </div>
               </div>
-              <div className="text-lg font-bold">{collaborator?.name ?? sessionName}</div>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {(collaborator?.roles ?? []).length > 0 ? (
-                  collaborator?.roles.map((role) => (
+
+              {(collaborator?.roles ?? []).length > 0 && (
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {collaborator?.roles.map((role) => (
                     <span
                       key={role}
-                      className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-slate-200"
+                      className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-300"
                     >
                       {formatCollaboratorRole(role)}
                     </span>
-                  ))
-                ) : (
-                  <span className="rounded-full border border-amber-400/20 bg-amber-300/10 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-amber-200">
-                    Perfil sem papéis locais
+                  ))}
+                </div>
+              )}
+
+              {(collaborator?.roles ?? []).length === 0 && (
+                <div className="mt-3">
+                  <span className="rounded-md border border-amber-400/20 bg-amber-300/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-300">
+                    Sem papéis locais
                   </span>
-                )}
-              </div>
+                </div>
+              )}
             </div>
 
-            <nav className="mt-8 space-y-2">
+            <Separator className="my-5" />
+
+            {/* Navigation */}
+            <nav className="space-y-1">
               {navigation
                 .filter((item) => item.visible)
                 .map((item) => {
-                  const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+                  const isActive =
+                    pathname === item.href || pathname.startsWith(`${item.href}/`);
+                  const Icon = item.icon;
 
                   return (
                     <Link
                       key={item.href}
                       href={item.href}
-                      className={`block rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+                      className={cn(
+                        'group flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                         isActive
-                          ? 'bg-blue-600 text-white shadow-lg shadow-blue-200'
-                          : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
-                      }`}
+                          ? 'bg-primary text-primary-foreground'
+                          : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                      )}
                     >
-                      {item.label}
+                      <span className="flex items-center gap-2.5">
+                        <Icon className="h-4 w-4 shrink-0" />
+                        {item.label}
+                      </span>
+                      <span className="flex items-center gap-1.5">
+                        {item.badge && (
+                          <Badge
+                            variant="secondary"
+                            className={cn(
+                              'px-1.5 py-0 text-[10px]',
+                              isActive && 'bg-white/20 text-white',
+                            )}
+                          >
+                            {item.badge}
+                          </Badge>
+                        )}
+                        <ChevronRight
+                          className={cn(
+                            'h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-60',
+                            isActive && 'opacity-60',
+                          )}
+                        />
+                      </span>
                     </Link>
                   );
                 })}
             </nav>
-
-            <div className="mt-8 rounded-3xl border border-slate-200 bg-slate-50 p-5">
-              <div className="text-xs font-bold uppercase tracking-[0.25em] text-slate-400">
-                Observações
-              </div>
-              <p className="mt-3 text-sm leading-6 text-slate-600">
-                As ações de escrita seguem os papéis locais do colaborador. O frontend replica essa regra para
-                evitar fluxos inconsistentes com o backend.
-              </p>
-            </div>
           </aside>
 
+          {/* ── Main content ── */}
           <div className="flex min-w-0 flex-col">
-            <header className="border-b border-slate-200 bg-white px-6 py-5">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <header className="border-b border-border bg-background px-6 py-4">
+              <div className="flex items-center justify-between gap-4">
                 <div>
-                  <div className="text-xs font-bold uppercase tracking-[0.25em] text-slate-400">
-                    Portal do colaborador
-                  </div>
-                  <div className="mt-1 text-xl font-bold text-slate-900">
-                    Operação interna, governança e acompanhamento da plataforma
-                  </div>
+                  <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                    Globus Dei · Portal interno
+                  </p>
+                  <h1 className="mt-0.5 text-base font-semibold text-foreground">
+                    Operação, governança e acompanhamento
+                  </h1>
                 </div>
-
-
               </div>
             </header>
 
             <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8">
               {error ? (
-                <div className="rounded-3xl border border-red-200 bg-red-50 p-6 text-sm font-medium text-red-700">
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
                   {error}
                 </div>
               ) : (
@@ -220,10 +299,8 @@ export function CollaboratorPortalShell({ children }: { children: ReactNode }) {
  */
 export function useCollaboratorPortal() {
   const context = useContext(CollaboratorPortalContext);
-
   if (!context) {
     throw new Error('useCollaboratorPortal must be used inside CollaboratorPortalShell.');
   }
-
   return context;
 }

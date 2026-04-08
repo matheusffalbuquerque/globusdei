@@ -27,8 +27,8 @@ module.exports = {
             950: '#1a0701',
         },
         primary: {
-            DEFAULT: '#8d472e', // Central Terracota
-            foreground: '#ffffff',
+            DEFAULT: 'hsl(var(--primary))',
+            foreground: 'hsl(var(--primary-foreground))',
             50: '#fff5f5',
             100: '#ffdfdf',
             200: '#ffc9c9',
@@ -40,10 +40,31 @@ module.exports = {
             800: '#532b1a',
             900: '#260b02',
         },
-        background: '#ffffff', // Classic absolute white background
-        foreground: '#0f172a',
-        border: '#e2e8f0', // Sharp strict minimalist borders 
-        muted: '#f8fafc',
+        secondary: {
+          DEFAULT: 'hsl(var(--secondary))',
+          foreground: 'hsl(var(--secondary-foreground))',
+        },
+        destructive: {
+          DEFAULT: 'hsl(var(--destructive))',
+          foreground: 'hsl(var(--destructive-foreground))',
+        },
+        muted: {
+          DEFAULT: 'hsl(var(--muted))',
+          foreground: 'hsl(var(--muted-foreground))',
+        },
+        accent: {
+          DEFAULT: 'hsl(var(--accent))',
+          foreground: 'hsl(var(--accent-foreground))',
+        },
+        card: {
+          DEFAULT: 'hsl(var(--card))',
+          foreground: 'hsl(var(--card-foreground))',
+        },
+        background: 'hsl(var(--background))',
+        foreground: 'hsl(var(--foreground))',
+        border: 'hsl(var(--border))',
+        input: 'hsl(var(--input))',
+        ring: 'hsl(var(--ring))',
       },
       fontFamily: {
         sans: ['var(--font-inter)', 'system-ui', 'sans-serif'],
@@ -65,5 +86,5 @@ module.exports = {
       }
     },
   },
-  plugins: [],
+  plugins: [require('tailwindcss-animate')],
 };
