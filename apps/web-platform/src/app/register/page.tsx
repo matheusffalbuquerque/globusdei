@@ -4,6 +4,21 @@ import Link from 'next/link';
 import { signIn } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { Loader2 } from 'lucide-react';
+
+import { Button } from '../../components/ui/button';
+import { Card, CardContent, CardHeader } from '../../components/ui/card';
+import { Input } from '../../components/ui/input';
+import { Separator } from '../../components/ui/separator';
+
+const GoogleIcon = () => (
+  <svg className="h-4 w-4" viewBox="0 0 24 24">
+    <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+    <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+    <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
+    <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
+  </svg>
+);
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -51,133 +66,124 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="min-h-[80vh] flex items-center justify-center bg-slate-50 py-20 px-6">
-      <div className="max-w-xl w-full bg-white rounded-[40px] shadow-2xl shadow-slate-200/50 p-12 border border-slate-100">
-        <div className="text-center mb-12">
-          <img src="/logo.png" alt="Globus Dei" className="h-16 w-auto mx-auto mb-6" />
-          <h2 className="text-4xl font-display font-bold text-slate-900 tracking-tight">Criar sua conta</h2>
-          <p className="text-slate-500 mt-3 font-medium">Junte-se à maior rede de impacto missionário tecnológica.</p>
+    <div className="flex min-h-[calc(100vh-130px)] items-center justify-center bg-muted/30 px-4 py-12">
+      <div className="w-full max-w-md">
+        {/* Logo */}
+        <div className="mb-8 flex flex-col items-center gap-3 text-center">
+          <img src="/logo.png" alt="Globus Dei" className="h-14 w-auto" />
+          <div>
+            <h1 className="text-2xl font-bold tracking-tight text-foreground">Criar sua conta</h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Junte-se à maior rede de impacto missionário tecnológica.
+            </p>
+          </div>
         </div>
 
-        {/* Feedback de sucesso */}
-        {status === 'success' && (
-          <div className="mb-8 flex items-center gap-3 bg-green-50 border border-green-200 text-green-700 rounded-2xl px-5 py-4 font-semibold">
-            <svg className="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
-            </svg>
-            Conta criada com sucesso! Redirecionando para o login…
-          </div>
-        )}
+        <Card>
+          <CardHeader className="pb-4">
+            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Cadastro na plataforma
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-5">
+            {status === 'success' && (
+              <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
+                Conta criada com sucesso! Redirecionando para o login…
+              </div>
+            )}
 
-        {/* Feedback de erro */}
-        {status === 'error' && (
-          <div className="mb-8 flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-2xl px-5 py-4 font-semibold">
-            <svg className="w-5 h-5 shrink-0" fill="currentColor" viewBox="0 0 20 20">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-            </svg>
-            {errorMsg}
-          </div>
-        )}
+            {status === 'error' && (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+                {errorMsg}
+              </div>
+            )}
 
-        <form onSubmit={handleRegister} className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="md:col-span-2">
-            <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Nome Completo</label>
-            <input
-              type="text"
-              name="name"
-              required
-              value={formData.name}
-              onChange={handleChange}
-              className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:border-primary focus:bg-white transition-all font-medium"
-              placeholder="Digite seu nome completo"
-            />
-          </div>
-          <div className="md:col-span-1">
-            <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">E-mail</label>
-            <input
-              type="email"
-              name="email"
-              required
-              value={formData.email}
-              onChange={handleChange}
-              className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:border-primary focus:bg-white transition-all font-medium"
-              placeholder="seu@email.com"
-            />
-          </div>
-          <div className="md:col-span-1">
-            <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Telefone</label>
-            <input
-              type="tel"
-              name="phone"
-              value={formData.phone}
-              onChange={handleChange}
-              className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:border-primary focus:bg-white transition-all font-medium"
-              placeholder="(00) 00000-0000"
-            />
-          </div>
-          <div className="md:col-span-2">
-            <label className="block text-sm font-bold text-slate-700 mb-2 uppercase tracking-wide">Senha</label>
-            <input
-              type="password"
-              name="password"
-              required
-              minLength={8}
-              value={formData.password}
-              onChange={handleChange}
-              className="w-full px-5 py-4 bg-slate-50 border-2 border-slate-50 rounded-2xl focus:border-primary focus:bg-white transition-all font-medium"
-              placeholder="Mínimo 8 caracteres"
-            />
-          </div>
+            <form onSubmit={handleRegister} className="space-y-4">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">Nome completo</label>
+                <Input
+                  type="text"
+                  name="name"
+                  required
+                  value={formData.name}
+                  onChange={handleChange}
+                  placeholder="Digite seu nome completo"
+                />
+              </div>
 
-          <div className="md:col-span-2 mt-4 space-y-4">
-            <button
-              type="submit"
-              disabled={status === 'loading' || status === 'success'}
-              className="w-full py-5 bg-primary text-white rounded-3xl font-bold shadow-xl shadow-orange-100 hover:scale-[1.02] active:scale-95 transition-all text-xl disabled:opacity-60 disabled:cursor-not-allowed disabled:scale-100 flex items-center justify-center gap-3"
-            >
-              {status === 'loading' ? (
-                <>
-                  <svg className="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
-                  </svg>
-                  Criando conta…
-                </>
-              ) : (
-                'Começar minha jornada'
-              )}
-            </button>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground">E-mail</label>
+                  <Input
+                    type="email"
+                    name="email"
+                    required
+                    value={formData.email}
+                    onChange={handleChange}
+                    placeholder="seu@email.com"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground">Telefone</label>
+                  <Input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    placeholder="(00) 00000-0000"
+                  />
+                </div>
+              </div>
 
-            {/* Divisor */}
-            <div className="flex items-center gap-4 py-2">
-              <div className="flex-1 h-px bg-slate-200" />
-              <span className="text-sm text-slate-400 font-medium">ou cadastre-se com</span>
-              <div className="flex-1 h-px bg-slate-200" />
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">Senha</label>
+                <Input
+                  type="password"
+                  name="password"
+                  required
+                  minLength={8}
+                  value={formData.password}
+                  onChange={handleChange}
+                  placeholder="Mínimo 8 caracteres"
+                />
+              </div>
+
+              <Button
+                type="submit"
+                disabled={status === 'loading' || status === 'success'}
+                className="w-full"
+              >
+                {status === 'loading' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {status === 'loading' ? 'Criando conta…' : 'Começar minha jornada'}
+              </Button>
+            </form>
+
+            <div className="flex items-center gap-3">
+              <Separator className="flex-1" />
+              <span className="text-xs text-muted-foreground">ou cadastre-se com</span>
+              <Separator className="flex-1" />
             </div>
 
-            {/* Botão Google */}
-            <button
+            <Button
               type="button"
-              onClick={() => signIn('keycloak', { callbackUrl: '/onboarding' }, { kc_idp_hint: 'google' })}
-              className="w-full flex items-center justify-center gap-3 py-4 px-6 bg-white border-2 border-slate-200 rounded-2xl font-bold text-slate-700 hover:border-slate-400 hover:bg-slate-50 hover:scale-[1.02] active:scale-95 transition-all shadow-sm"
+              variant="outline"
+              className="w-full"
+              onClick={() =>
+                signIn('keycloak', { callbackUrl: '/onboarding' }, { kc_idp_hint: 'google' })
+              }
             >
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
-                <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
-                <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" />
-                <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" />
-              </svg>
+              <GoogleIcon />
               Continuar com Google
-            </button>
+            </Button>
 
-            <p className="text-center text-slate-500 font-medium">
+            <p className="text-center text-sm text-muted-foreground">
               Já faz parte da rede?{' '}
-              <Link href="/login" className="text-primary font-bold hover:underline">
+              <Link href="/login" className="font-semibold text-primary hover:underline">
                 Entre agora
               </Link>
             </p>
-          </div>
-        </form>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
