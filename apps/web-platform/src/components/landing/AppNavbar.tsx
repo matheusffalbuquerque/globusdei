@@ -128,7 +128,7 @@ export function AppNavbar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'relative flex min-w-[72px] flex-col items-center justify-center gap-1 px-4 text-[11px] font-medium transition-colors',
+                  'relative flex w-24 flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors',
                   isActive
                     ? 'text-foreground after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-full after:bg-foreground'
                     : 'text-muted-foreground hover:text-foreground',
