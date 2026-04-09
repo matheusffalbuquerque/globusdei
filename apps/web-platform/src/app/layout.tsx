@@ -1,9 +1,8 @@
 import './global.css';
 import { Inter, Poppins } from 'next/font/google';
-import Link from 'next/link';
 
 import { AppSessionProvider } from '../components/providers/AppSessionProvider';
-import { NavbarAuthButtons } from '../components/landing/NavbarAuthButtons';
+import { AppNavbar } from '../components/landing/AppNavbar';
 
 /**
  * Loading Inter locally optimized for readable body text.
@@ -43,24 +42,7 @@ export default function RootLayout({
          * ler a sessão via useSession() sem hydration mismatch.
          */}
         <AppSessionProvider>
-          <header className="sticky top-0 z-50 border-b border-border bg-white/95 backdrop-blur-sm">
-            <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <Link href="/">
-                  <img src="/logo.png" alt="Globus Dei Logo" className="h-10 w-auto" />
-                </Link>
-                <span className="font-display font-semibold text-2xl text-primary">Globus Dei</span>
-              </div>
-
-              <nav className="flex items-center gap-8 text-sm font-medium">
-                <a href="#" className="hover:text-primary transition-colors text-slate-700">Rede Global</a>
-                <a href="#" className="hover:text-primary transition-colors text-slate-700">Projetos</a>
-                <a href="#" className="hover:text-primary transition-colors text-slate-700">Oportunidades</a>
-              </nav>
-
-              <NavbarAuthButtons />
-            </div>
-          </header>
+          <AppNavbar />
 
           <main className="flex-grow">
             {children}
