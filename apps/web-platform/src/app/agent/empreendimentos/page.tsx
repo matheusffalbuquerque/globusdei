@@ -3,9 +3,13 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
+import { BadgeCheck, Building2, CheckCircle2, Plus } from 'lucide-react';
 
 import { apiFetch } from '../../../lib/api';
 import { formatFollowUpStatus, type AppSession } from '../../../lib/auth';
+import { Badge } from '../../../components/ui/badge';
+import { Button } from '../../../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 
 type Empreendimento = {
   id: string;
@@ -72,121 +76,167 @@ export default function AgentEmpreendimentosPage() {
 
   return (
     <div className="space-y-6">
-      <section className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      {/* Header */}
+      <Card>
+        <CardContent className="flex flex-col gap-4 pt-6 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <div className="text-xs font-bold uppercase tracking-[0.25em] text-slate-400">Gestão das iniciativas</div>
-            <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">Empreendimentos e convites</h1>
-            <p className="mt-3 text-slate-600">
+            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Gestão das iniciativas
+            </p>
+            <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground">
+              Empreendimentos e convites
+            </h1>
+            <p className="mt-1.5 text-sm text-muted-foreground">
               Administre os projetos que você lidera, acompanhe validação bancária e aceite convites de colaboração.
             </p>
           </div>
-          <Link
-            href="/agent/empreendimentos/create"
-            className="inline-flex items-center justify-center rounded-2xl bg-orange-600 px-5 py-3 text-sm font-bold text-white"
-          >
-            Nova iniciativa
-          </Link>
-        </div>
-      </section>
+          <Button asChild className="shrink-0">
+            <Link href="/agent/empreendimentos/create">
+              <Plus className="mr-1.5 h-4 w-4" />
+              Nova iniciativa
+            </Link>
+          </Button>
+        </CardContent>
+      </Card>
 
       {error && (
-        <div className="rounded-3xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
           {error}
         </div>
       )}
 
+      {/* Pending invites */}
       {invites.length > 0 && (
-        <section className="rounded-[32px] border border-blue-200 bg-blue-50 p-6 shadow-sm">
-          <div className="mb-4 text-xs font-bold uppercase tracking-[0.25em] text-blue-500">Convites pendentes</div>
-          <div className="space-y-4">
+        <Card className="border-blue-200">
+          <CardHeader className="pb-3">
+            <p className="text-xs font-semibold uppercase tracking-widest text-blue-600">
+              Convites pendentes
+            </p>
+            <CardTitle className="text-base text-foreground">
+              Você tem {invites.length} convite{invites.length > 1 ? 's' : ''} aguardando resposta
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
             {invites.map((invite) => (
               <div
                 key={invite.id}
-                className="flex flex-col gap-4 rounded-3xl border border-blue-100 bg-white p-5 lg:flex-row lg:items-center lg:justify-between"
+                className="flex flex-col gap-3 rounded-lg border border-border bg-muted/30 p-4 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div>
-                  <div className="font-bold text-slate-900">
-                    Convite para atuar como {invite.role} em {invite.empreendimento.name}
-                  </div>
-                  <div className="mt-1 text-sm text-slate-500">
+                  <p className="text-sm font-medium text-foreground">
+                    Convite para atuar como{' '}
+                    <span className="font-semibold">{invite.role}</span> em{' '}
+                    <span className="font-semibold">{invite.empreendimento.name}</span>
+                  </p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
                     Aceite o convite para vincular esta iniciativa ao seu painel.
-                  </div>
+                  </p>
                 </div>
-                <button
-                  type="button"
+                <Button
+                  size="sm"
                   onClick={() => void acceptInvite(invite.token)}
-                  className="rounded-2xl bg-blue-600 px-4 py-3 text-sm font-bold text-white"
+                  className="shrink-0"
                 >
+                  <CheckCircle2 className="mr-1.5 h-4 w-4" />
                   Aceitar convite
-                </button>
+                </Button>
               </div>
             ))}
-          </div>
-        </section>
+          </CardContent>
+        </Card>
       )}
 
-      <section className="grid grid-cols-1 gap-6 lg:grid-cols-2 2xl:grid-cols-3">
+      {/* Empreendimentos grid */}
+      <section className="grid grid-cols-1 gap-5 lg:grid-cols-2 2xl:grid-cols-3">
         {loading ? (
-          <div className="col-span-full rounded-[32px] border border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-400">
-            Carregando empreendimentos...
-          </div>
+          Array.from({ length: 3 }).map((_, i) => (
+            <Card key={i} className="animate-pulse">
+              <CardContent className="pt-6 space-y-3">
+                <div className="h-3 w-24 rounded bg-muted" />
+                <div className="h-5 w-3/4 rounded bg-muted" />
+                <div className="mt-4 grid grid-cols-2 gap-3">
+                  <div className="h-14 rounded-lg bg-muted" />
+                  <div className="h-14 rounded-lg bg-muted" />
+                </div>
+              </CardContent>
+            </Card>
+          ))
         ) : empreendimentos.length > 0 ? (
           empreendimentos.map((empreendimento) => (
-            <article key={empreendimento.id} className="rounded-[32px] border border-slate-200 bg-white p-7 shadow-sm">
-              <div className="flex items-start justify-between gap-4">
-                <div>
-                  <div className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">
-                    {empreendimento.type} • {empreendimento.category}
+            <Card key={empreendimento.id}>
+              <CardHeader className="pb-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                      {empreendimento.type} · {empreendimento.category}
+                    </p>
+                    <CardTitle className="mt-1 text-base leading-snug">
+                      {empreendimento.name}
+                    </CardTitle>
                   </div>
-                  <h2 className="mt-3 text-2xl font-bold text-slate-900">{empreendimento.name}</h2>
+                  <Badge variant="secondary" className="shrink-0 font-bold">
+                    Score {empreendimento.priorityScore}
+                  </Badge>
                 </div>
-                <div className="rounded-full bg-slate-100 px-3 py-1 text-xs font-bold uppercase text-slate-600">
-                  Score {empreendimento.priorityScore}
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="rounded-lg bg-muted/40 p-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                      Banco
+                    </p>
+                    <div className="mt-1.5 flex items-center gap-1.5">
+                      {empreendimento.isBankVerified ? (
+                        <>
+                          <BadgeCheck className="h-3.5 w-3.5 text-green-600" />
+                          <Badge variant="success" className="text-[10px]">Verificado</Badge>
+                        </>
+                      ) : (
+                        <Badge variant="secondary" className="text-[10px]">Aguardando</Badge>
+                      )}
+                    </div>
+                  </div>
+                  <div className="rounded-lg bg-muted/40 p-3">
+                    <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                      Acompanhamento
+                    </p>
+                    <p className="mt-1.5 text-xs font-medium text-foreground">
+                      {formatFollowUpStatus(empreendimento.followUpStatus)}
+                    </p>
+                  </div>
                 </div>
-              </div>
 
-              <div className="mt-6 grid grid-cols-2 gap-3 text-sm">
-                <div className="rounded-2xl bg-slate-50 p-4">
-                  <div className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Banco</div>
-                  <div className="mt-2 font-bold text-slate-900">
-                    {empreendimento.isBankVerified ? 'Verificado' : 'Aguardando validação'}
-                  </div>
+                <div className="flex gap-2">
+                  <Button asChild variant="outline" size="sm" className="flex-1">
+                    <Link href={`/agent/empreendimentos/${empreendimento.id}`}>
+                      <Building2 className="mr-1.5 h-3.5 w-3.5" />
+                      Detalhes
+                    </Link>
+                  </Button>
+                  <Button asChild size="sm" className="flex-1">
+                    <Link href={`/agent/empreendimentos/edit/${empreendimento.id}`}>
+                      Gerenciar
+                    </Link>
+                  </Button>
                 </div>
-                <div className="rounded-2xl bg-slate-50 p-4">
-                  <div className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Acompanhamento</div>
-                  <div className="mt-2 font-bold text-slate-900">
-                    {formatFollowUpStatus(empreendimento.followUpStatus)}
-                  </div>
-                </div>
-              </div>
-
-              <div className="mt-6 flex gap-3">
-                <Link
-                  href={`/agent/empreendimentos/${empreendimento.id}`}
-                  className="flex-1 rounded-2xl border border-slate-200 px-4 py-3 text-center text-sm font-bold text-slate-700"
-                >
-                  Ver detalhes
-                </Link>
-                <Link
-                  href={`/agent/empreendimentos/edit/${empreendimento.id}`}
-                  className="flex-1 rounded-2xl bg-slate-900 px-4 py-3 text-center text-sm font-bold text-white"
-                >
-                  Gerenciar
-                </Link>
-              </div>
-            </article>
+              </CardContent>
+            </Card>
           ))
         ) : (
-          <div className="col-span-full rounded-[32px] border border-dashed border-slate-200 bg-white p-10 text-center">
-            <div className="text-lg font-bold text-slate-900">Nenhuma iniciativa cadastrada ainda.</div>
-            <p className="mt-2 text-sm text-slate-500">Crie seu primeiro empreendimento para começar a operar na plataforma.</p>
-            <Link
-              href="/agent/empreendimentos/create"
-              className="mt-6 inline-flex rounded-2xl bg-orange-600 px-5 py-3 text-sm font-bold text-white"
-            >
-              Criar primeira iniciativa
-            </Link>
+          <div className="col-span-full rounded-xl border border-dashed border-border p-12 text-center">
+            <Building2 className="mx-auto h-8 w-8 text-muted-foreground/50" />
+            <p className="mt-3 text-sm font-medium text-foreground">
+              Nenhuma iniciativa cadastrada ainda.
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Crie seu primeiro empreendimento para começar a operar na plataforma.
+            </p>
+            <Button asChild className="mt-5">
+              <Link href="/agent/empreendimentos/create">
+                <Plus className="mr-1.5 h-4 w-4" />
+                Criar primeira iniciativa
+              </Link>
+            </Button>
           </div>
         )}
       </section>

@@ -4,6 +4,16 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  LayoutDashboard,
+  User,
+  ClipboardList,
+  Building2,
+  Inbox,
+  ChevronRight,
+  Loader2,
+  Plus,
+} from 'lucide-react';
 
 import { apiFetch } from '../../lib/api';
 import {
@@ -12,6 +22,10 @@ import {
   isAgentSession,
   type AppSession,
 } from '../../lib/auth';
+import { Avatar, AvatarFallback } from '../ui/avatar';
+import { Badge } from '../ui/badge';
+import { Separator } from '../ui/separator';
+import { cn } from '../../lib/utils';
 
 type AgentProfile = {
   id: string;
@@ -30,6 +44,12 @@ type AgentPortalContextValue = {
 };
 
 const AgentPortalContext = createContext<AgentPortalContextValue | null>(null);
+
+type NavItem = {
+  href: string;
+  label: string;
+  icon: React.ElementType;
+};
 
 /**
  * AgentPortalShell centralizes access control, profile loading and navigation for agent routes.
@@ -79,12 +99,12 @@ export function AgentPortalShell({ children }: { children: ReactNode }) {
     }
   }, [status, typedSession?.accessToken, typedSession?.user?.email]);
 
-  const navigation = [
-    { href: '/agent/dashboard', label: 'Visão Geral' },
-    { href: '/agent/profile', label: 'Perfil' },
-    { href: '/agent/status', label: 'Onboarding' },
-    { href: '/agent/empreendimentos', label: 'Empreendimentos' },
-    { href: '/agent/service-requests', label: 'Solicitações' },
+  const navigation: NavItem[] = [
+    { href: '/agent/dashboard',       label: 'Visão Geral',      icon: LayoutDashboard },
+    { href: '/agent/profile',         label: 'Perfil',           icon: User },
+    { href: '/agent/status',          label: 'Onboarding',       icon: ClipboardList },
+    { href: '/agent/empreendimentos', label: 'Empreendimentos',  icon: Building2 },
+    { href: '/agent/service-requests',label: 'Solicitações',     icon: Inbox },
   ];
 
   const contextValue = useMemo<AgentPortalContextValue>(
@@ -98,9 +118,10 @@ export function AgentPortalShell({ children }: { children: ReactNode }) {
 
   if (status === 'loading' || status === 'unauthenticated' || !isAgentSession(typedSession)) {
     return (
-      <div className="flex min-h-[calc(100vh-145px)] items-center justify-center bg-slate-50">
-        <div className="rounded-3xl border border-slate-200 bg-white px-8 py-6 text-sm font-semibold text-slate-500 shadow-sm">
-          Validando acesso do agente...
+      <div className="flex min-h-[calc(100vh-145px)] items-center justify-center bg-muted/30">
+        <div className="flex items-center gap-3 rounded-xl border border-border bg-background px-6 py-4 text-sm font-medium text-muted-foreground shadow-sm">
+          <Loader2 className="h-4 w-4 animate-spin" />
+          Validando acesso do agente…
         </div>
       </div>
     );
@@ -108,78 +129,114 @@ export function AgentPortalShell({ children }: { children: ReactNode }) {
 
   return (
     <AgentPortalContext.Provider value={contextValue}>
-      <div className="min-h-[calc(100vh-145px)] bg-slate-100">
-        <div className="mx-auto grid min-h-[calc(100vh-145px)] max-w-[1440px] grid-cols-1 xl:grid-cols-[280px_minmax(0,1fr)]">
-          <aside className="border-r border-slate-200 bg-slate-950 px-6 py-8 text-white">
-            <div className="mb-8 rounded-3xl border border-white/10 bg-white/5 p-5">
-              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-orange-500/15 text-2xl font-black text-orange-200">
-                {(agent?.name ?? sessionName).charAt(0)}
+      <div className="min-h-[calc(100vh-145px)] bg-muted/30">
+        <div className="mx-auto grid min-h-[calc(100vh-145px)] max-w-[1520px] grid-cols-1 xl:grid-cols-[280px_minmax(0,1fr)]">
+
+          {/* ── Sidebar ── */}
+          <aside className="border-r border-border bg-background px-4 py-6">
+            {/* Profile card */}
+            <div className="rounded-xl border border-border bg-slate-950 p-4 text-white">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-10 w-10 shrink-0">
+                  <AvatarFallback className="bg-primary/20 text-sm font-bold text-primary-foreground">
+                    {(agent?.name ?? sessionName).charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-semibold text-white">
+                    {agent?.name ?? sessionName}
+                  </p>
+                  <p className="truncate text-xs text-slate-400">Portal do agente</p>
+                </div>
               </div>
-              <div className="text-lg font-bold">{agent?.name ?? sessionName}</div>
-              <div className="mt-1 text-sm text-slate-300">
-                {agent?.vocationType || 'Perfil em construção'}
-              </div>
-              <div className="mt-4 inline-flex rounded-full bg-white/10 px-3 py-1 text-xs font-bold uppercase tracking-[0.2em] text-orange-200">
-                {formatAgentStatus(agent?.status)}
+
+              <div className="mt-3 flex flex-col gap-1.5">
+                <Badge variant="secondary" className="w-fit border-white/10 bg-white/5 text-[10px] font-semibold uppercase tracking-wider text-slate-300">
+                  {formatAgentStatus(agent?.status)}
+                </Badge>
+                {agent?.vocationType && (
+                  <p className="text-[11px] text-slate-400">{agent.vocationType}</p>
+                )}
               </div>
             </div>
 
-            <nav className="space-y-2">
+            <Separator className="my-5" />
+
+            {/* Navigation */}
+            <nav className="space-y-1">
               {navigation.map((item) => {
                 const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
-
+                const Icon = item.icon;
                 return (
                   <Link
                     key={item.href}
                     href={item.href}
-                    className={`block rounded-2xl px-4 py-3 text-sm font-semibold transition ${
+                    className={cn(
+                      'group flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
                       isActive
-                        ? 'bg-orange-500 text-white shadow-lg shadow-orange-900/30'
-                        : 'text-slate-300 hover:bg-white/5 hover:text-white'
-                    }`}
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                    )}
                   >
-                    {item.label}
+                    <span className="flex items-center gap-2.5">
+                      <Icon className="h-4 w-4 shrink-0" />
+                      {item.label}
+                    </span>
+                    <ChevronRight
+                      className={cn(
+                        'h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-60',
+                        isActive && 'opacity-60',
+                      )}
+                    />
                   </Link>
                 );
               })}
             </nav>
 
-            <div className="mt-8 rounded-3xl border border-white/10 bg-white/5 p-5">
-              <div className="text-xs font-bold uppercase tracking-[0.25em] text-slate-400">
+            <Separator className="my-5" />
+
+            {/* Quick actions */}
+            <div className="space-y-1.5">
+              <p className="px-3 text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
                 Ações rápidas
-              </div>
-              <div className="mt-4 space-y-2">
-                <Link href="/onboarding" className="block rounded-2xl bg-white/5 px-4 py-3 text-sm font-semibold text-slate-100">
-                  Preencher onboarding
-                </Link>
-                <Link href="/agent/empreendimentos/create" className="block rounded-2xl bg-white/5 px-4 py-3 text-sm font-semibold text-slate-100">
-                  Nova iniciativa
-                </Link>
-              </div>
+              </p>
+              <Link
+                href="/onboarding"
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <ClipboardList className="h-3.5 w-3.5" />
+                Preencher onboarding
+              </Link>
+              <Link
+                href="/agent/empreendimentos/create"
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Nova iniciativa
+              </Link>
             </div>
           </aside>
 
+          {/* ── Main content ── */}
           <div className="flex min-w-0 flex-col">
-            <header className="border-b border-slate-200 bg-white px-6 py-5">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <header className="border-b border-border bg-background px-6 py-4">
+              <div className="flex items-center justify-between gap-4">
                 <div>
-                  <div className="text-xs font-bold uppercase tracking-[0.25em] text-slate-400">
-                    Portal do agente
-                  </div>
-                  <div className="mt-1 text-xl font-bold text-slate-900">
+                  <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                    Globus Dei · Portal do agente
+                  </p>
+                  <h1 className="mt-0.5 text-base font-semibold text-foreground">
                     {agent?.city || agent?.country
-                      ? `${agent?.city ?? 'Base local'}, ${agent?.country ?? 'Atuação global'}`
+                      ? `${agent?.city ?? 'Base local'} · ${agent?.country ?? 'Atuação global'}`
                       : 'Acompanhe seu avanço operacional'}
-                  </div>
+                  </h1>
                 </div>
-
-
               </div>
             </header>
 
             <main className="min-w-0 flex-1 px-4 py-6 sm:px-6 lg:px-8">
               {error ? (
-                <div className="rounded-3xl border border-red-200 bg-red-50 p-6 text-sm font-medium text-red-700">
+                <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
                   {error}
                 </div>
               ) : (
