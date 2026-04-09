@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
+import { Inbox, Lock } from 'lucide-react';
 
 import { useCollaboratorPortal } from '../../../components/portal/CollaboratorPortalShell';
 import { apiFetch } from '../../../lib/api';
@@ -10,6 +11,18 @@ import {
   formatServiceRequestStatus,
   type AppSession,
 } from '../../../lib/auth';
+import { Badge } from '../../../components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
+import { Select } from '../../../components/ui/select';
+import { Textarea } from '../../../components/ui/textarea';
+
+function requestStatusVariant(status: string) {
+  const s = status?.toUpperCase();
+  if (s === 'OPEN') return 'info' as const;
+  if (s === 'IN_PROGRESS') return 'warning' as const;
+  if (s === 'RESOLVED' || s === 'CLOSED') return 'success' as const;
+  return 'secondary' as const;
+}
 
 /**
  * CollaboratorServiceRequestsPage adapts the triage workflow to collaborator permissions.
@@ -58,86 +71,107 @@ export default function CollaboratorServiceRequestsPage() {
 
   if (!permissions.canManageRequests) {
     return (
-      <div className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
-        <div className="text-xs font-bold uppercase tracking-[0.25em] text-slate-400">Acesso restrito</div>
-        <h1 className="mt-3 text-2xl font-bold text-slate-900">Solicitações indisponíveis para seu papel atual</h1>
-        <p className="mt-3 max-w-2xl text-slate-600">
-          O backend exige papéis locais de pessoas ou projetos para triagem deste módulo, então o fluxo foi bloqueado aqui também.
-        </p>
-      </div>
+      <Card>
+        <CardContent className="flex flex-col items-center gap-3 py-10 text-center">
+          <Lock className="h-8 w-8 text-muted-foreground/40" />
+          <div>
+            <p className="font-semibold text-foreground">Solicitações indisponíveis para seu papel atual</p>
+            <p className="mt-1 max-w-sm text-sm text-muted-foreground">
+              O backend exige papéis locais de pessoas ou projetos para triagem deste módulo, então o fluxo foi bloqueado aqui também.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
     <div className="space-y-6">
-      <section className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
-        <div className="text-xs font-bold uppercase tracking-[0.25em] text-slate-400">Fila operacional</div>
-        <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">Solicitações de apoio</h1>
-        <p className="mt-3 text-slate-600">
-          Atualize status e registre notas internas para acompanhamento do suporte prestado aos agentes.
-        </p>
-      </section>
+      {/* Header */}
+      <Card>
+        <CardContent className="pt-6">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Fila operacional
+          </p>
+          <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground">
+            Solicitações de apoio
+          </h1>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            Atualize status e registre notas internas para acompanhamento do suporte prestado aos agentes.
+          </p>
+        </CardContent>
+      </Card>
 
       {error && (
-        <div className="rounded-3xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
+        <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
           {error}
         </div>
       )}
 
-      <section className="space-y-4">
+      {/* List */}
+      <div className="space-y-4">
         {requests.length > 0 ? (
           requests.map((request) => (
-            <article key={request.id} className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
-              <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-                <div>
-                  <div className="text-xs font-bold uppercase tracking-[0.25em] text-slate-400">
-                    {request.agent.name}
+            <Card key={request.id}>
+              <CardHeader className="pb-3">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                      {request.agent.name}
+                    </p>
+                    <CardTitle className="mt-0.5 text-base">
+                      {formatServiceRequestCategory(request.category)}
+                    </CardTitle>
+                    <div className="mt-1.5 flex items-center gap-2">
+                      <Badge variant={requestStatusVariant(request.status)}>
+                        {formatServiceRequestStatus(request.status)}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground">
+                        {new Date(request.createdAt).toLocaleDateString('pt-BR')}
+                      </span>
+                    </div>
                   </div>
-                  <h2 className="mt-3 text-2xl font-bold text-slate-900">
-                    {formatServiceRequestCategory(request.category)}
-                  </h2>
-                  <div className="mt-2 text-sm font-semibold text-slate-500">
-                    {formatServiceRequestStatus(request.status)}
-                  </div>
+
+                  <Select
+                    value={request.status}
+                    onChange={(e) => void updateStatus(request.id, e.target.value)}
+                    className="shrink-0 sm:w-48"
+                  >
+                    <option value="OPEN">Aberta</option>
+                    <option value="IN_PROGRESS">Em andamento</option>
+                    <option value="RESOLVED">Resolvida</option>
+                    <option value="CLOSED">Encerrada</option>
+                  </Select>
                 </div>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
+                  {request.description}
+                </p>
 
-                <select
-                  value={request.status}
-                  onChange={(event) => void updateStatus(request.id, event.target.value)}
-                  className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700"
-                >
-                  <option value="OPEN">Aberta</option>
-                  <option value="IN_PROGRESS">Em andamento</option>
-                  <option value="RESOLVED">Resolvida</option>
-                  <option value="CLOSED">Encerrada</option>
-                </select>
-              </div>
-
-              <p className="mt-5 whitespace-pre-wrap text-sm leading-6 text-slate-600">{request.description}</p>
-
-              <div className="mt-6">
-                <label className="mb-2 block text-sm font-bold text-slate-700">Notas internas</label>
-                <textarea
-                  rows={4}
-                  value={notes[request.id] ?? request.internalNotes ?? ''}
-                  onChange={(event) =>
-                    setNotes((current) => ({
-                      ...current,
-                      [request.id]: event.target.value,
-                    }))
-                  }
-                  className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-4"
-                  placeholder="Registre andamento, encaminhamentos ou dependências."
-                />
-              </div>
-            </article>
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground">Notas internas</label>
+                  <Textarea
+                    rows={3}
+                    value={notes[request.id] ?? request.internalNotes ?? ''}
+                    onChange={(e) =>
+                      setNotes((current) => ({ ...current, [request.id]: e.target.value }))
+                    }
+                    placeholder="Registre andamento, encaminhamentos ou dependências."
+                  />
+                </div>
+              </CardContent>
+            </Card>
           ))
         ) : (
-          <div className="rounded-[32px] border border-dashed border-slate-200 bg-white p-10 text-center text-sm text-slate-400">
-            Nenhuma solicitação aberta para triagem.
+          <div className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-border py-12 text-center">
+            <Inbox className="h-8 w-8 text-muted-foreground/40" />
+            <p className="text-sm text-muted-foreground">
+              Nenhuma solicitação aberta para triagem.
+            </p>
           </div>
         )}
-      </section>
+      </div>
     </div>
   );
 }

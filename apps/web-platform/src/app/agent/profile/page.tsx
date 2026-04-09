@@ -2,10 +2,17 @@
 
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
+import { CheckCircle2, Loader2, Save, UserCircle } from 'lucide-react';
 
 import { useAgentPortal } from '../../../components/portal/AgentPortalShell';
 import { apiFetch } from '../../../lib/api';
 import { formatAgentStatus, type AppSession } from '../../../lib/auth';
+import { Badge } from '../../../components/ui/badge';
+import { Button } from '../../../components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
+import { Input } from '../../../components/ui/input';
+import { Separator } from '../../../components/ui/separator';
+import { Textarea } from '../../../components/ui/textarea';
 
 type ProfileForm = {
   phone: string;
@@ -16,6 +23,15 @@ type ProfileForm = {
   country: string;
   isActive: boolean;
 };
+
+function agentStatusVariant(s?: string) {
+  if (!s) return 'secondary' as const;
+  if (s === 'APPROVED') return 'success' as const;
+  if (s === 'REJECTED') return 'destructive' as const;
+  if (s === 'QUALIFIED' || s === 'SCHEDULED') return 'info' as const;
+  if (s === 'SUBMITTED') return 'warning' as const;
+  return 'secondary' as const;
+}
 
 /**
  * AgentProfilePage lets the authenticated agent keep profile and public presentation up to date.
@@ -76,145 +92,182 @@ export default function AgentProfilePage() {
 
   return (
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_0.9fr]">
-      <section className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
-        <div className="mb-8">
-          <div className="text-xs font-bold uppercase tracking-[0.25em] text-slate-400">Perfil operacional</div>
-          <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900">Dados do agente</h1>
-          <p className="mt-3 max-w-2xl text-slate-600">
+      {/* Form panel */}
+      <Card>
+        <CardHeader className="pb-3">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Perfil operacional
+          </p>
+          <CardTitle className="mt-0.5 text-base">Dados do agente</CardTitle>
+          <p className="text-sm text-muted-foreground">
             Atualize sua apresentação, localização e contexto ministerial para melhorar análise, conexão e visibilidade.
           </p>
-        </div>
+        </CardHeader>
 
-        {error && (
-          <div className="mb-6 rounded-3xl border border-red-200 bg-red-50 p-4 text-sm font-medium text-red-700">
-            {error}
-          </div>
-        )}
+        <Separator />
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
-            <div>
-              <label className="mb-2 block text-sm font-bold text-slate-700">Telefone</label>
-              <input
-                type="text"
-                value={form.phone}
-                onChange={(event) => setForm((current) => ({ ...current, phone: event.target.value }))}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-orange-400"
-                placeholder="(00) 00000-0000"
+        <CardContent className="pt-6">
+          {error && (
+            <div className="mb-5 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">Telefone</label>
+                <Input
+                  type="text"
+                  value={form.phone}
+                  onChange={(e) => setForm((c) => ({ ...c, phone: e.target.value }))}
+                  placeholder="(00) 00000-0000"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">Vocação</label>
+                <Input
+                  type="text"
+                  value={form.vocationType}
+                  onChange={(e) => setForm((c) => ({ ...c, vocationType: e.target.value }))}
+                  placeholder="Missionário, mobilizador, intercessor…"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">Cidade base</label>
+                <Input
+                  type="text"
+                  value={form.city}
+                  onChange={(e) => setForm((c) => ({ ...c, city: e.target.value }))}
+                  placeholder="Cidade"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">País</label>
+                <Input
+                  type="text"
+                  value={form.country}
+                  onChange={(e) => setForm((c) => ({ ...c, country: e.target.value }))}
+                  placeholder="País"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground">Descrição interna</label>
+              <Textarea
+                rows={5}
+                value={form.description}
+                onChange={(e) => setForm((c) => ({ ...c, description: e.target.value }))}
+                placeholder="Descreva sua atuação, disponibilidade e foco ministerial."
               />
             </div>
 
-            <div>
-              <label className="mb-2 block text-sm font-bold text-slate-700">Vocação</label>
-              <input
-                type="text"
-                value={form.vocationType}
-                onChange={(event) => setForm((current) => ({ ...current, vocationType: event.target.value }))}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-orange-400"
-                placeholder="Missionário, mobilizador, intercessor..."
+            <div className="space-y-1.5">
+              <label className="text-sm font-medium text-foreground">Bio pública</label>
+              <Textarea
+                rows={4}
+                value={form.publicBio}
+                onChange={(e) => setForm((c) => ({ ...c, publicBio: e.target.value }))}
+                placeholder="Resumo enxuto para apresentação pública dentro da plataforma."
               />
             </div>
 
-            <div>
-              <label className="mb-2 block text-sm font-bold text-slate-700">Cidade base</label>
+            {/* Toggle ativo */}
+            <label className="flex cursor-pointer items-center justify-between rounded-lg border border-border bg-muted/30 px-4 py-3">
+              <div>
+                <p className="text-sm font-medium text-foreground">Perfil ativo</p>
+                <p className="text-xs text-muted-foreground">
+                  Permite que sua presença continue ativa na rede.
+                </p>
+              </div>
               <input
-                type="text"
-                value={form.city}
-                onChange={(event) => setForm((current) => ({ ...current, city: event.target.value }))}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-orange-400"
-                placeholder="Cidade"
+                type="checkbox"
+                checked={form.isActive}
+                onChange={(e) => setForm((c) => ({ ...c, isActive: e.target.checked }))}
+                className="h-4 w-4 rounded border-border accent-primary"
               />
+            </label>
+
+            <div className="flex items-center justify-between gap-4 pt-1">
+              {status === 'saved' ? (
+                <span className="flex items-center gap-1.5 text-sm font-medium text-emerald-600">
+                  <CheckCircle2 className="h-4 w-4" />
+                  Perfil salvo com sucesso.
+                </span>
+              ) : (
+                <span className="text-xs text-muted-foreground">
+                  Mantenha esses dados atualizados para facilitar a análise da equipe.
+                </span>
+              )}
+              <Button type="submit" disabled={status === 'saving'}>
+                {status === 'saving' ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="mr-2 h-4 w-4" />
+                )}
+                {status === 'saving' ? 'Salvando…' : 'Salvar perfil'}
+              </Button>
             </div>
+          </form>
+        </CardContent>
+      </Card>
 
-            <div>
-              <label className="mb-2 block text-sm font-bold text-slate-700">País</label>
-              <input
-                type="text"
-                value={form.country}
-                onChange={(event) => setForm((current) => ({ ...current, country: event.target.value }))}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 outline-none transition focus:border-orange-400"
-                placeholder="País"
-              />
+      {/* Summary sidebar */}
+      <div className="space-y-5">
+        <Card>
+          <CardHeader className="pb-3">
+            <div className="flex items-center gap-2">
+              <UserCircle className="h-5 w-5 text-muted-foreground" />
+              <CardTitle className="text-base">{agent?.name ?? 'Agente'}</CardTitle>
             </div>
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-bold text-slate-700">Descrição interna</label>
-            <textarea
-              rows={5}
-              value={form.description}
-              onChange={(event) => setForm((current) => ({ ...current, description: event.target.value }))}
-              className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-4 outline-none transition focus:border-orange-400"
-              placeholder="Descreva sua atuação, disponibilidade e foco ministerial."
-            />
-          </div>
-
-          <div>
-            <label className="mb-2 block text-sm font-bold text-slate-700">Bio pública</label>
-            <textarea
-              rows={4}
-              value={form.publicBio}
-              onChange={(event) => setForm((current) => ({ ...current, publicBio: event.target.value }))}
-              className="w-full rounded-3xl border border-slate-200 bg-slate-50 px-4 py-4 outline-none transition focus:border-orange-400"
-              placeholder="Resumo enxuto para apresentação pública dentro da plataforma."
-            />
-          </div>
-
-          <label className="flex items-center justify-between rounded-3xl border border-slate-200 bg-slate-50 px-5 py-4">
-            <div>
-              <div className="font-bold text-slate-900">Perfil ativo</div>
-              <div className="text-sm text-slate-500">Permite que sua presença continue ativa na rede.</div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="rounded-lg bg-muted/40 p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Status
+              </p>
+              <div className="mt-1.5 flex items-center gap-2">
+                <Badge variant={agentStatusVariant(agent?.status)}>
+                  {formatAgentStatus(agent?.status)}
+                </Badge>
+              </div>
             </div>
-            <input
-              type="checkbox"
-              checked={form.isActive}
-              onChange={(event) => setForm((current) => ({ ...current, isActive: event.target.checked }))}
-              className="h-5 w-5 rounded border-slate-300 accent-orange-600"
-            />
-          </label>
-
-          <div className="flex items-center justify-between gap-4">
-            <div className="text-sm text-slate-500">
-              {status === 'saved' ? 'Perfil salvo com sucesso.' : 'Mantenha esses dados atualizados para facilitar a análise da equipe.'}
+            <div className="rounded-lg bg-muted/40 p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Email
+              </p>
+              <p className="mt-1 text-sm font-medium text-foreground">
+                {agent?.email ?? 'Sem email'}
+              </p>
             </div>
-            <button
-              type="submit"
-              disabled={status === 'saving'}
-              className="rounded-2xl bg-slate-900 px-6 py-3 text-sm font-bold text-white disabled:opacity-60"
-            >
-              {status === 'saving' ? 'Salvando...' : 'Salvar perfil'}
-            </button>
-          </div>
-        </form>
-      </section>
+            <div className="rounded-lg bg-muted/40 p-3">
+              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+                Vocação
+              </p>
+              <p className="mt-1 text-sm font-medium text-foreground">
+                {agent?.vocationType || 'Ainda não definida'}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
 
-      <section className="space-y-6">
-        <article className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
-          <div className="text-xs font-bold uppercase tracking-[0.25em] text-slate-400">Resumo atual</div>
-          <h2 className="mt-3 text-2xl font-bold text-slate-900">{agent?.name ?? 'Agente'}</h2>
-          <div className="mt-4 rounded-2xl bg-slate-50 p-4">
-            <div className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Status</div>
-            <div className="mt-2 text-lg font-bold text-slate-900">{formatAgentStatus(agent?.status)}</div>
-          </div>
-          <div className="mt-4 rounded-2xl bg-slate-50 p-4">
-            <div className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Email</div>
-            <div className="mt-2 text-sm font-semibold text-slate-700">{agent?.email ?? 'Sem email'}</div>
-          </div>
-          <div className="mt-4 rounded-2xl bg-slate-50 p-4">
-            <div className="text-xs font-bold uppercase tracking-[0.2em] text-slate-400">Vocação</div>
-            <div className="mt-2 text-sm font-semibold text-slate-700">{agent?.vocationType || 'Ainda não definida'}</div>
-          </div>
-        </article>
-
-        <article className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-sm">
-          <div className="text-xs font-bold uppercase tracking-[0.25em] text-slate-400">Próximos passos</div>
-          <div className="mt-4 space-y-3 text-sm text-slate-600">
+        <Card>
+          <CardHeader className="pb-2">
+            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Próximos passos
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm text-muted-foreground">
             <p>1. Garanta que sua descrição reflita sua atuação missionária atual.</p>
             <p>2. Revise a bio pública antes de divulgar sua presença na rede.</p>
             <p>3. Use a tela de onboarding para acompanhar aprovação e entrevista.</p>
-          </div>
-        </article>
-      </section>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
