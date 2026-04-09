@@ -110,7 +110,7 @@ export function AppNavbar() {
   /* ── Logged-in: LinkedIn-style top bar ── */
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-white/95 backdrop-blur-sm">
-      <div className="mx-auto flex h-14 max-w-[1200px] items-center justify-between gap-4 px-4">
+      <div className="mx-auto flex h-16 max-w-[1200px] items-stretch justify-between gap-4 px-4">
         {/* Logo */}
         <Link href={dashboardHome} className="flex shrink-0 items-center gap-3">
           <img src="/logo.png" alt="Globus Dei" className="h-10 w-auto" />
@@ -118,7 +118,7 @@ export function AppNavbar() {
         </Link>
 
         {/* Nav items */}
-        <nav className="flex items-stretch gap-1">
+        <nav className="flex items-stretch gap-0">
           {navItems.map((item) => {
             const isActive =
               pathname === item.href || pathname.startsWith(`${item.href}/`);
@@ -128,9 +128,9 @@ export function AppNavbar() {
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  'relative flex min-w-[64px] flex-col items-center justify-center gap-0.5 px-3 pb-2 pt-2 text-[11px] font-medium transition-colors',
+                  'relative flex min-w-[72px] flex-col items-center justify-center gap-1 px-4 text-[11px] font-medium transition-colors',
                   isActive
-                    ? 'text-foreground after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-full after:rounded-full after:bg-foreground'
+                    ? 'text-foreground after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-full after:bg-foreground'
                     : 'text-muted-foreground hover:text-foreground',
                 )}
               >
