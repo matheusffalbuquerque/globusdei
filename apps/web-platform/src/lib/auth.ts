@@ -5,6 +5,7 @@ import type { Session } from 'next-auth';
  */
 export type AppSession = Session & {
   accessToken?: string;
+  error?: 'RefreshAccessTokenError';
   user?: Session['user'] & {
     id?: string;
     realmRoles?: string[];
