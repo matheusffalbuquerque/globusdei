@@ -47,7 +47,7 @@ export function AppNavbar() {
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-3">
             <img src="/logo.png" alt="Globus Dei Logo" className="h-10 w-auto" />
-            <span className="font-display text-xl font-semibold text-primary">Globus Dei</span>
+            <span className="font-display text-2xl font-semibold text-primary">Globus Dei</span>
           </Link>
 
           <nav className="hidden items-center gap-8 text-sm font-medium md:flex">
@@ -115,8 +115,9 @@ export function AppNavbar() {
     <header className="sticky top-0 z-50 border-b border-border bg-white/95 backdrop-blur-sm">
       <div className="mx-auto flex h-14 max-w-[1200px] items-center justify-between gap-4 px-4">
         {/* Logo */}
-        <Link href={dashboardHome} className="shrink-0">
-          <img src="/logo.png" alt="Globus Dei" className="h-9 w-auto" />
+        <Link href={dashboardHome} className="flex shrink-0 items-center gap-3">
+          <img src="/logo.png" alt="Globus Dei" className="h-10 w-auto" />
+          <span className="font-display text-2xl font-semibold text-primary">Globus Dei</span>
         </Link>
 
         {/* Nav items */}
