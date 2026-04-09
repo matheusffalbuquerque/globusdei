@@ -9,7 +9,6 @@ import {
   Building2,
   Home,
   LogOut,
-  MessageSquare,
   Users,
 } from 'lucide-react';
 
@@ -90,19 +89,17 @@ export function AppNavbar() {
 
   if (isAgentSession(typedSession)) {
     navItems = [
-      { href: '/agent/dashboard',        label: 'Início',          icon: Home },
-      { href: '/agent/empreendimentos',   label: 'Minha rede',      icon: Users },
-      { href: '/agent/service-requests',  label: 'Solicitações',    icon: Briefcase },
-      { href: '/agent/profile',           label: 'Mensagens',       icon: MessageSquare },
-      { href: '/agent/status',            label: 'Notificações',    icon: Bell },
+      { href: '/agent/dashboard',        label: 'Início',        icon: Home },
+      { href: '/agent/empreendimentos',   label: 'Rede Global',   icon: Users },
+      { href: '/agent/service-requests',  label: 'Oportunidades', icon: Briefcase },
+      { href: '/agent/status',            label: 'Notificações',  icon: Bell },
     ];
   } else if (isCollaboratorSession(typedSession)) {
     navItems = [
-      { href: '/colaborador/dashboard',         label: 'Início',       icon: Home },
-      { href: '/colaborador/empreendimentos',    label: 'Projetos',     icon: Building2 },
-      { href: '/colaborador/service-requests',   label: 'Solicitações', icon: Briefcase },
-      { href: '/colaborador/profile',            label: 'Mensagens',    icon: MessageSquare },
-      { href: '/colaborador/notifications',      label: 'Notificações', icon: Bell },
+      { href: '/colaborador/dashboard',         label: 'Início',        icon: Home },
+      { href: '/colaborador/empreendimentos',    label: 'Rede Global',   icon: Building2 },
+      { href: '/colaborador/service-requests',   label: 'Oportunidades', icon: Briefcase },
+      { href: '/colaborador/notifications',      label: 'Notificações',  icon: Bell },
     ];
   } else {
     navItems = [
