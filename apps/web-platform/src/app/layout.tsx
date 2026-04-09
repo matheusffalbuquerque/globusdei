@@ -26,6 +26,11 @@ const poppins = Poppins({
 export const metadata = {
   title: 'Globus Dei - Network de Missões',
   description: 'Conectando missionários, projetos e agências ao redor do mundo.',
+  icons: {
+    icon: '/gd_logo.png',
+    shortcut: '/gd_logo.png',
+    apple: '/gd_logo.png',
+  },
 };
 
 export default function RootLayout({
