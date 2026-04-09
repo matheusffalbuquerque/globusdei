@@ -17,6 +17,7 @@ import {
   Inbox,
   Megaphone,
   BadgeDollarSign,
+  CalendarDays,
   ClipboardList,
   ChevronRight,
   Loader2,
@@ -132,6 +133,12 @@ export function CollaboratorPortalShell({ children }: { children: ReactNode }) {
       href: '/colaborador/announcements',
       label: 'Conteúdo',
       icon: Megaphone,
+      visible: true,
+    },
+    {
+      href: '/colaborador/events',
+      label: 'Eventos',
+      icon: CalendarDays,
       visible: true,
     },
     {

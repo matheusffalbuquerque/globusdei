@@ -266,9 +266,23 @@ model Event {
   date          DateTime
   location      String?
   isOnline      Boolean      @default(false)
+  isCancelled   Boolean      @default(false)
   createdById   String?
   createdAt     DateTime     @default(now())
   updatedAt     DateTime     @updatedAt
+  rsvps         EventRsvp[]
+}
+
+model EventRsvp {
+  id        String   @id @default(uuid())
+  eventId   String
+  agentId   String
+  confirmed Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  event     Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, agentId])
 }
 
 model AuditLog {
