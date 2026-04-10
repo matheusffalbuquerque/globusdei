@@ -41,6 +41,26 @@ export class PlatformRepository {
     });
   }
 
+  /** Todos os empreendimentos com flag `isFollowing` para o agente */
+  async listAllWithFollowStatus(agentId: string) {
+    const [empreendimentos, follows] = await Promise.all([
+      this.prisma.empreendimento.findMany({
+        orderBy: { name: 'asc' },
+        select: {
+          id: true, name: true, description: true, type: true, category: true,
+          location: true, logoUrl: true, followUpStatus: true,
+          _count: { select: { followers: true } },
+        },
+      }),
+      this.prisma.empreendimentoFollow.findMany({
+        where: { agentId },
+        select: { empreendimentoId: true },
+      }),
+    ]);
+    const followedIds = new Set(follows.map((f) => f.empreendimentoId));
+    return empreendimentos.map((e) => ({ ...e, isFollowing: followedIds.has(e.id) }));
+  }
+
   createServiceRequest(agentId: string, category: ServiceRequestCategory, description: string) {
     return this.prisma.serviceRequest.create({
       data: {

@@ -90,7 +90,7 @@ export function AppNavbar() {
   if (isAgentSession(typedSession)) {
     navItems = [
       { href: '/agent/dashboard',        label: 'Início',        icon: Home },
-      { href: '/agent/empreendimentos',   label: 'Rede Global',   icon: Users },
+      { href: '/agent/network',             label: 'Rede Global',   icon: Users },
       { href: '/agent/service-requests',  label: 'Oportunidades', icon: Briefcase },
       { href: '/agent/status',            label: 'Notificações',  icon: Bell },
     ];

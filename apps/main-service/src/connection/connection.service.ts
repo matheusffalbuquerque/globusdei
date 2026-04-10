@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -15,64 +16,81 @@ export class ConnectionService {
     private readonly agents: AgentRepository,
   ) {}
 
-  async request(user: AuthenticatedUser, receiverId: string) {
-    const sender = await this.agents.upsertFromIdentity({
+  private async me(user: AuthenticatedUser) {
+    return this.agents.upsertFromIdentity({
       authSubject: user.sub,
       email: user.email,
       name: user.name,
     });
+  }
+
+  async request(user: AuthenticatedUser, receiverId: string) {
+    const sender = await this.me(user);
 
     if (sender.id === receiverId) {
       throw new BadRequestException('You cannot connect with yourself.');
     }
 
     const receiver = await this.connections.findAgent(receiverId);
-    if (!receiver) {
-      throw new NotFoundException('Receiver not found.');
-    }
+    if (!receiver) throw new NotFoundException('Receiver not found.');
 
     const existing = await this.connections.findExisting(sender.id, receiverId);
-    if (existing) {
-      throw new BadRequestException('Connection already exists or is pending.');
-    }
+    if (existing) throw new BadRequestException('Connection already exists or is pending.');
 
     return this.connections.create(sender.id, receiverId);
   }
 
   async accept(user: AuthenticatedUser, connectionId: string) {
-    const receiver = await this.agents.upsertFromIdentity({
-      authSubject: user.sub,
-      email: user.email,
-      name: user.name,
-    });
+    const agent = await this.me(user);
     const connection = await this.connections.findById(connectionId);
 
-    if (!connection) {
-      throw new NotFoundException('Connection not found.');
-    }
-
-    if (connection.receiverId !== receiver.id) {
-      throw new BadRequestException('Only the receiver can accept this request.');
-    }
+    if (!connection) throw new NotFoundException('Connection not found.');
+    if (connection.receiverId !== agent.id)
+      throw new ForbiddenException('Only the receiver can accept this request.');
 
     return this.connections.accept(connectionId);
   }
 
+  async reject(user: AuthenticatedUser, connectionId: string) {
+    const agent = await this.me(user);
+    const connection = await this.connections.findById(connectionId);
+
+    if (!connection) throw new NotFoundException('Connection not found.');
+    if (connection.receiverId !== agent.id)
+      throw new ForbiddenException('Only the receiver can reject this request.');
+
+    return this.connections.reject(connectionId);
+  }
+
+  async remove(user: AuthenticatedUser, connectionId: string) {
+    const agent = await this.me(user);
+    const connection = await this.connections.findById(connectionId);
+
+    if (!connection) throw new NotFoundException('Connection not found.');
+    if (connection.senderId !== agent.id && connection.receiverId !== agent.id)
+      throw new ForbiddenException('You are not part of this connection.');
+
+    return this.connections.remove(connectionId);
+  }
+
   async list(user: AuthenticatedUser) {
-    const agent = await this.agents.upsertFromIdentity({
-      authSubject: user.sub,
-      email: user.email,
-      name: user.name,
-    });
+    const agent = await this.me(user);
     return this.connections.listAccepted(agent.id);
   }
 
   async listPending(user: AuthenticatedUser) {
-    const agent = await this.agents.upsertFromIdentity({
-      authSubject: user.sub,
-      email: user.email,
-      name: user.name,
-    });
+    const agent = await this.me(user);
     return this.connections.listPending(agent.id);
+  }
+
+  async listSentPending(user: AuthenticatedUser) {
+    const agent = await this.me(user);
+    return this.connections.listSentPending(agent.id);
+  }
+
+  /** Todos os agentes com status de conexão em relação ao usuário autenticado */
+  async listAllWithStatus(user: AuthenticatedUser) {
+    const agent = await this.me(user);
+    return this.connections.listAllWithStatus(agent.id);
   }
 }

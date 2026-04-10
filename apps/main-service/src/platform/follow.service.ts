@@ -47,4 +47,13 @@ export class FollowService {
     });
     return this.platform.getFollowing(agent.id);
   }
+
+  async listAllWithFollowStatus(user: AuthenticatedUser) {
+    const agent = await this.agents.upsertFromIdentity({
+      authSubject: user.sub,
+      email: user.email,
+      name: user.name,
+    });
+    return this.platform.listAllWithFollowStatus(agent.id);
+  }
 }

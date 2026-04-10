@@ -2,6 +2,11 @@ import { Injectable } from '@nestjs/common';
 
 import { PrismaService } from '../prisma/prisma.service';
 
+const AGENT_SELECT = {
+  id: true, name: true, email: true, city: true, country: true,
+  vocationType: true, publicBio: true, status: true,
+} as const;
+
 @Injectable()
 export class ConnectionRepository {
   constructor(private readonly prisma: PrismaService) {}
@@ -27,10 +32,7 @@ export class ConnectionRepository {
 
   create(senderId: string, receiverId: string) {
     return this.prisma.connection.create({
-      data: {
-        senderId,
-        receiverId,
-      },
+      data: { senderId, receiverId },
     });
   }
 
@@ -39,6 +41,17 @@ export class ConnectionRepository {
       where: { id },
       data: { status: 'ACCEPTED' },
     });
+  }
+
+  reject(id: string) {
+    return this.prisma.connection.update({
+      where: { id },
+      data: { status: 'REJECTED' },
+    });
+  }
+
+  remove(id: string) {
+    return this.prisma.connection.delete({ where: { id } });
   }
 
   listAccepted(agentId: string) {
@@ -50,21 +63,56 @@ export class ConnectionRepository {
         ],
       },
       include: {
-        sender: true,
-        receiver: true,
+        sender: { select: AGENT_SELECT },
+        receiver: { select: AGENT_SELECT },
       },
     });
   }
 
   listPending(agentId: string) {
     return this.prisma.connection.findMany({
-      where: {
-        receiverId: agentId,
-        status: 'PENDING',
-      },
-      include: {
-        sender: true,
-      },
+      where: { receiverId: agentId, status: 'PENDING' },
+      include: { sender: { select: AGENT_SELECT } },
+    });
+  }
+
+  listSentPending(agentId: string) {
+    return this.prisma.connection.findMany({
+      where: { senderId: agentId, status: 'PENDING' },
+      include: { receiver: { select: AGENT_SELECT } },
+    });
+  }
+
+  /** Todos os agentes ativos exceto o próprio, com status de conexão inline */
+  async listAllWithStatus(meId: string) {
+    const [agents, connections] = await Promise.all([
+      this.prisma.agent.findMany({
+        where: { id: { not: meId }, isActive: true },
+        select: AGENT_SELECT,
+        orderBy: { name: 'asc' },
+      }),
+      this.prisma.connection.findMany({
+        where: {
+          OR: [{ senderId: meId }, { receiverId: meId }],
+        },
+        select: { id: true, senderId: true, receiverId: true, status: true },
+      }),
+    ]);
+
+    return agents.map((agent) => {
+      const conn = connections.find(
+        (c) => c.senderId === agent.id || c.receiverId === agent.id,
+      );
+      return {
+        ...agent,
+        connection: conn
+          ? {
+              id: conn.id,
+              status: conn.status,
+              isSender: conn.senderId === meId,
+            }
+          : null,
+      };
     });
   }
 }

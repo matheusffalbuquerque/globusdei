@@ -38,6 +38,12 @@ export class PlatformController {
     return this.follows.getFollowing(user);
   }
 
+  /** Todos os empreendimentos com isFollowing para o agente autenticado */
+  @Get('empreendimentos')
+  listAllEmpreendimentos(@CurrentUser() user: AuthenticatedUser) {
+    return this.follows.listAllWithFollowStatus(user);
+  }
+
   @Post('service-requests')
   createServiceRequest(@CurrentUser() user: AuthenticatedUser, @Body() dto: CreateServiceRequestDto) {
     return this.serviceRequests.createRequest(user, dto.category, dto.description);
