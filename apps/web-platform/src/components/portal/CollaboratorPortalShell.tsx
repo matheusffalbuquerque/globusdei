@@ -19,6 +19,7 @@ import {
   BadgeDollarSign,
   CalendarDays,
   ClipboardList,
+  HandHeart,
   ChevronRight,
   Loader2,
 } from 'lucide-react';
@@ -139,6 +140,12 @@ export function CollaboratorPortalShell({ children }: { children: ReactNode }) {
       href: '/colaborador/events',
       label: 'Eventos',
       icon: CalendarDays,
+      visible: true,
+    },
+    {
+      href: '/colaborador/prayer-requests',
+      label: 'Intercessão',
+      icon: HandHeart,
       visible: true,
     },
     {

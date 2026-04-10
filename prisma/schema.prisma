@@ -112,6 +112,11 @@ enum FinancialTargetType {
   EMPREENDIMENTO
 }
 
+enum PrayerRequestStatus {
+  PENDING
+  ANSWERED
+}
+
 model Agent {
   id                String                 @id @default(uuid())
   authSubject       String?                @unique
@@ -140,6 +145,7 @@ model Agent {
   followedIniciativas EmpreendimentoFollow[]
   serviceRequests   ServiceRequest[]
   answers           Answer[]
+  prayerRequests    PrayerRequest[]
   createdAt         DateTime               @default(now())
   updatedAt         DateTime               @updatedAt
 }
@@ -161,6 +167,7 @@ model Collaborator {
   financialEntries      FinancialEntry[]
   recordedInvestments   Investment[]
   recordedAllocations   Allocation[]
+  answeredPrayerRequests PrayerRequest[]   @relation("PrayerAnsweredBy")
   createdAt             DateTime           @default(now())
   updatedAt             DateTime           @updatedAt
 }
@@ -410,4 +417,18 @@ model FinancialEntry {
   allocation     Allocation?         @relation(fields: [allocationId], references: [id])
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
+}
+
+model PrayerRequest {
+  id              String              @id @default(uuid())
+  agentId         String
+  agent           Agent               @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  request         String              @db.Text
+  status          PrayerRequestStatus @default(PENDING)
+  answeredById    String?
+  answeredBy      Collaborator?       @relation("PrayerAnsweredBy", fields: [answeredById], references: [id])
+  answeredAt      DateTime?
+  internalNote    String?             @db.Text
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
 }

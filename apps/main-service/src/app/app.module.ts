@@ -11,6 +11,7 @@ import { EmpreendimentoModule } from '../empreendimento/empreendimento.module';
 import { EventModule } from '../event/event.module';
 import { OnboardingModule } from '../onboarding/onboarding.module';
 import { PlatformModule } from '../platform/platform.module';
+import { PrayerRequestModule } from '../prayer-request/prayer-request.module';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -24,6 +25,7 @@ import { AppService } from './app.service';
     EmpreendimentoModule,
     EventModule,
     OnboardingModule,
+    PrayerRequestModule,
     ConfigModule.forRoot({ isGlobal: true }),
     PlatformModule,
   ],

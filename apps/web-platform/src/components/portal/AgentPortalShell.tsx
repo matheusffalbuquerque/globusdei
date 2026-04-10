@@ -10,6 +10,7 @@ import {
   ClipboardList,
   Building2,
   CalendarDays,
+  HandHeart,
   Inbox,
   ChevronRight,
   Loader2,
@@ -101,12 +102,13 @@ export function AgentPortalShell({ children }: { children: ReactNode }) {
   }, [status, typedSession?.accessToken, typedSession?.user?.email]);
 
   const navigation: NavItem[] = [
-    { href: '/agent/dashboard',        label: 'Visão Geral',     icon: LayoutDashboard },
-    { href: '/agent/profile',          label: 'Perfil',          icon: User },
-    { href: '/agent/status',           label: 'Onboarding',      icon: ClipboardList },
-    { href: '/agent/empreendimentos',  label: 'Empreendimentos', icon: Building2 },
-    { href: '/agent/events',           label: 'Eventos',         icon: CalendarDays },
-    { href: '/agent/service-requests', label: 'Solicitações',    icon: Inbox },
+    { href: '/agent/dashboard',          label: 'Visão Geral',     icon: LayoutDashboard },
+    { href: '/agent/profile',            label: 'Perfil',          icon: User },
+    { href: '/agent/status',             label: 'Onboarding',      icon: ClipboardList },
+    { href: '/agent/empreendimentos',    label: 'Empreendimentos', icon: Building2 },
+    { href: '/agent/events',             label: 'Eventos',         icon: CalendarDays },
+    { href: '/agent/prayer-requests',    label: 'Intercessão',     icon: HandHeart },
+    { href: '/agent/service-requests',   label: 'Solicitações',    icon: Inbox },
   ];
 
   const contextValue = useMemo<AgentPortalContextValue>(
