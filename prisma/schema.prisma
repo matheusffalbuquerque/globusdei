@@ -449,18 +449,19 @@ model PrayerRequest {
 // ─── Academia Globus Dei ────────────────────────────────────────────────────
 
 model AcademyModule {
-  id          String    @id @default(uuid())
-  title       String
-  description String    @db.Text
-  coverUrl    String?
-  isPublished Boolean   @default(false)
-  order       Int       @default(0)
-  lessons     Lesson[]
-  enrollments AgentModuleEnrollment[]
-  finalWorks  FinalWork[]
-  certifications AgentCertification[]
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id               String    @id @default(uuid())
+  title            String
+  description      String    @db.Text
+  coverUrl         String?
+  workInstructions String    @default("") @db.Text
+  isPublished      Boolean   @default(false)
+  order            Int       @default(0)
+  lessons          Lesson[]
+  enrollments      AgentModuleEnrollment[]
+  finalWorks       FinalWork[]
+  certifications   AgentCertification[]
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
 }
 
 model Lesson {
