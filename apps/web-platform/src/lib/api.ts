@@ -9,9 +9,11 @@ type SessionLike = {
   };
 };
 
-type ApiFetchOptions = RequestInit & {
+type ApiFetchOptions = Omit<RequestInit, 'body'> & {
   service?: ServiceName;
   session?: SessionLike | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  body?: Record<string, any> | BodyInit | null;
 };
 
 export function getServiceUrl(service: ServiceName): string {
@@ -23,11 +25,21 @@ export function getServiceUrl(service: ServiceName): string {
 }
 
 export async function apiFetch(path: string, options: ApiFetchOptions = {}) {
-  const { service = 'main', session, headers, ...init } = options;
+  const { service = 'main', session, headers, body, ...init } = options;
   const requestHeaders = new Headers(headers);
 
-  if (!requestHeaders.has('Content-Type') && init.body) {
-    requestHeaders.set('Content-Type', 'application/json');
+  // Serialize plain objects to JSON automatically
+  let serializedBody: BodyInit | null | undefined;
+  if (body !== null && body !== undefined && typeof body === 'object' && !(body instanceof Blob) && !(body instanceof FormData) && !(body instanceof URLSearchParams) && !(body instanceof ArrayBuffer) && !(body instanceof ReadableStream)) {
+    serializedBody = JSON.stringify(body);
+    if (!requestHeaders.has('Content-Type')) {
+      requestHeaders.set('Content-Type', 'application/json');
+    }
+  } else {
+    serializedBody = body as BodyInit | null | undefined;
+    if (!requestHeaders.has('Content-Type') && serializedBody) {
+      requestHeaders.set('Content-Type', 'application/json');
+    }
   }
 
   if (session?.accessToken) {
@@ -44,6 +56,7 @@ export async function apiFetch(path: string, options: ApiFetchOptions = {}) {
 
   const response = await fetch(`${getServiceUrl(service)}${path}`, {
     ...init,
+    body: serializedBody,
     headers: requestHeaders,
   });
 

@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 
+import { AcademyModule } from '../academy/academy.module';
 import { CollaboratorModule } from '../collaborator/collaborator.module';
 import { PrismaModule } from '../prisma/prisma.module';
 import { AuditModule } from '../audit/audit.module';
@@ -28,6 +29,7 @@ import { AppService } from './app.service';
     PrayerRequestModule,
     ConfigModule.forRoot({ isGlobal: true }),
     PlatformModule,
+    AcademyModule,
   ],
   controllers: [AppController],
   providers: [AppService, KeycloakAuthGuard, PoliciesGuard],

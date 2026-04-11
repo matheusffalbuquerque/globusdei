@@ -7,6 +7,7 @@ import {
   Bell,
   Briefcase,
   Building2,
+  GraduationCap,
   Home,
   LogOut,
   Users,
@@ -91,6 +92,7 @@ export function AppNavbar() {
     navItems = [
       { href: '/agent/dashboard',        label: 'Início',        icon: Home },
       { href: '/agent/network',             label: 'Rede Global',   icon: Users },
+      { href: '/agent/academy',           label: 'Academia',      icon: GraduationCap },
       { href: '/agent/service-requests',  label: 'Oportunidades', icon: Briefcase },
       { href: '/agent/status',            label: 'Notificações',  icon: Bell },
     ];
@@ -98,6 +100,7 @@ export function AppNavbar() {
     navItems = [
       { href: '/colaborador/dashboard',         label: 'Início',        icon: Home },
       { href: '/colaborador/empreendimentos',    label: 'Rede Global',   icon: Building2 },
+      { href: '/colaborador/academy',            label: 'Academia',      icon: GraduationCap },
       { href: '/colaborador/service-requests',   label: 'Oportunidades', icon: Briefcase },
       { href: '/colaborador/notifications',      label: 'Notificações',  icon: Bell },
     ];
