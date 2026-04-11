@@ -19,7 +19,7 @@ import { apiFetch } from '../../../lib/api';
 import { type AppSession } from '../../../lib/auth';
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
+import { Card, CardContent } from '../../../components/ui/card';
 import { cn } from '../../../lib/utils';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -32,7 +32,7 @@ type AgentCard = {
   email: string;
   city: string | null;
   country: string | null;
-  vocationType: string | null;
+  vocationType: string;
   publicBio: string | null;
   status: string;
   connection: {
@@ -105,7 +105,7 @@ export default function NetworkPage() {
     } catch (err) {
       setError((err as Error).message);
     }
-  }, [session]);
+  }, [session, s]);
 
   const loadEmpreendimentos = useCallback(async () => {
     if (!session) return;
@@ -115,14 +115,14 @@ export default function NetworkPage() {
     } catch (err) {
       setError((err as Error).message);
     }
-  }, [session]);
+  }, [session, s]);
 
   useEffect(() => {
     if (session) {
       void loadAgents();
       void loadEmpreendimentos();
     }
-  }, [session]);
+  }, [session, loadAgents, loadEmpreendimentos]);
 
   // ── Agent actions ────────────────────────────────────────────────────────
 

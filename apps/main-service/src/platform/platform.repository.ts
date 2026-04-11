@@ -48,7 +48,7 @@ export class PlatformRepository {
         orderBy: { name: 'asc' },
         select: {
           id: true, name: true, description: true, type: true, category: true,
-          location: true, logoUrl: true, followUpStatus: true,
+          location: true, logoUrl: true,
           _count: { select: { followers: true } },
         },
       }),

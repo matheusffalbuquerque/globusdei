@@ -30,7 +30,7 @@ type AgentDetail = {
   email: string;
   city: string | null;
   country: string | null;
-  vocationType: string | null;
+  vocationType: string;
   publicBio: string | null;
   status: string;
   connection: {
