@@ -18,11 +18,11 @@ export default function LandingPage() {
     <div className="min-h-screen bg-white font-sans selection:bg-primary selection:text-white">
 
       {/* ─── Hero ─────────────────────────────────────────────────────── */}
-      <section className="bg-[#faf7f4] pt-40 pb-32">
+      <section className="bg-[#faf7f4] pt-16 pb-12">
         <div className="container mx-auto px-8">
-          <div className="flex flex-col lg:flex-row items-center gap-20 lg:gap-32">
+          <div className="flex flex-col lg:flex-row items-center gap-10 lg:gap-20">
             {/* Copy */}
-            <div className="flex-1 text-center lg:text-left space-y-10">
+            <div className="flex-1 text-center lg:text-left space-y-6">
               <span className="inline-block px-5 py-2 bg-orange-100 text-primary border border-orange-200 rounded-full text-xs font-bold uppercase tracking-widest">
                 Rede Missionária Global
               </span>
@@ -58,7 +58,7 @@ export default function LandingPage() {
               <img
                 src="/logo.png"
                 alt="Globus Dei"
-                className="h-64 lg:h-[420px] w-auto hover:scale-[1.03] transition-transform duration-700 pointer-events-none"
+                className="h-52 lg:h-80 w-auto hover:scale-[1.03] transition-transform duration-700 pointer-events-none"
               />
             </div>
           </div>

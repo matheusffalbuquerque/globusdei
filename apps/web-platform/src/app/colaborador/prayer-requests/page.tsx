@@ -168,10 +168,10 @@ export default function CollaboratorPrayerRequestsPage() {
             </div>
 
             {/* Busca */}
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                className="h-8 w-64 pl-8 text-sm"
+            <div className="flex h-9 w-64 items-center gap-2 rounded-md border border-border bg-background px-3 shadow-sm focus-within:ring-1 focus-within:ring-ring">
+              <Search className="h-4 w-4 shrink-0 text-muted-foreground" />
+              <input
+                className="flex-1 bg-transparent text-sm outline-none placeholder:text-muted-foreground"
                 placeholder="Buscar por agente, local ou pedido…"
                 value={search}
                 onChange={(e) => { setSearch(e.target.value); setPage(1); }}
@@ -180,7 +180,7 @@ export default function CollaboratorPrayerRequestsPage() {
           </div>
         </CardHeader>
 
-        <CardContent className="p-0">
+        <CardContent className="p-6">
           {filtered.length === 0 ? (
             <div className="flex flex-col items-center gap-3 py-16 text-center">
               <HandHeart className="h-10 w-10 text-muted-foreground/40" />

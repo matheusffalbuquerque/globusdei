@@ -157,9 +157,6 @@ export default function CollaboratorEventsPage() {
             <div className="flex items-center gap-2">
               <PlusCircle className="h-4 w-4 text-primary" />
               <div>
-                <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                  Novo evento
-                </p>
                 <CardTitle className="mt-0.5 text-base">Criar evento</CardTitle>
               </div>
             </div>

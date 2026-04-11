@@ -144,4 +144,7 @@ Sobre a gestão financeira:
     - Deve ter um histórico de investimentos nos agentes e iniciativas.
     - Os gastos podem ter varias naturezas como bolsa, apoio, compras, infrestrutura e etc.
 
-    
+Sobre os agentes:
+    - Os agentes podem ser qualquer usuário que está envolvido nas causas da missão, não importando a categoria.
+    - Agentes podem utilizar a plataforma normalmente, mas precisam fazer o onboarding para receber benefícios reais oferecidos
+    pela organização.

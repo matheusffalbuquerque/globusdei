@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { FinancialEntryType, FinancialTargetType } from '@prisma/client';
-import { IsEnum, IsNumber, IsOptional, IsString, Min } from 'class-validator';
+import { IsDateString, IsEnum, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 
 export class CreateFinancialEntryDto {
   @ApiProperty({ enum: FinancialEntryType })
@@ -15,6 +15,11 @@ export class CreateFinancialEntryDto {
   @ApiProperty()
   @IsString()
   description!: string;
+
+  @ApiPropertyOptional({ description: 'ISO date string; defaults to now' })
+  @IsOptional()
+  @IsDateString()
+  occurredAt?: string;
 
   @ApiPropertyOptional({ enum: FinancialTargetType })
   @IsOptional()
