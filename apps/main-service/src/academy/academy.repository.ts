@@ -12,8 +12,16 @@ const LESSON_SELECT = {
 
 const MODULE_SELECT = {
   id: true, title: true, description: true, coverUrl: true,
-  isPublished: true, order: true, createdAt: true,
-  _count: { select: { lessons: true, enrollments: true } },
+  workInstructions: true, isPublished: true, order: true, createdAt: true,
+  _count: { select: { lessons: true, enrollments: true, certifications: true } },
+};
+
+const MODULE_SELECT_WITH_LESSONS = {
+  ...MODULE_SELECT,
+  lessons: {
+    orderBy: { order: 'asc' as const },
+    select: LESSON_SELECT,
+  },
 };
 
 @Injectable()
@@ -24,14 +32,14 @@ export class AcademyRepository {
 
   createModule(data: {
     title: string; description: string; coverUrl?: string;
-    isPublished?: boolean; order?: number;
+    workInstructions?: string; isPublished?: boolean; order?: number;
   }) {
     return this.prisma.academyModule.create({ data, select: MODULE_SELECT });
   }
 
   updateModule(id: string, data: Partial<{
     title: string; description: string; coverUrl: string;
-    isPublished: boolean; order: number;
+    workInstructions: string; isPublished: boolean; order: number;
   }>) {
     return this.prisma.academyModule.update({ where: { id }, data, select: MODULE_SELECT });
   }
@@ -54,6 +62,14 @@ export class AcademyRepository {
       where: publishedOnly ? { isPublished: true } : undefined,
       orderBy: { order: 'asc' },
       select: MODULE_SELECT,
+    });
+  }
+
+  listModulesWithLessons(publishedOnly = false) {
+    return this.prisma.academyModule.findMany({
+      where: publishedOnly ? { isPublished: true } : undefined,
+      orderBy: { order: 'asc' },
+      select: MODULE_SELECT_WITH_LESSONS,
     });
   }
 
@@ -152,6 +168,20 @@ export class AcademyRepository {
       include: {
         agent: { select: { id: true, name: true, email: true } },
         answers: true,
+      },
+    });
+  }
+
+  listQuestionsForLesson(lessonId: string) {
+    return this.prisma.lessonQuestion.findMany({
+      where: { lessonId },
+      orderBy: { createdAt: 'asc' },
+      include: {
+        agent: { select: { id: true, name: true, email: true } },
+        answers: {
+          include: { collaborator: { select: { id: true, name: true } } },
+          orderBy: { createdAt: 'asc' },
+        },
       },
     });
   }

@@ -57,7 +57,7 @@ export default function ColaboradorTrabalhosPage() {
     if (!s?.accessToken) return;
     setLoading(true);
     try {
-      const data = await apiFetch('/academy/work/pending', { session: s });
+      const data = await apiFetch('/academy/works', { session: s });
       setWorks(data as FinalWork[]);
     } catch {
       // silent
@@ -78,7 +78,7 @@ export default function ColaboradorTrabalhosPage() {
     }
     setSubmitting(workId);
     try {
-      await apiFetch(`/academy/work/${workId}/review`, {
+      await apiFetch(`/academy/works/${workId}/review`, {
         session: s,
         method: 'POST',
         body: { approved, feedback },

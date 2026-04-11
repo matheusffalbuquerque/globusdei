@@ -18,7 +18,6 @@ import { Textarea } from '../../../../components/ui/textarea';
 type Question = {
   id: string;
   content: string;
-  isAnswered: boolean;
   createdAt: string;
   lesson: {
     id: string;
@@ -26,12 +25,12 @@ type Question = {
     module: { id: string; title: string };
   };
   agent: { id: string; name: string; email: string };
-  answer: {
+  answers: {
     id: string;
     content: string;
     createdAt: string;
     collaborator: { id: string; name: string };
-  } | null;
+  }[];
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -52,7 +51,7 @@ export default function ColaboradorDuvidasPage() {
     if (!s?.accessToken) return;
     setLoading(true);
     try {
-      const endpoint = filter === 'unanswered' ? '/academy/questions/unanswered' : '/academy/questions/unanswered';
+      const endpoint = filter === 'unanswered' ? '/academy/questions' : '/academy/questions';
       const data = await apiFetch(endpoint, { session: s });
       setQuestions(data as Question[]);
     } catch {
@@ -71,7 +70,7 @@ export default function ColaboradorDuvidasPage() {
     if (!content || !s?.accessToken) return;
     setSubmitting(questionId);
     try {
-      await apiFetch(`/academy/questions/${questionId}/answer`, {
+      await apiFetch(`/academy/questions/${questionId}/answers`, {
         session: s,
         method: 'POST',
         body: { content },
@@ -146,7 +145,7 @@ export default function ColaboradorDuvidasPage() {
                 </Badge>
                 <span className="text-xs text-muted-foreground">›</span>
                 <span className="text-xs text-muted-foreground">{q.lesson.title}</span>
-                {!q.isAnswered && (
+                {q.answers.length === 0 && (
                   <Badge variant="destructive" className="ml-auto text-[10px]">
                     Sem resposta
                   </Badge>
@@ -170,23 +169,23 @@ export default function ColaboradorDuvidasPage() {
                 <p className="text-sm text-foreground">{q.content}</p>
               </div>
 
-              {/* Existing answer */}
-              {q.answer && (
-                <div className="rounded-lg border-l-2 border-green-500 bg-green-500/5 px-4 py-3">
+              {/* Existing answers */}
+              {q.answers.map((ans) => (
+                <div key={ans.id} className="rounded-lg border-l-2 border-green-500 bg-green-500/5 px-4 py-3">
                   <div className="flex items-center gap-2 mb-1">
                     <CheckCircle2 className="h-3.5 w-3.5 text-green-600" />
-                    <span className="text-xs font-semibold text-green-700">{q.answer.collaborator.name}</span>
+                    <span className="text-xs font-semibold text-green-700">{ans.collaborator.name}</span>
                     <Badge variant="secondary" className="text-[9px] px-1.5 py-0">Equipe</Badge>
                     <span className="ml-auto text-[10px] text-muted-foreground">
-                      {new Date(q.answer.createdAt).toLocaleDateString('pt-BR')}
+                      {new Date(ans.createdAt).toLocaleDateString('pt-BR')}
                     </span>
                   </div>
-                  <p className="text-sm text-foreground">{q.answer.content}</p>
+                  <p className="text-sm text-foreground">{ans.content}</p>
                 </div>
-              )}
+              ))}
 
               {/* Answer form */}
-              {!q.answer && (
+              {q.answers.length === 0 && (
                 <div className="space-y-2">
                   <Textarea
                     rows={3}

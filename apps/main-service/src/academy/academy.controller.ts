@@ -43,6 +43,13 @@ export class AcademyController {
     return this.academy.listModules(agentOnly);
   }
 
+  /** Lista módulos com aulas (painel admin do colaborador) */
+  @Get('modules/admin/full')
+  @RequireCollaboratorRoles(CollaboratorRole.ADMIN)
+  listModulesWithLessons() {
+    return this.academy.listModulesWithLessons();
+  }
+
   /** Detalhe de um módulo com grade de aulas */
   @Get('modules/:id')
   getModule(@Param('id') id: string) {
@@ -117,6 +124,12 @@ export class AcademyController {
   }
 
   // ── Questions ─────────────────────────────────────────────────────────────────
+
+  /** Agente: lista dúvidas de uma aula */
+  @Get('lessons/:lessonId/questions')
+  listLessonQuestions(@Param('lessonId') lessonId: string) {
+    return this.academy.listLessonQuestions(lessonId);
+  }
 
   @Post('lessons/:lessonId/questions')
   askQuestion(

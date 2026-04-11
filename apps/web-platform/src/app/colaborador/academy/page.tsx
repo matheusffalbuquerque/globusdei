@@ -116,7 +116,7 @@ export default function ColaboradorAcademyPage() {
     if (!s?.accessToken) return;
     setLoading(true);
     try {
-      const data = await apiFetch('/academy/modules?all=true', { session: s });
+      const data = await apiFetch('/academy/modules/admin/full', { session: s });
       setModules(data as AcademyModule[]);
     } catch {
       // silent
@@ -214,7 +214,6 @@ export default function ColaboradorAcademyPage() {
     setSavingLesson(true);
     try {
       const body = {
-        moduleId,
         title: lessonForm.title,
         description: lessonForm.description,
         youtubeUrl: lessonForm.youtubeUrl || undefined,
@@ -223,7 +222,7 @@ export default function ColaboradorAcademyPage() {
       if (editingLesson) {
         await apiFetch(`/academy/lessons/${editingLesson.id}`, { session: s, method: 'PATCH', body });
       } else {
-        await apiFetch('/academy/lessons', { session: s, method: 'POST', body });
+        await apiFetch(`/academy/modules/${moduleId}/lessons`, { session: s, method: 'POST', body });
       }
       setShowLessonForm(null);
       await loadModules();

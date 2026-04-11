@@ -38,14 +38,14 @@ export class AcademyService {
 
   createModule(data: {
     title: string; description: string; coverUrl?: string;
-    isPublished?: boolean; order?: number;
+    workInstructions?: string; isPublished?: boolean; order?: number;
   }) {
     return this.academy.createModule(data);
   }
 
   updateModule(id: string, data: Partial<{
     title: string; description: string; coverUrl: string;
-    isPublished: boolean; order: number;
+    workInstructions: string; isPublished: boolean; order: number;
   }>) {
     return this.academy.updateModule(id, data);
   }
@@ -53,6 +53,11 @@ export class AcademyService {
   /** Lista módulos publicados para agentes; todos para admin/colaborador */
   listModules(publishedOnly: boolean) {
     return this.academy.listModules(publishedOnly);
+  }
+
+  /** Lista módulos com aulas incluídas (para painel admin do colaborador) */
+  listModulesWithLessons() {
+    return this.academy.listModulesWithLessons(false);
   }
 
   async getModule(id: string) {
@@ -127,6 +132,10 @@ export class AcademyService {
   }
 
   // ── Questions ─────────────────────────────────────────────────────────────────
+
+  listLessonQuestions(lessonId: string) {
+    return this.academy.listQuestionsForLesson(lessonId);
+  }
 
   async askQuestion(user: AuthenticatedUser, lessonId: string, content: string) {
     const agent = await this.resolveAgent(user);
