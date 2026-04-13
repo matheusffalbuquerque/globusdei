@@ -61,7 +61,7 @@ async function refreshAccessToken(token: Record<string, unknown>) {
   }
 }
 
-const authOptions: NextAuthOptions = {
+export const authOptions: NextAuthOptions = {
   providers: [
     /**
      * CredentialsProvider: Resource Owner Password Grant do Keycloak.

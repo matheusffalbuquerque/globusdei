@@ -3,6 +3,7 @@
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 import { useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
 import { Button } from '../../components/ui/button';
@@ -20,10 +21,12 @@ const GoogleIcon = () => (
 );
 
 export default function LoginPage() {
+  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
+  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -34,7 +37,7 @@ export default function LoginPage() {
       redirect: false,
       email,
       password,
-      callbackUrl: '/dashboard',
+      callbackUrl,
     });
 
     if (result?.error) {
@@ -111,7 +114,7 @@ export default function LoginPage() {
               variant="outline"
               className="w-full"
               onClick={() =>
-                signIn('keycloak', { callbackUrl: '/dashboard' }, { kc_idp_hint: 'google' })
+                signIn('keycloak', { callbackUrl }, { kc_idp_hint: 'google' })
               }
             >
               <GoogleIcon />
