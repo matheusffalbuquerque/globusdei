@@ -10,7 +10,13 @@ import { AgentRepository } from '../agent/agent.repository';
 import { AuditService, AuditType } from '../audit/audit.service';
 import type { AuthenticatedUser } from '../auth/user-context.interface';
 import { CollaboratorRepository } from '../collaborator/collaborator.repository';
+import { NotificationGatewayService } from '../notification/notification-gateway.service';
 import { OnboardingRepository } from './onboarding.repository';
+import {
+  NotificationScope,
+  NotificationTargetType,
+  NotificationType,
+} from '@prisma/client';
 
 @Injectable()
 export class OnboardingService {
@@ -19,6 +25,7 @@ export class OnboardingService {
     private readonly agents: AgentRepository,
     private readonly collaborators: CollaboratorRepository,
     private readonly audit: AuditService,
+    private readonly notifications: NotificationGatewayService,
   ) {}
 
   getQuestions() {
@@ -107,6 +114,20 @@ export class OnboardingService {
       AuditType.AUDIT,
       `Aprovação do questionário do agente ${agentId}.`,
     );
+
+    await this.notifications.notify({
+      type: NotificationType.PROCESS_UPDATE,
+      scope: NotificationScope.PERSONAL,
+      title: 'Questionário aprovado',
+      message: 'Seu onboarding foi analisado e você já pode avançar para o agendamento.',
+      actionUrl: '/agent/status',
+      sourceEntityType: 'onboarding',
+      sourceEntityId: agentId,
+      senderSystemLabel: 'Onboarding',
+      metadata: { status: 'QUALIFIED' },
+      recipients: [{ targetType: NotificationTargetType.AGENT, agentId }],
+    });
+
     return updated;
   }
 
@@ -167,6 +188,20 @@ export class OnboardingService {
     }
 
     await this.audit.logAction(agent.id, AuditType.TECHNICAL, `Agendamento do slot ${slotId}.`);
+
+    await this.notifications.notify({
+      type: NotificationType.PROCESS_UPDATE,
+      scope: NotificationScope.PERSONAL,
+      title: 'Entrevista agendada',
+      message: 'Seu horário foi reservado. Acompanhe o onboarding para os próximos passos.',
+      actionUrl: '/agent/status',
+      sourceEntityType: 'onboarding_slot',
+      sourceEntityId: slotId,
+      senderSystemLabel: 'Onboarding',
+      metadata: { status: 'SCHEDULED' },
+      recipients: [{ targetType: NotificationTargetType.AGENT, agentId: agent.id }],
+    });
+
     return claimed;
   }
 
@@ -193,6 +228,24 @@ export class OnboardingService {
       AuditType.AUDIT,
       `Feedback do onboarding do agente ${agentId}.`,
     );
+
+    await this.notifications.notify({
+      type: NotificationType.PROCESS_UPDATE,
+      scope: NotificationScope.PERSONAL,
+      title: approve ? 'Processo aprovado' : 'Processo devolvido para ajustes',
+      message: approve
+        ? 'Seu processo de onboarding foi concluído com sucesso.'
+        : feedbackText || 'Seu processo exige ajustes antes da aprovação final.',
+      actionUrl: '/agent/status',
+      sourceEntityType: 'onboarding_feedback',
+      sourceEntityId: agentId,
+      senderSystemLabel: 'Onboarding',
+      metadata: {
+        status: approve ? 'APPROVED' : 'REJECTED',
+      },
+      recipients: [{ targetType: NotificationTargetType.AGENT, agentId }],
+    });
+
     return updated;
   }
 

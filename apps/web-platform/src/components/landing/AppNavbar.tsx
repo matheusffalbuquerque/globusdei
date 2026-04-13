@@ -94,7 +94,7 @@ export function AppNavbar() {
       { href: '/agent/network',             label: 'Rede Global',   icon: Users },
       { href: '/agent/academy',           label: 'Academia',      icon: GraduationCap },
       { href: '/agent/service-requests',  label: 'Oportunidades', icon: Briefcase },
-      { href: '/agent/status',            label: 'Notificações',  icon: Bell },
+      { href: '/agent/notifications',     label: 'Notificações',  icon: Bell },
     ];
   } else if (isCollaboratorSession(typedSession)) {
     navItems = [

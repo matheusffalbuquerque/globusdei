@@ -13,6 +13,7 @@ import { EventModule } from '../event/event.module';
 import { OnboardingModule } from '../onboarding/onboarding.module';
 import { PlatformModule } from '../platform/platform.module';
 import { PrayerRequestModule } from '../prayer-request/prayer-request.module';
+import { NotificationModule } from '../notification/notification.module';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -27,6 +28,7 @@ import { AppService } from './app.service';
     EventModule,
     OnboardingModule,
     PrayerRequestModule,
+    NotificationModule,
     ConfigModule.forRoot({ isGlobal: true }),
     PlatformModule,
     AcademyModule,

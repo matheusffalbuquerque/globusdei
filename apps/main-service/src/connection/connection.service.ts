@@ -6,14 +6,21 @@ import {
 } from '@nestjs/common';
 
 import { AgentRepository } from '../agent/agent.repository';
+import { NotificationGatewayService } from '../notification/notification-gateway.service';
 import { ConnectionRepository } from './connection.repository';
 import type { AuthenticatedUser } from '../auth/user-context.interface';
+import {
+  NotificationScope,
+  NotificationTargetType,
+  NotificationType,
+} from '@prisma/client';
 
 @Injectable()
 export class ConnectionService {
   constructor(
     private readonly connections: ConnectionRepository,
     private readonly agents: AgentRepository,
+    private readonly notificationGateway: NotificationGatewayService,
   ) {}
 
   private async me(user: AuthenticatedUser) {
@@ -37,7 +44,30 @@ export class ConnectionService {
     const existing = await this.connections.findExisting(sender.id, receiverId);
     if (existing) throw new BadRequestException('Connection already exists or is pending.');
 
-    return this.connections.create(sender.id, receiverId);
+    const connection = await this.connections.create(sender.id, receiverId);
+
+    await this.notificationGateway.notify({
+      type: NotificationType.CONNECTION_REQUEST,
+      scope: NotificationScope.PERSONAL,
+      title: 'Nova solicitação de conexão',
+      message: `${sender.name} enviou uma solicitação de conexão para você.`,
+      actionUrl: '/agent/network',
+      sourceEntityType: 'connection',
+      sourceEntityId: connection.id,
+      senderSystemLabel: 'Rede Global',
+      metadata: {
+        senderId: sender.id,
+        senderName: sender.name,
+      },
+      recipients: [
+        {
+          targetType: NotificationTargetType.AGENT,
+          agentId: receiverId,
+        },
+      ],
+    });
+
+    return connection;
   }
 
   async accept(user: AuthenticatedUser, connectionId: string) {

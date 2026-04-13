@@ -1,75 +1,262 @@
-import { Controller, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  Logger,
+  Param,
+  Patch,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import {
+  CollaboratorRole,
+  NotificationScope,
+  NotificationTargetType,
+  NotificationType,
+} from '@prisma/client';
+
+import { CurrentUser } from './auth/current-user.decorator';
+import { KeycloakAuthGuard } from './auth/keycloak-auth.guard';
+import { PoliciesGuard } from './auth/policies.guard';
+import {
+  AllowInternalAccess,
+  RequireCollaboratorRoles,
+  RequireRealmRoles,
+} from './auth/role.decorators';
+import type { AuthenticatedUser } from './auth/user-context.interface';
+import { CreateNotificationDto } from './dto/create-notification.dto';
+import { SendDirectMessageDto } from './dto/send-direct-message.dto';
+import { SendEmailDto } from './dto/send-email.dto';
+import { UpdateNotificationDto } from './dto/update-notification.dto';
+import { NotificationService } from './notification.service';
 import { EventPattern, Payload } from '@nestjs/microservices';
 import { EmailProvider } from './providers/email.provider';
 import { WhatsappProvider } from './providers/whatsapp.provider';
 
 /**
- * Controller dynamically responsible for consuming raw events from the 
- * RabbitMQ Message Broker. Decouples notification mechanisms from core business logic.
+ * Exposes the notification center API and keeps compatibility with async event handlers.
  */
-@Controller()
+@ApiTags('notifications')
+@ApiBearerAuth()
+@Controller('notifications')
+@UseGuards(KeycloakAuthGuard, PoliciesGuard)
+@RequireRealmRoles('agente', 'colaborador', 'administrador')
 export class NotificationController {
   private readonly logger = new Logger(NotificationController.name);
 
-  /**
-   * Injects the notification strategy providers.
-   */
   constructor(
+    private readonly notificationService: NotificationService,
     private readonly emailProvider: EmailProvider,
-    private readonly whatsappProvider: WhatsappProvider
+    private readonly whatsappProvider: WhatsappProvider,
   ) {}
 
   /**
-   * Listens for asynchronous domain events broadcasted via RabbitMQ.
-   * Following DDD boundaries, when FinanceService successfully clears a transaction, 
-   * this controller catches the event asynchronously to trigger independent channel alerts.
-   * 
-   * @param data The JSON payload containing investment details, amount, and target channels.
+   * Agent inbox with personal notifications.
+   */
+  @Get('agent')
+  listAgentInbox(@CurrentUser() user: AuthenticatedUser) {
+    return this.notificationService.listAgentInbox(user);
+  }
+
+  /**
+   * Agent inbox with initiative-scoped notifications for owned/member empreendimentos.
+   */
+  @Get('agent/initiatives')
+  listAgentInitiatives(@CurrentUser() user: AuthenticatedUser) {
+    return this.notificationService.listAgentInitiativeInbox(user);
+  }
+
+  /**
+   * Collaborator inbox.
+   */
+  @Get('collaborator')
+  listCollaboratorInbox(@CurrentUser() user: AuthenticatedUser) {
+    return this.notificationService.listCollaboratorInbox(user);
+  }
+
+  /**
+   * Collaborator outbox.
+   */
+  @Get('collaborator/sent')
+  listCollaboratorSent(@CurrentUser() user: AuthenticatedUser) {
+    return this.notificationService.listSentByCollaborator(user);
+  }
+
+  /**
+   * Recipient search used by the collaborator notification composer.
+   */
+  @Get('collaborator/search')
+  @RequireCollaboratorRoles(
+    CollaboratorRole.ADMIN,
+    CollaboratorRole.PEOPLE_MANAGER,
+    CollaboratorRole.PROJECT_MANAGER,
+    CollaboratorRole.RESOURCE_MANAGER,
+  )
+  searchRecipients(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('query') query?: string,
+  ) {
+    return this.notificationService.searchRecipients(user, query);
+  }
+
+  /**
+   * Collaborator-authored direct in-app notification to an agent or initiative.
+   */
+  @Post('collaborator/messages')
+  @RequireCollaboratorRoles(
+    CollaboratorRole.ADMIN,
+    CollaboratorRole.PEOPLE_MANAGER,
+    CollaboratorRole.PROJECT_MANAGER,
+    CollaboratorRole.RESOURCE_MANAGER,
+  )
+  sendDirectMessage(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: SendDirectMessageDto,
+  ) {
+    return this.notificationService.sendDirectMessage(user, dto);
+  }
+
+  /**
+   * Generic creation route for manual/system notifications.
+   */
+  @Post()
+  @RequireCollaboratorRoles(
+    CollaboratorRole.ADMIN,
+    CollaboratorRole.PEOPLE_MANAGER,
+    CollaboratorRole.PROJECT_MANAGER,
+    CollaboratorRole.RESOURCE_MANAGER,
+  )
+  createNotification(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreateNotificationDto,
+  ) {
+    return this.notificationService.createNotification(user, dto);
+  }
+
+  /**
+   * Internal system creation route for service-to-service integrations.
+   */
+  @Post('internal')
+  @AllowInternalAccess()
+  createInternalNotification(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: CreateNotificationDto,
+  ) {
+    return this.notificationService.createNotification(user, dto);
+  }
+
+  /**
+   * Allows updating previously sent collaborator-authored notifications.
+   */
+  @Patch(':id')
+  @RequireCollaboratorRoles(
+    CollaboratorRole.ADMIN,
+    CollaboratorRole.PEOPLE_MANAGER,
+    CollaboratorRole.PROJECT_MANAGER,
+    CollaboratorRole.RESOURCE_MANAGER,
+  )
+  updateNotification(
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('id') id: string,
+    @Body() dto: UpdateNotificationDto,
+  ) {
+    return this.notificationService.updateNotification(user, id, dto);
+  }
+
+  /**
+   * Marks a notification recipient row as read.
+   */
+  @Patch('recipients/:id/read')
+  markAsRead(@CurrentUser() user: AuthenticatedUser, @Param('id') id: string) {
+    return this.notificationService.markAsRead(user, id);
+  }
+
+  /**
+   * Sends email messages from collaborators to agents or initiatives.
+   */
+  @Post('emails')
+  @RequireCollaboratorRoles(
+    CollaboratorRole.ADMIN,
+    CollaboratorRole.PEOPLE_MANAGER,
+    CollaboratorRole.PROJECT_MANAGER,
+    CollaboratorRole.RESOURCE_MANAGER,
+  )
+  sendEmail(@CurrentUser() user: AuthenticatedUser, @Body() dto: SendEmailDto) {
+    if (
+      dto.targetType !== NotificationTargetType.AGENT &&
+      dto.targetType !== NotificationTargetType.EMPREENDIMENTO
+    ) {
+      throw new BadRequestException(
+        'Email dispatch supports only AGENT or EMPREENDIMENTO targets.',
+      );
+    }
+
+    return this.notificationService.sendEmail(user, dto);
+  }
+
+  /**
+   * Email history is restricted to administrator collaborators.
+   */
+  @Get('emails/history')
+  @RequireCollaboratorRoles(CollaboratorRole.ADMIN)
+  emailHistory(@CurrentUser() user: AuthenticatedUser, @Query('query') query?: string) {
+    return this.notificationService.listEmailHistory(user, query);
+  }
+
+  /**
+   * Backward-compatible event consumer for donation notifications.
    */
   @EventPattern('donation_processed')
   async handleDonationProcessed(@Payload() data: Record<string, unknown>) {
-    this.logger.log(`Received RabbitMQ event to trigger multi-channel notifications: ${JSON.stringify(data)}`);
-    
-    // Flow logic: Intelligently dispatch based on provided data keys
-    if (data['email']) {
+    this.logger.log(`Received donation_processed event with payload keys: ${Object.keys(data).join(', ')}`);
+
+    if (typeof data['email'] === 'string') {
       await this.emailProvider.send({
-        to: data['email'] as string,
+        to: data['email'],
         subject: 'Thank you for supporting Globus Dei!',
-        message: `Your investment/donation of ${data['amount'] ?? 'resources'} was securely processed.`
+        message: `Your investment/donation of ${data['amount'] ?? 'resources'} was securely processed.`,
       });
     }
 
-    if (data['phone']) {
+    if (typeof data['phone'] === 'string') {
       await this.whatsappProvider.send({
-        to: data['phone'] as string,
-        message: `GlobusDei Alert: Thank you for your active support! Your transaction of ${data['amount'] ?? 'resources'} was confirmed.`
+        to: data['phone'],
+        message: `Globus Dei Alert: your transaction of ${data['amount'] ?? 'resources'} was confirmed.`,
       });
     }
   }
 
   /**
-   * Onboarding: Triggered when Staff approves questionnaire.
-   * Agent should now go to their dashboard to pick a slot.
+   * Event consumer for onboarding qualification notifications.
    */
   @EventPattern('onboarding_qualified')
   async handleOnboardingQualified(@Payload() data: Record<string, unknown>) {
-    this.logger.log(`[SIMULATED EMAIL] To: ${data['email']} | Subject: Próximo Passo: Agende sua Entrevista | Message: Olá ${data['name']}, seu questionário foi aprovado! Entre no portal para escolher um horário.`);
-  }
-
-  /**
-   * Onboarding: Triggered when Agent picks a slot.
-   */
-  @EventPattern('onboarding_scheduled')
-  async handleOnboardingScheduled(@Payload() data: Record<string, unknown>) {
-    this.logger.log(`[SIMULATED EMAIL] To: ${data['email']} | Subject: Entrevista Confirmada! | Message: Olá ${data['name']}, sua entrevista está marcada para ${data['date']}. Link: ${data['meetLink']}`);
-  }
-
-  /**
-   * Empreendimento: Invited Agent notification.
-   */
-  @EventPattern('onboarding_invite_sent')
-  async handleOnboardingInviteSent(@Payload() data: Record<string, unknown>) {
-    this.logger.log(`[SIMULATED EMAIL] To: ${data['email']} | Subject: Convite para Iniciativa: ${data['empreendimentoName']} | Message: Você foi convidado para participar do projeto ${data['empreendimentoName']}. Acesse seu painel ou use o token: ${data['token']}`);
-    this.logger.log(`[DASHBOARD NOTIFICATION] To: ${data['email']} | Content: Novo convite recebido de ${data['inviterName']}`);
+    await this.notificationService.createNotification(
+      {
+        sub: 'internal-service',
+        email: 'internal@globusdei.local',
+        name: 'Internal Service',
+        preferredUsername: 'internal-service',
+        realmRoles: ['administrador'],
+        isInternalService: true,
+      },
+      {
+        type: NotificationType.PROCESS_UPDATE,
+        scope: NotificationScope.PERSONAL,
+        title: 'Onboarding qualificado',
+        message: `Seu questionário foi aprovado. Você já pode seguir para a próxima etapa.`,
+        actionUrl: '/agent/status',
+        sourceEntityType: 'onboarding',
+        sourceEntityId: String(data['agentId'] ?? ''),
+        senderSystemLabel: 'Onboarding',
+        recipientGroups: [],
+        recipients: data['agentId']
+          ? [{ targetType: NotificationTargetType.AGENT, agentId: String(data['agentId']) }]
+          : [],
+      },
+    );
   }
 }

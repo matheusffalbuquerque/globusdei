@@ -20,6 +20,7 @@ import {
   CalendarDays,
   ClipboardList,
   HandHeart,
+  Bell,
   ChevronRight,
   Loader2,
 } from 'lucide-react';
@@ -146,6 +147,12 @@ export function CollaboratorPortalShell({ children }: { children: ReactNode }) {
       href: '/colaborador/prayer-requests',
       label: 'Intercessão',
       icon: HandHeart,
+      visible: true,
+    },
+    {
+      href: '/colaborador/notifications',
+      label: 'Notificações',
+      icon: Bell,
       visible: true,
     },
     {

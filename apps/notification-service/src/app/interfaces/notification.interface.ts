@@ -6,7 +6,7 @@ export interface NotificationPayload {
   subject?: string;
   message: string;
   templateId?: string;
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**

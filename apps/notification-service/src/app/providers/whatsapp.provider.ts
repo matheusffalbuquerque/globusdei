@@ -14,11 +14,10 @@ export class WhatsappProvider implements INotificationProvider {
    * Replaced logically once the integration keys are pushed to environment variables.
    */
   async send(payload: NotificationPayload): Promise<boolean> {
-    this.logger.log(`[MOCK WHATSAPP API] Targeting WhatsApp number: ${payload.to}`);
-    this.logger.log(`[MOCK WHATSAPP API] Message payload: ${payload.message}`);
+    this.logger.log(`[MOCK WHATSAPP API] Dispatching WhatsApp message to the configured recipient.`);
     
     // Simulate network latency for the Meta Graph API call
-    await new Promise(resolve => setTimeout(resolve, 400));
+    await new Promise((resolve) => setTimeout(resolve, 400));
     this.logger.log(`[MOCK WHATSAPP API] Message sent with success code.`);
 
     return true;

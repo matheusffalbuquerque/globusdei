@@ -12,6 +12,7 @@ import {
   CalendarDays,
   HandHeart,
   Inbox,
+  Bell,
   ChevronRight,
   Loader2,
   Plus,
@@ -109,6 +110,7 @@ export function AgentPortalShell({ children }: { children: ReactNode }) {
     { href: '/agent/events',             label: 'Eventos',         icon: CalendarDays },
     { href: '/agent/prayer-requests',    label: 'Intercessão',     icon: HandHeart },
     { href: '/agent/service-requests',   label: 'Solicitações',    icon: Inbox },
+    { href: '/agent/notifications',      label: 'Notificações',    icon: Bell },
   ];
 
   const contextValue = useMemo<AgentPortalContextValue>(

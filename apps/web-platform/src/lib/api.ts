@@ -1,4 +1,4 @@
-export type ServiceName = 'main' | 'finance';
+export type ServiceName = 'main' | 'finance' | 'notification';
 
 type SessionLike = {
   accessToken?: string;
@@ -19,6 +19,10 @@ type ApiFetchOptions = Omit<RequestInit, 'body'> & {
 export function getServiceUrl(service: ServiceName): string {
   if (service === 'finance') {
     return process.env.NEXT_PUBLIC_FINANCE_SERVICE_URL ?? 'http://localhost:3002/api';
+  }
+
+  if (service === 'notification') {
+    return process.env.NEXT_PUBLIC_NOTIFICATION_SERVICE_URL ?? 'http://localhost:3004/api';
   }
 
   return process.env.NEXT_PUBLIC_MAIN_SERVICE_URL ?? 'http://localhost:3001/api';

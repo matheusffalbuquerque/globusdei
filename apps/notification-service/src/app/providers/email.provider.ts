@@ -14,11 +14,12 @@ export class EmailProvider implements INotificationProvider {
    * Will be swapped with actual SMTP/API logic upon API credentials initialization.
    */
   async send(payload: NotificationPayload): Promise<boolean> {
-    this.logger.log(`[MOCK EMAIL API] Attempting send to: ${payload.to} | Subject: ${payload.subject}`);
-    this.logger.log(`[MOCK EMAIL API] Content body: ${payload.message}`);
+    this.logger.log(
+      `[MOCK EMAIL API] Attempting send to: ${payload.to} | Subject: ${payload.subject}`,
+    );
     
     // Simulate network latency for API call to an external provider
-    await new Promise(resolve => setTimeout(resolve, 300));
+    await new Promise((resolve) => setTimeout(resolve, 300));
     this.logger.log(`[MOCK EMAIL API] Successfully delivered.`);
     
     return true;

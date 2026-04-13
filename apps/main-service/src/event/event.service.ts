@@ -2,15 +2,21 @@ import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/commo
 
 import { AuditService, AuditType } from '../audit/audit.service';
 import { AuthenticatedUser } from '../auth/user-context.interface';
+import { NotificationGatewayService } from '../notification/notification-gateway.service';
 import { EventRepository } from './event.repository';
 import { CreateEventDto } from './dto/create-event.dto';
 import { RsvpEventDto } from './dto/rsvp-event.dto';
+import {
+  NotificationScope,
+  NotificationType,
+} from '@prisma/client';
 
 @Injectable()
 export class EventService {
   constructor(
     private readonly events: EventRepository,
     private readonly audit: AuditService,
+    private readonly notifications: NotificationGatewayService,
   ) {}
 
   listAll() {
@@ -38,6 +44,43 @@ export class EventService {
     });
 
     await this.audit.logAction(user.sub, AuditType.TECHNICAL, `Criação do evento ${event.id}.`);
+
+    await this.notifications.notify({
+      type: NotificationType.EVENT_REMINDER,
+      scope: NotificationScope.PLATFORM,
+      title: `Novo evento: ${event.title}`,
+      message: `Um novo evento foi publicado para a plataforma em ${new Date(event.date).toLocaleDateString('pt-BR')}.`,
+      actionUrl: '/agent/events',
+      sourceEntityType: 'event',
+      sourceEntityId: event.id,
+      senderSystemLabel: 'Eventos Globus Dei',
+      metadata: {
+        eventId: event.id,
+        location: event.location,
+        isOnline: event.isOnline,
+      },
+      recipientGroups: ['ALL_AGENTS'],
+      recipients: [],
+    });
+
+    await this.notifications.notify({
+      type: NotificationType.EVENT_REMINDER,
+      scope: NotificationScope.PLATFORM,
+      title: `Novo evento: ${event.title}`,
+      message: `Um novo evento foi publicado para a plataforma em ${new Date(event.date).toLocaleDateString('pt-BR')}.`,
+      actionUrl: '/colaborador/events',
+      sourceEntityType: 'event',
+      sourceEntityId: event.id,
+      senderSystemLabel: 'Eventos Globus Dei',
+      metadata: {
+        eventId: event.id,
+        location: event.location,
+        isOnline: event.isOnline,
+      },
+      recipientGroups: ['ALL_COLLABORATORS'],
+      recipients: [],
+    });
+
     return event;
   }
 
@@ -49,6 +92,41 @@ export class EventService {
 
     const updated = await this.events.cancel(id);
     await this.audit.logAction(user.sub, AuditType.TECHNICAL, `Cancelamento do evento ${id}.`);
+
+    await this.notifications.notify({
+      type: NotificationType.EVENT_REMINDER,
+      scope: NotificationScope.PLATFORM,
+      title: `Evento cancelado: ${event.title}`,
+      message: 'Um evento programado foi cancelado e a agenda da plataforma foi atualizada.',
+      actionUrl: '/agent/events',
+      sourceEntityType: 'event',
+      sourceEntityId: event.id,
+      senderSystemLabel: 'Eventos Globus Dei',
+      metadata: {
+        eventId: event.id,
+        cancelled: true,
+      },
+      recipientGroups: ['ALL_AGENTS'],
+      recipients: [],
+    });
+
+    await this.notifications.notify({
+      type: NotificationType.EVENT_REMINDER,
+      scope: NotificationScope.PLATFORM,
+      title: `Evento cancelado: ${event.title}`,
+      message: 'Um evento programado foi cancelado e a agenda da plataforma foi atualizada.',
+      actionUrl: '/colaborador/events',
+      sourceEntityType: 'event',
+      sourceEntityId: event.id,
+      senderSystemLabel: 'Eventos Globus Dei',
+      metadata: {
+        eventId: event.id,
+        cancelled: true,
+      },
+      recipientGroups: ['ALL_COLLABORATORS'],
+      recipients: [],
+    });
+
     return updated;
   }
 

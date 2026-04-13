@@ -123,6 +123,33 @@ enum FinalWorkStatus {
   REJECTED
 }
 
+enum NotificationType {
+  DIRECT_MESSAGE
+  CONNECTION_REQUEST
+  NEW_FOLLOWER
+  EVENT_REMINDER
+  PROCESS_UPDATE
+  SYSTEM_ANNOUNCEMENT
+}
+
+enum NotificationScope {
+  PERSONAL
+  INITIATIVE
+  PLATFORM
+}
+
+enum NotificationTargetType {
+  AGENT
+  COLLABORATOR
+  EMPREENDIMENTO
+}
+
+enum NotificationEmailStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
 model Agent {
   id                String                 @id @default(uuid())
   authSubject       String?                @unique
@@ -157,6 +184,9 @@ model Agent {
   lessonQuestions   LessonQuestion[]
   finalWorks        FinalWork[]
   certifications    AgentCertification[]
+  receivedNotifications NotificationRecipient[] @relation("NotificationRecipientAgent")
+  sentNotifications  Notification[]        @relation("NotificationSenderAgent")
+  emailNotificationLogs NotificationEmailLog[] @relation("NotificationEmailAgent")
   createdAt         DateTime               @default(now())
   updatedAt         DateTime               @updatedAt
 }
@@ -181,6 +211,9 @@ model Collaborator {
   answeredPrayerRequests PrayerRequest[]   @relation("PrayerAnsweredBy")
   lessonAnswers          LessonAnswer[]
   finalWorkReviews       FinalWorkReview[]
+  sentNotifications      Notification[]         @relation("NotificationSenderCollaborator")
+  receivedNotifications  NotificationRecipient[] @relation("NotificationRecipientCollaborator")
+  sentEmailLogs          NotificationEmailLog[] @relation("NotificationEmailSenderCollaborator")
   createdAt             DateTime           @default(now())
   updatedAt             DateTime           @updatedAt
 }
@@ -264,8 +297,79 @@ model Empreendimento {
   invites               EmpreendimentoInvite[]
   followers             EmpreendimentoFollow[]
   serviceLogs           ServiceLog[]
+  notificationRecipients NotificationRecipient[] @relation("NotificationRecipientEmpreendimento")
+  emailNotificationLogs  NotificationEmailLog[] @relation("NotificationEmailEmpreendimento")
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
+}
+
+model Notification {
+  id                   String                   @id @default(uuid())
+  type                 NotificationType
+  scope                NotificationScope        @default(PERSONAL)
+  title                String
+  message              String                   @db.Text
+  actionUrl            String?
+  metadata             Json?
+  sourceEntityType     String?
+  sourceEntityId       String?
+  senderAgentId        String?
+  senderCollaboratorId String?
+  senderSystemLabel    String?
+  senderAgent          Agent?                   @relation("NotificationSenderAgent", fields: [senderAgentId], references: [id], onDelete: SetNull)
+  senderCollaborator   Collaborator?            @relation("NotificationSenderCollaborator", fields: [senderCollaboratorId], references: [id], onDelete: SetNull)
+  recipients           NotificationRecipient[]
+  emailLogs            NotificationEmailLog[]
+  createdAt            DateTime                 @default(now())
+  updatedAt            DateTime                 @updatedAt
+
+  @@index([type, createdAt])
+  @@index([senderCollaboratorId, createdAt])
+}
+
+model NotificationRecipient {
+  id                String                 @id @default(uuid())
+  notificationId    String
+  targetType        NotificationTargetType
+  agentId           String?
+  collaboratorId    String?
+  empreendimentoId  String?
+  readAt            DateTime?
+  createdAt         DateTime               @default(now())
+  notification      Notification           @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  agent             Agent?                 @relation("NotificationRecipientAgent", fields: [agentId], references: [id], onDelete: Cascade)
+  collaborator      Collaborator?          @relation("NotificationRecipientCollaborator", fields: [collaboratorId], references: [id], onDelete: Cascade)
+  empreendimento    Empreendimento?        @relation("NotificationRecipientEmpreendimento", fields: [empreendimentoId], references: [id], onDelete: Cascade)
+
+  @@index([agentId, createdAt])
+  @@index([collaboratorId, createdAt])
+  @@index([empreendimentoId, createdAt])
+  @@index([notificationId, createdAt])
+}
+
+model NotificationEmailLog {
+  id                   String                  @id @default(uuid())
+  notificationId       String?
+  senderCollaboratorId String
+  targetType           NotificationTargetType
+  agentId              String?
+  empreendimentoId     String?
+  recipientName        String?
+  recipientEmail       String
+  subject              String
+  message              String                  @db.Text
+  status               NotificationEmailStatus @default(PENDING)
+  provider             String?
+  errorMessage         String?                 @db.Text
+  notification         Notification?           @relation(fields: [notificationId], references: [id], onDelete: SetNull)
+  senderCollaborator   Collaborator            @relation("NotificationEmailSenderCollaborator", fields: [senderCollaboratorId], references: [id], onDelete: Cascade)
+  agent                Agent?                  @relation("NotificationEmailAgent", fields: [agentId], references: [id], onDelete: SetNull)
+  empreendimento       Empreendimento?         @relation("NotificationEmailEmpreendimento", fields: [empreendimentoId], references: [id], onDelete: SetNull)
+  createdAt            DateTime                @default(now())
+
+  @@index([senderCollaboratorId, createdAt])
+  @@index([recipientEmail, createdAt])
+  @@index([empreendimentoId, createdAt])
 }
 
 model EmpreendimentoMember {
