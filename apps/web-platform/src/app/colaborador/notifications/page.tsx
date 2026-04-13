@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { BellRing, History } from 'lucide-react';
+import { BellRing } from 'lucide-react';
 
 import {
   EmailHistoryTable,
@@ -17,6 +17,7 @@ import {
 import { useCollaboratorPortal } from '../../../components/portal/CollaboratorPortalShell';
 import { Button } from '../../../components/ui/button';
 import { Card, CardContent } from '../../../components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
 import { apiFetch } from '../../../lib/api';
 import type { AppSession } from '../../../lib/auth';
 
@@ -44,7 +45,7 @@ export default function CollaboratorNotificationsPage() {
   const [emailTargetId, setEmailTargetId] = useState('');
   const [emailSubject, setEmailSubject] = useState('');
   const [emailBody, setEmailBody] = useState('');
-  const [historyOpen, setHistoryOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState(isAdmin ? 'received' : 'received');
   const [historyQuery, setHistoryQuery] = useState('');
   const [history, setHistory] = useState<EmailHistoryItem[]>([]);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
@@ -172,7 +173,7 @@ export default function CollaboratorNotificationsPage() {
       setEmailSubject('');
       setEmailBody('');
       setSuccess('Email enviado e registrado no histórico.');
-      if (historyOpen) {
+      if (isAdmin && activeTab === 'history') {
         await loadHistory();
       }
     } catch (requestError) {
@@ -198,26 +199,9 @@ export default function CollaboratorNotificationsPage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm font-medium text-muted-foreground">
-              <BellRing className="h-4 w-4 text-primary" />
-              {inbox.filter((item) => !item.readAt).length} não lidas
-            </div>
-            {isAdmin && (
-              <Button
-                variant="outline"
-                onClick={() => {
-                  const next = !historyOpen;
-                  setHistoryOpen(next);
-                  if (next) {
-                    void loadHistory();
-                  }
-                }}
-              >
-                <History className="mr-2 h-4 w-4" />
-                {historyOpen ? 'Ocultar histórico' : 'Abrir histórico de email'}
-              </Button>
-            )}
+          <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm font-medium text-muted-foreground">
+            <BellRing className="h-4 w-4 text-primary" />
+            {inbox.filter((item) => !item.readAt).length} não lidas
           </div>
         </CardContent>
       </Card>
@@ -234,16 +218,39 @@ export default function CollaboratorNotificationsPage() {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_1fr]">
-        <NotificationList
-          title="Recebidas por você"
-          description="Alertas operacionais, processos em andamento e comunicações internas."
-          items={inbox}
-          emptyMessage="Nenhuma notificação recebida até agora."
-          onMarkAsRead={markAsRead}
-        />
+      <Tabs
+        defaultValue="received"
+        value={activeTab}
+        onValueChange={(value) => {
+          setActiveTab(value);
+          if (value === 'history' && isAdmin) {
+            void loadHistory();
+          }
+        }}
+      >
+        <TabsList className="max-w-3xl">
+          <TabsTrigger value="received">Recebidas</TabsTrigger>
+          <TabsTrigger value="notify">Notificar</TabsTrigger>
+          <TabsTrigger value="email">Email</TabsTrigger>
+          {isAdmin && <TabsTrigger value="history">Histórico</TabsTrigger>}
+        </TabsList>
 
-        <div className="space-y-6">
+        <TabsContent value="received" className="space-y-6">
+          <NotificationList
+            title="Recebidas por você"
+            description="Alertas operacionais, processos em andamento e comunicações internas."
+            items={inbox}
+            emptyMessage="Nenhuma notificação recebida até agora."
+            onMarkAsRead={markAsRead}
+          />
+
+          <SentNotificationList
+            items={sent}
+            emptyMessage="Nenhuma notificação foi enviada por este colaborador até o momento."
+          />
+        </TabsContent>
+
+        <TabsContent value="notify">
           <MessageComposer
             mode="message"
             query={messageQuery}
@@ -266,7 +273,9 @@ export default function CollaboratorNotificationsPage() {
             onSubmit={sendMessage}
             isSubmitting={isSendingMessage}
           />
+        </TabsContent>
 
+        <TabsContent value="email">
           <MessageComposer
             mode="email"
             query={emailQuery}
@@ -289,22 +298,19 @@ export default function CollaboratorNotificationsPage() {
             onSubmit={sendEmail}
             isSubmitting={isSendingEmail}
           />
-        </div>
-      </div>
+        </TabsContent>
 
-      <SentNotificationList
-        items={sent}
-        emptyMessage="Nenhuma notificação foi enviada por este colaborador até o momento."
-      />
-
-      {historyOpen && isAdmin && (
-        <EmailHistoryTable
-          items={history}
-          query={historyQuery}
-          onQueryChange={setHistoryQuery}
-          onRefresh={() => void loadHistory(historyQuery)}
-        />
-      )}
+        {isAdmin && (
+          <TabsContent value="history">
+            <EmailHistoryTable
+              items={history}
+              query={historyQuery}
+              onQueryChange={setHistoryQuery}
+              onRefresh={() => void loadHistory(historyQuery)}
+            />
+          </TabsContent>
+        )}
+      </Tabs>
     </div>
   );
 }

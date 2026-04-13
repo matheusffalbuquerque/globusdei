@@ -6,6 +6,7 @@ import { BellRing } from 'lucide-react';
 
 import { NotificationList, type NotificationItem } from '../../../components/notifications/NotificationCenter';
 import { Card, CardContent } from '../../../components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
 import { apiFetch } from '../../../lib/api';
 import type { AppSession } from '../../../lib/auth';
 
@@ -85,21 +86,32 @@ export default function AgentNotificationsPage() {
         </div>
       )}
 
-      <NotificationList
-        title="Recebidas por você"
-        description="Notificações pessoais entregues diretamente ao seu perfil."
-        items={personal}
-        emptyMessage="Nenhuma notificação pessoal registrada até agora."
-        onMarkAsRead={markAsRead}
-      />
+      <Tabs defaultValue="received">
+        <TabsList className="max-w-xl">
+          <TabsTrigger value="received">Recebidas</TabsTrigger>
+          <TabsTrigger value="initiatives">Iniciativas</TabsTrigger>
+        </TabsList>
 
-      <NotificationList
-        title="Recebidas pelas suas iniciativas"
-        description="Atividade registrada para empreendimentos em que você atua como owner ou membro."
-        items={initiatives}
-        emptyMessage="Nenhuma notificação de iniciativa encontrada."
-        onMarkAsRead={markAsRead}
-      />
+        <TabsContent value="received">
+          <NotificationList
+            title="Recebidas por você"
+            description="Notificações pessoais entregues diretamente ao seu perfil."
+            items={personal}
+            emptyMessage="Nenhuma notificação pessoal registrada até agora."
+            onMarkAsRead={markAsRead}
+          />
+        </TabsContent>
+
+        <TabsContent value="initiatives">
+          <NotificationList
+            title="Recebidas pelas suas iniciativas"
+            description="Atividade registrada para empreendimentos em que você atua como owner ou membro."
+            items={initiatives}
+            emptyMessage="Nenhuma notificação de iniciativa encontrada."
+            onMarkAsRead={markAsRead}
+          />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
