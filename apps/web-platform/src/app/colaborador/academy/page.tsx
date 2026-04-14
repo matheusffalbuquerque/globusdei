@@ -277,19 +277,17 @@ export default function ColaboradorAcademyPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl space-y-6 px-4 py-8">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/10">
-            <GraduationCap className="h-5 w-5 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Academia Globus Dei</h1>
-            <p className="text-sm text-muted-foreground">Gerenciar módulos e aulas</p>
-          </div>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Formação de agentes
+          </p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">Academia Globus Dei</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Gerenciar módulos e aulas</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2 self-start">
           <Button variant="outline" size="sm" className="gap-2" onClick={() => router.push('/colaborador/academy/duvidas')}>
             <BookOpen className="h-4 w-4" />
             Dúvidas
