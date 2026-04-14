@@ -44,14 +44,12 @@ type Announcement = {
 const TYPE_BADGE: Record<string, 'default' | 'info' | 'success' | 'warning' | 'secondary'> = {
   SYSTEM: 'secondary',
   MISSION: 'default',
-  OPPORTUNITY: 'success',
   EVENT: 'warning',
 };
 
 const TYPE_LABEL: Record<string, string> = {
   SYSTEM: 'Sistema',
   MISSION: 'Missão',
-  OPPORTUNITY: 'Oportunidade',
   EVENT: 'Evento',
 };
 
@@ -230,7 +228,6 @@ export default function CollaboratorAnnouncementsPage() {
                     >
                       <option value="SYSTEM">Sistema</option>
                       <option value="MISSION">Missão</option>
-                      <option value="OPPORTUNITY">Oportunidade</option>
                       <option value="EVENT">Evento</option>
                     </Select>
                   </div>

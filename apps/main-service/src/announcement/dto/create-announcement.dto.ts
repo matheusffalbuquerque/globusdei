@@ -11,6 +11,7 @@ export class CreateAnnouncementDto {
   @IsString()
   content!: string;
 
+  /** Tipo do anúncio. OPPORTUNITY foi migrado para o módulo de oportunidades. */
   @ApiPropertyOptional({ enum: AnnouncementType })
   @IsOptional()
   @IsEnum(AnnouncementType)

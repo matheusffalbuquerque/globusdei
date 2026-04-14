@@ -14,6 +14,7 @@ import {
 import {
   LayoutDashboard,
   Building2,
+  Briefcase,
   Inbox,
   Megaphone,
   BadgeDollarSign,
@@ -135,6 +136,12 @@ export function CollaboratorPortalShell({ children }: { children: ReactNode }) {
       href: '/colaborador/announcements',
       label: 'Conteúdo',
       icon: Megaphone,
+      visible: true,
+    },
+    {
+      href: '/colaborador/opportunities',
+      label: 'Oportunidades',
+      icon: Briefcase,
       visible: true,
     },
     {

@@ -95,8 +95,17 @@ enum ServiceRequestStatus {
 enum AnnouncementType {
   SYSTEM
   MISSION
-  OPPORTUNITY
   EVENT
+}
+
+enum OpportunityCategory {
+  STUDIES
+  VOLUNTEERING
+  EMPLOYMENT
+  MISSION
+  ROLE
+  TRAVEL
+  OTHER
 }
 
 enum FinancialEntryType {
@@ -187,6 +196,7 @@ model Agent {
   receivedNotifications NotificationRecipient[] @relation("NotificationRecipientAgent")
   sentNotifications  Notification[]        @relation("NotificationSenderAgent")
   emailNotificationLogs NotificationEmailLog[] @relation("NotificationEmailAgent")
+  opportunities     Opportunity[]          @relation("AgentOpportunities")
   createdAt         DateTime               @default(now())
   updatedAt         DateTime               @updatedAt
 }
@@ -214,6 +224,7 @@ model Collaborator {
   sentNotifications      Notification[]         @relation("NotificationSenderCollaborator")
   receivedNotifications  NotificationRecipient[] @relation("NotificationRecipientCollaborator")
   sentEmailLogs          NotificationEmailLog[] @relation("NotificationEmailSenderCollaborator")
+  opportunities          Opportunity[]          @relation("CollaboratorOpportunities")
   createdAt             DateTime           @default(now())
   updatedAt             DateTime           @updatedAt
 }
@@ -299,6 +310,7 @@ model Empreendimento {
   serviceLogs           ServiceLog[]
   notificationRecipients NotificationRecipient[] @relation("NotificationRecipientEmpreendimento")
   emailNotificationLogs  NotificationEmailLog[] @relation("NotificationEmailEmpreendimento")
+  opportunities          Opportunity[]          @relation("EmpreendimentoOpportunities")
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
 }
@@ -673,4 +685,29 @@ model AgentCertification {
   module    AcademyModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
 
   @@unique([agentId, moduleId])
+}
+
+// ─── Oportunidades ────────────────────────────────────────────────────────────
+
+model Opportunity {
+  id               String              @id @default(uuid())
+  title            String
+  description      String              @db.Text
+  category         OpportunityCategory @default(OTHER)
+  location         String?
+  isRemote         Boolean             @default(false)
+  isPublished      Boolean             @default(true)
+  // Autor: colaborador ou agente (dono de empreendimento aprovado)
+  authorCollaboratorId String?
+  authorAgentId        String?
+  // Vínculo opcional com empreendimento
+  empreendimentoId     String?
+  authorCollaborator   Collaborator?   @relation("CollaboratorOpportunities", fields: [authorCollaboratorId], references: [id], onDelete: SetNull)
+  authorAgent          Agent?          @relation("AgentOpportunities", fields: [authorAgentId], references: [id], onDelete: SetNull)
+  empreendimento       Empreendimento? @relation("EmpreendimentoOpportunities", fields: [empreendimentoId], references: [id], onDelete: SetNull)
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+
+  @@index([category, createdAt])
+  @@index([isPublished, createdAt])
 }

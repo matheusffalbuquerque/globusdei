@@ -11,6 +11,7 @@ import { AgentModule } from '../agent/agent.module';
 import { EmpreendimentoModule } from '../empreendimento/empreendimento.module';
 import { EventModule } from '../event/event.module';
 import { OnboardingModule } from '../onboarding/onboarding.module';
+import { OpportunityModule } from '../opportunity/opportunity.module';
 import { PlatformModule } from '../platform/platform.module';
 import { PrayerRequestModule } from '../prayer-request/prayer-request.module';
 import { NotificationModule } from '../notification/notification.module';
@@ -27,6 +28,7 @@ import { AppService } from './app.service';
     EmpreendimentoModule,
     EventModule,
     OnboardingModule,
+    OpportunityModule,
     PrayerRequestModule,
     NotificationModule,
     ConfigModule.forRoot({ isGlobal: true }),
