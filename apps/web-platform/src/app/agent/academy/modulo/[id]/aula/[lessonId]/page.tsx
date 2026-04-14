@@ -270,15 +270,15 @@ export default function LessonPage() {
       {/* Vídeo + Playlist */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
         {/* Vídeo */}
-        <div className="min-w-0 flex-1">
+        <div className="w-full min-w-0 flex-1">
           {embedUrl ? (
-            <div className="relative w-full overflow-hidden rounded-xl bg-black" style={{ paddingBottom: '56.25%' }}>
+            <div style={{ position: 'relative', width: '100%', paddingBottom: '56.25%', borderRadius: '0.75rem', overflow: 'hidden', background: '#000' }}>
               <iframe
                 src={embedUrl}
                 title={lesson.title}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
-                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 0 }}
+                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
               />
             </div>
           ) : lesson.youtubeUrl ? (
