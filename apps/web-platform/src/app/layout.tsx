@@ -39,8 +39,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-br" className={`${inter.variable} ${poppins.variable}`}>
-      <body className="font-sans bg-background text-foreground antialiased min-h-screen flex flex-col">
+    <html lang="pt-br" className={`${inter.variable} ${poppins.variable}`} suppressHydrationWarning>
+      <body className="font-sans bg-background text-foreground antialiased min-h-screen flex flex-col" suppressHydrationWarning>
         {/*
          * AppSessionProvider é um Client Component (usa useContext do next-auth).
          * O header fica DENTRO do provider para que NavbarAuthButtons possa

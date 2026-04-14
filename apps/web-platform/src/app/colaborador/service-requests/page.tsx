@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { ChevronDown, ChevronLeft, ChevronRight, ChevronUp, Inbox, Lock } from 'lucide-react';
 
@@ -168,9 +168,8 @@ export default function CollaboratorServiceRequestsPage() {
                 </TableHeader>
                 <TableBody>
                   {paginated.map((request) => (
-                    <>
+                    <Fragment key={request.id}>
                       <TableRow
-                        key={request.id}
                         className="cursor-pointer"
                         onClick={() => toggleExpanded(request.id)}
                       >
@@ -241,7 +240,7 @@ export default function CollaboratorServiceRequestsPage() {
                           </TableCell>
                         </TableRow>
                       )}
-                    </>
+                    </Fragment>
                   ))}
                 </TableBody>
               </Table>
