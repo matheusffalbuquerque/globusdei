@@ -249,125 +249,143 @@ export default function LessonPage() {
         </div>
       )}
 
-      {/* Sidebar + main layout */}
-      <div className="flex gap-5">
-        {/* Sidebar: lesson list */}
-        <div className="hidden w-64 shrink-0 xl:block">
-          <div className="sticky top-20 rounded-xl border border-border bg-background p-3 shadow-sm">
-            <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground px-1">Aulas</p>
-            <nav className="space-y-0.5">
-              {sortedLessons.map((l, i) => {
-                const done = progress?.completedIds.includes(l.id);
-                const active = l.id === lessonId;
-                return (
-                  <button
-                    key={l.id}
-                    onClick={() => router.push(`/agent/academy/modulo/${moduleId}/aula/${l.id}`)}
-                    className={`flex w-full items-center gap-2 rounded-lg px-2.5 py-2 text-left text-xs transition-colors ${
-                      active ? 'bg-primary/10 font-semibold text-primary' : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                    }`}
-                  >
-                    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border text-[10px] font-bold">
-                      {done ? <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" /> : i + 1}
-                    </span>
-                    <span className="line-clamp-2 leading-tight">{l.title}</span>
-                  </button>
-                );
-              })}
-            </nav>
-          </div>
+      {/* Vídeo + Playlist */}
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_300px]">
+        {/* Vídeo */}
+        <div className="overflow-hidden rounded-xl bg-black">
+          {embedUrl ? (
+            <div className="aspect-video w-full">
+              <iframe
+                src={embedUrl}
+                title={lesson.title}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                className="h-full w-full"
+              />
+            </div>
+          ) : (
+            <div className="flex aspect-video items-center justify-center bg-muted/40">
+              <div className="text-center">
+                <FileText className="mx-auto h-12 w-12 text-muted-foreground/30" />
+                <p className="mt-2 text-sm text-muted-foreground">Nenhum vídeo disponível para esta aula.</p>
+              </div>
+            </div>
+          )}
         </div>
 
-        {/* Main content */}
-        <div className="min-w-0 flex-1 space-y-4">
-          {/* Video */}
-          <Card className="overflow-hidden">
-            {embedUrl ? (
-              <div className="aspect-video w-full bg-black">
-                <iframe
-                  src={embedUrl}
-                  title={lesson.title}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                  className="h-full w-full"
-                />
-              </div>
-            ) : (
-              <div className="flex aspect-video items-center justify-center bg-muted/40">
-                <div className="text-center">
-                  <FileText className="mx-auto h-12 w-12 text-muted-foreground/30" />
-                  <p className="mt-2 text-sm text-muted-foreground">Nenhum vídeo disponível para esta aula.</p>
-                </div>
-              </div>
-            )}
-          </Card>
-
-          {/* Title + Mark complete */}
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
-              <h1 className="text-lg font-bold text-foreground">{lesson.title}</h1>
-              <p className="text-xs text-muted-foreground">Aula {currentIdx + 1} de {sortedLessons.length}</p>
-            </div>
-            <Button
-              variant={isDone ? 'secondary' : 'default'}
-              size="sm"
-              className="gap-2"
-              disabled={isDone || marking}
-              onClick={handleMarkComplete}
-            >
-              {marking ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-              {isDone ? 'Aula concluída' : 'Marcar como concluída'}
-            </Button>
+        {/* Playlist */}
+        <div className="flex flex-col rounded-xl border border-border bg-background shadow-sm">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
+            <p className="text-sm font-semibold text-foreground">{mod?.title}</p>
+            <span className="text-xs text-muted-foreground">
+              {progress?.completed ?? 0}/{progress?.total ?? sortedLessons.length}
+            </span>
           </div>
-
-          {/* Prev / Next navigation */}
-          <div className="flex items-center justify-between">
-            <Button
-              variant="outline" size="sm" className="gap-2"
-              disabled={!prevLesson}
-              onClick={() => prevLesson && router.push(`/agent/academy/modulo/${moduleId}/aula/${prevLesson.id}`)}
-            >
-              <ChevronLeft className="h-4 w-4" /> Anterior
-            </Button>
-            <Button
-              variant="outline" size="sm" className="gap-2"
-              disabled={!nextLesson}
-              onClick={() => nextLesson && router.push(`/agent/academy/modulo/${moduleId}/aula/${nextLesson.id}`)}
-            >
-              Próxima <ChevronRight className="h-4 w-4" />
-            </Button>
-          </div>
-
-          {/* Tabs */}
-          <div className="flex gap-1 overflow-x-auto rounded-xl border border-border bg-muted/40 p-1">
-            {tabs.map((tab) => {
-              const Icon = tab.icon;
-              const isWork = tab.key === 'trabalho';
-              const disabled = isWork && !allDone;
+          <nav className="flex-1 overflow-y-auto">
+            {sortedLessons.map((l, i) => {
+              const done = progress?.completedIds.includes(l.id);
+              const active = l.id === lessonId;
               return (
                 <button
-                  key={tab.key}
-                  disabled={disabled}
-                  onClick={() => !disabled && setActiveTab(tab.key)}
-                  className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
-                    activeTab === tab.key
-                      ? 'bg-background text-foreground shadow-sm'
-                      : disabled
-                      ? 'cursor-not-allowed text-muted-foreground/40'
-                      : 'text-muted-foreground hover:text-foreground'
+                  key={l.id}
+                  onClick={() => router.push(`/agent/academy/modulo/${moduleId}/aula/${l.id}`)}
+                  className={`flex w-full items-center gap-3 border-b border-border/50 px-4 py-3 text-left transition-colors last:border-0 ${
+                    active
+                      ? 'bg-primary/8 text-primary'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                   }`}
                 >
-                  <Icon className="h-3.5 w-3.5" />
-                  {tab.label}
-                  {isWork && !allDone && <span className="text-[10px] opacity-60">(bloqueado)</span>}
+                  {/* Thumbnail placeholder */}
+                  <div className={`relative flex h-12 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md ${active ? 'bg-primary/20' : 'bg-muted'}`}>
+                    <span className="text-xs font-bold opacity-60">{i + 1}</span>
+                    {done && (
+                      <div className="absolute inset-x-0 bottom-0 h-1 bg-emerald-500" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className={`line-clamp-2 text-xs font-medium leading-snug ${active ? 'text-primary' : 'text-foreground'}`}>
+                      {l.title}
+                    </p>
+                    {done && (
+                      <div className="mt-1 flex items-center gap-1">
+                        <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                        <span className="text-[10px] text-emerald-600">Concluída</span>
+                      </div>
+                    )}
+                  </div>
                 </button>
               );
             })}
-          </div>
+          </nav>
+        </div>
+      </div>
 
-          {/* Tab content */}
-          <Card>
-            <CardContent className="py-5">
+      {/* Title + Mark complete */}
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-lg font-bold text-foreground">{lesson.title}</h1>
+          <p className="text-xs text-muted-foreground">Aula {currentIdx + 1} de {sortedLessons.length}</p>
+        </div>
+        <Button
+          variant={isDone ? 'secondary' : 'default'}
+          size="sm"
+          className="gap-2"
+          disabled={isDone || marking}
+          onClick={handleMarkComplete}
+        >
+          {marking ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+          {isDone ? 'Aula concluída' : 'Marcar como concluída'}
+        </Button>
+      </div>
+
+      {/* Prev / Next navigation */}
+      <div className="flex items-center justify-between">
+        <Button
+          variant="outline" size="sm" className="gap-2"
+          disabled={!prevLesson}
+          onClick={() => prevLesson && router.push(`/agent/academy/modulo/${moduleId}/aula/${prevLesson.id}`)}
+        >
+          <ChevronLeft className="h-4 w-4" /> Anterior
+        </Button>
+        <Button
+          variant="outline" size="sm" className="gap-2"
+          disabled={!nextLesson}
+          onClick={() => nextLesson && router.push(`/agent/academy/modulo/${moduleId}/aula/${nextLesson.id}`)}
+        >
+          Próxima <ChevronRight className="h-4 w-4" />
+        </Button>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex gap-1 overflow-x-auto rounded-xl border border-border bg-muted/40 p-1">
+        {tabs.map((tab) => {
+          const Icon = tab.icon;
+          const isWork = tab.key === 'trabalho';
+          const disabled = isWork && !allDone;
+          return (
+            <button
+              key={tab.key}
+              disabled={disabled}
+              onClick={() => !disabled && setActiveTab(tab.key)}
+              className={`flex shrink-0 items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-colors ${
+                activeTab === tab.key
+                  ? 'bg-background text-foreground shadow-sm'
+                  : disabled
+                  ? 'cursor-not-allowed text-muted-foreground/40'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Icon className="h-3.5 w-3.5" />
+              {tab.label}
+              {isWork && !allDone && <span className="text-[10px] opacity-60">(bloqueado)</span>}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Tab content */}
+      <Card>
+        <CardContent className="py-5">
               {/* Descrição */}
               {activeTab === 'descricao' && (
                 <p className="text-sm leading-relaxed text-foreground whitespace-pre-line">
@@ -503,8 +521,6 @@ export default function LessonPage() {
               )}
             </CardContent>
           </Card>
-        </div>
-      </div>
     </div>
   );
 }
