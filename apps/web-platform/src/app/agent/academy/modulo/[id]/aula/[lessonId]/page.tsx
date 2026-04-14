@@ -72,30 +72,11 @@ type Work = {
   review: { feedback: string; approved: boolean } | null;
 } | null;
 
-function youtubeEmbedUrl(url: string): string {
-  // Se já é URL de embed, retorna direto (sem parâmetros extras)
-  if (url.includes('youtube.com/embed/')) {
-    const m = url.match(/youtube\.com\/embed\/([A-Za-z0-9_-]{11})/);
-    return m ? `https://www.youtube.com/embed/${m[1]}` : url.split('?')[0];
-  }
-  try {
-    const u = new URL(url);
-    if (u.hostname.includes('youtube.com')) {
-      const v = u.searchParams.get('v');
-      if (v) return `https://www.youtube.com/embed/${v}`;
-      const parts = u.pathname.split('/').filter(Boolean);
-      const idx = parts.findIndex((p) => p === 'shorts');
-      if (idx !== -1 && parts[idx + 1]) return `https://www.youtube.com/embed/${parts[idx + 1]}`;
-    }
-    if (u.hostname === 'youtu.be') {
-      const id = u.pathname.replace('/', '');
-      if (id) return `https://www.youtube.com/embed/${id}`;
-    }
-  } catch {
-    const m = url.match(/[?&]v=([A-Za-z0-9_-]{11})/) ?? url.match(/youtu\.be\/([A-Za-z0-9_-]{11})/);
-    if (m) return `https://www.youtube.com/embed/${m[1]}`;
-  }
-  return url; // retorna a própria URL como último recurso
+function youtubeEmbedUrl(url: string): string | null {
+  const m =
+    url.match(/(?:youtu\.be\/|youtube\.com\/(?:watch\?v=|embed\/|shorts\/))([A-Za-z0-9_-]{11})/) ??
+    url.match(/([A-Za-z0-9_-]{11})/);
+  return m ? `https://www.youtube.com/embed/${m[1]}` : null;
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -236,6 +217,7 @@ export default function LessonPage() {
   const nextLesson = currentIdx < sortedLessons.length - 1 ? sortedLessons[currentIdx + 1] : null;
   const allDone = progress?.allDone ?? false;
   const embedUrl = lesson.youtubeUrl ? youtubeEmbedUrl(lesson.youtubeUrl) : null;
+
   const tabs = [
     { key: 'descricao' as const, label: 'Descrição', icon: FileText },
     { key: 'duvidas' as const, label: `Dúvidas (${lesson.questions.length})`, icon: MessageCircle },
@@ -268,29 +250,21 @@ export default function LessonPage() {
       )}
 
       {/* Vídeo + Playlist */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_300px]">
         {/* Vídeo */}
-        <div className="w-full min-w-0 flex-1">
+        <div className="overflow-hidden rounded-xl bg-black">
           {embedUrl ? (
-            <div style={{ position: 'relative', width: '100%', paddingBottom: '56.25%', borderRadius: '0.75rem', overflow: 'hidden', background: '#000' }}>
+            <div className="aspect-video w-full">
               <iframe
                 src={embedUrl}
                 title={lesson.title}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
-                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
+                className="h-full w-full"
               />
             </div>
-          ) : lesson.youtubeUrl ? (
-            <div className="flex aspect-video w-full flex-col items-center justify-center gap-2 rounded-xl bg-muted/40">
-              <FileText className="h-10 w-10 text-muted-foreground/30" />
-              <p className="text-xs text-muted-foreground">Não foi possível carregar o vídeo.</p>
-              <a href={lesson.youtubeUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline">
-                Abrir no YouTube
-              </a>
-            </div>
           ) : (
-            <div className="flex aspect-video w-full items-center justify-center rounded-xl bg-muted/40">
+            <div className="flex aspect-video items-center justify-center bg-muted/40">
               <div className="text-center">
                 <FileText className="mx-auto h-12 w-12 text-muted-foreground/30" />
                 <p className="mt-2 text-sm text-muted-foreground">Nenhum vídeo disponível para esta aula.</p>
@@ -300,14 +274,14 @@ export default function LessonPage() {
         </div>
 
         {/* Playlist */}
-        <div className="flex w-full shrink-0 flex-col overflow-hidden rounded-xl border border-border bg-background shadow-sm sm:w-72 sm:max-h-80 lg:max-h-96">
-          <div className="flex shrink-0 items-center justify-between border-b border-border px-4 py-3">
-            <p className="truncate text-sm font-semibold text-foreground">{mod?.title}</p>
-            <span className="ml-2 shrink-0 text-xs text-muted-foreground">
+        <div className="flex flex-col rounded-xl border border-border bg-background shadow-sm">
+          <div className="flex items-center justify-between border-b border-border px-4 py-3">
+            <p className="text-sm font-semibold text-foreground">{mod?.title}</p>
+            <span className="text-xs text-muted-foreground">
               {progress?.completed ?? 0}/{progress?.total ?? sortedLessons.length}
             </span>
           </div>
-          <nav className="overflow-y-auto">
+          <nav className="flex-1 overflow-y-auto">
             {sortedLessons.map((l, i) => {
               const done = progress?.completedIds.includes(l.id);
               const active = l.id === lessonId;
@@ -317,7 +291,7 @@ export default function LessonPage() {
                   onClick={() => router.push(`/agent/academy/modulo/${moduleId}/aula/${l.id}`)}
                   className={`flex w-full items-center gap-3 border-b border-border/50 px-4 py-3 text-left transition-colors last:border-0 ${
                     active
-                      ? 'bg-primary/10 text-primary'
+                      ? 'bg-primary/8 text-primary'
                       : 'text-muted-foreground hover:bg-muted hover:text-foreground'
                   }`}
                 >
