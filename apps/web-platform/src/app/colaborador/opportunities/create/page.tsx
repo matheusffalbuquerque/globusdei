@@ -81,28 +81,28 @@ export default function CreateOpportunityPage() {
   };
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      {/* ── Navegação ── */}
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={() => router.back()}
-        className="gap-2 -ml-1"
-      >
-        <ArrowLeft className="h-4 w-4" /> Oportunidades
-      </Button>
-
+    <div className="space-y-6">
       {/* ── Cabeçalho ── */}
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Gestão · Nova publicação
-        </p>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">
-          Criar oportunidade
-        </h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Preencha os dados abaixo. Apenas título e descrição são obrigatórios.
-        </p>
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Gestão · Nova publicação
+          </p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            Criar oportunidade
+          </h1>
+          <p className="text-sm text-muted-foreground">
+            Preencha os dados abaixo. Apenas título e descrição são obrigatórios.
+          </p>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => router.back()}
+          className="gap-2 shrink-0 self-start"
+        >
+          <ArrowLeft className="h-4 w-4" /> Oportunidades
+        </Button>
       </div>
 
       {/* ── Erro ── */}
@@ -115,7 +115,7 @@ export default function CreateOpportunityPage() {
 
       {/* ── Formulário ── */}
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-3">
           <CardTitle className="text-base">Dados da oportunidade</CardTitle>
           <CardDescription>
             A oportunidade ficará visível a todos os agentes logo após a criação.
@@ -126,38 +126,39 @@ export default function CreateOpportunityPage() {
 
         <CardContent className="pt-5">
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Título */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Título *</label>
-              <Input
-                required
-                placeholder="Ex: Voluntário para projeto de evangelização"
-                value={form.title}
-                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-              />
-            </div>
+            {/* Título + Categoria lado a lado */}
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">Título *</label>
+                <Input
+                  required
+                  placeholder="Ex: Voluntário para projeto de evangelização"
+                  value={form.title}
+                  onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                />
+              </div>
 
-            {/* Categoria */}
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Categoria *</label>
-              <Select
-                value={form.category}
-                onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-              >
-                {CATEGORY_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </Select>
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">Categoria *</label>
+                <Select
+                  value={form.category}
+                  onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                >
+                  {CATEGORY_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>
+                      {opt.label}
+                    </option>
+                  ))}
+                </Select>
+              </div>
             </div>
 
             {/* Descrição */}
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Descrição *</label>
+              <label className="text-sm font-medium text-foreground">Descrição *</label>
               <Textarea
                 required
-                rows={8}
+                rows={7}
                 placeholder="Descreva a oportunidade, requisitos, contexto e como entrar em contato…"
                 value={form.description}
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
@@ -165,9 +166,9 @@ export default function CreateOpportunityPage() {
             </div>
 
             {/* Local e modalidade */}
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Local</label>
+                <label className="text-sm font-medium text-foreground">Local</label>
                 <Input
                   placeholder="Cidade / País"
                   value={form.location}
@@ -177,7 +178,7 @@ export default function CreateOpportunityPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Modalidade</label>
+                <label className="text-sm font-medium text-foreground">Modalidade</label>
                 <Select
                   value={form.isRemote ? 'remote' : 'presential'}
                   onChange={(e) => {
@@ -195,8 +196,10 @@ export default function CreateOpportunityPage() {
               </div>
             </div>
 
+            <Separator />
+
             {/* Ações */}
-            <div className="flex justify-end gap-3 pt-2">
+            <div className="flex justify-end gap-3">
               <Button
                 type="button"
                 variant="outline"

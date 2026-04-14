@@ -112,19 +112,17 @@ export default function CollaboratorPrayerRequestsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <Card>
-        <CardContent className="pt-6">
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            Grupo de intercessão
-          </p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground">
-            Pedidos de Oração
-          </h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">
-            Acompanhe e atenda os pedidos de intercessão enviados pelos agentes da rede.
-          </p>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col gap-1">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          Grupo de intercessão
+        </p>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+          Pedidos de Oração
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Acompanhe e atenda os pedidos de intercessão enviados pelos agentes da rede.
+        </p>
+      </div>
 
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">

@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import { BellRing } from 'lucide-react';
 
 import { NotificationList, type NotificationItem } from '../../../components/notifications/NotificationCenter';
-import { Card, CardContent } from '../../../components/ui/card';
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
 import { apiFetch } from '../../../lib/api';
 import type { AppSession } from '../../../lib/auth';
@@ -60,25 +60,23 @@ export default function AgentNotificationsPage() {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardContent className="flex flex-col gap-4 pt-6 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              Centro de notificações
-            </p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground">
-              Acompanhe o que exige sua atenção
-            </h1>
-            <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
-              Mensagens diretas de colaboradores, atualizações de processos, avisos de eventos e atividade nas iniciativas vinculadas ao seu perfil.
-            </p>
-          </div>
-          <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm font-medium text-muted-foreground">
-            <BellRing className="h-4 w-4 text-primary" />
-            {personal.filter((item) => !item.readAt).length + initiatives.filter((item) => !item.readAt).length} pendências recentes
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Centro de notificações
+          </p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            Acompanhe o que exige sua atenção
+          </h1>
+          <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+            Mensagens diretas de colaboradores, atualizações de processos, avisos de eventos e atividade nas iniciativas vinculadas ao seu perfil.
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-3 rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm font-medium text-muted-foreground">
+          <BellRing className="h-4 w-4 text-primary" />
+          {personal.filter((item) => !item.readAt).length + initiatives.filter((item) => !item.readAt).length} pendências recentes
+        </div>
+      </div>
 
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">

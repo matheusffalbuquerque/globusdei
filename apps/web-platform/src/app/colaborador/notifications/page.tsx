@@ -16,7 +16,7 @@ import {
 } from '../../../components/notifications/NotificationCenter';
 import { useCollaboratorPortal } from '../../../components/portal/CollaboratorPortalShell';
 import { Button } from '../../../components/ui/button';
-import { Card, CardContent } from '../../../components/ui/card';
+
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
 import { apiFetch } from '../../../lib/api';
 import type { AppSession } from '../../../lib/auth';
@@ -185,26 +185,23 @@ export default function CollaboratorNotificationsPage() {
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardContent className="flex flex-col gap-4 pt-6 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              Centro de notificações
-            </p>
-            <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground">
-              Comunicação operacional e acompanhamento
-            </h1>
-            <p className="mt-2 max-w-3xl text-sm text-muted-foreground">
-              Consulte notificações recebidas, acompanhe o que já foi enviado e registre novas mensagens para agentes e iniciativas sem sair do portal.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3 rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm font-medium text-muted-foreground">
-            <BellRing className="h-4 w-4 text-primary" />
-            {inbox.filter((item) => !item.readAt).length} não lidas
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Centro de notificações
+          </p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            Comunicação operacional e acompanhamento
+          </h1>
+          <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+            Consulte notificações recebidas, acompanhe o que já foi enviado e registre novas mensagens para agentes e iniciativas sem sair do portal.
+          </p>
+        </div>
+        <div className="flex shrink-0 items-center gap-3 rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm font-medium text-muted-foreground">
+          <BellRing className="h-4 w-4 text-primary" />
+          {inbox.filter((item) => !item.readAt).length} não lidas
+        </div>
+      </div>
 
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">

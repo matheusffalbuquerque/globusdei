@@ -120,20 +120,18 @@ export default function CollaboratorServiceRequestsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <Card>
-        <CardContent className="pt-6">
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            Fila operacional
-          </p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground">
-            Solicitações de apoio
-          </h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">
-            Atualize status e registre notas internas para acompanhamento do suporte prestado aos
-            agentes.
-          </p>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col gap-1">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          Fila operacional
+        </p>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+          Solicitações de apoio
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Atualize status e registre notas internas para acompanhamento do suporte prestado aos
+          agentes.
+        </p>
+      </div>
 
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">

@@ -92,20 +92,18 @@ export default function AgentPrayerRequestsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <Card>
-        <CardContent className="pt-6">
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            Intercessão
-          </p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground">
-            Pedidos de Oração
-          </h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">
-            Compartilhe seus pedidos com o grupo de intercessão global da Globus Dei. Nossa equipe
-            está sempre disposta a orar por você.
-          </p>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col gap-1">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          Intercessão
+        </p>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">
+          Pedidos de Oração
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Compartilhe seus pedidos com o grupo de intercessão global da Globus Dei. Nossa equipe
+          está sempre disposta a orar por você.
+        </p>
+      </div>
 
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">

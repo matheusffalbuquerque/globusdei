@@ -134,7 +134,7 @@ export function CollaboratorPortalShell({ children }: { children: ReactNode }) {
     },
     {
       href: '/colaborador/announcements',
-      label: 'Conteúdo',
+      label: 'Anúncios',
       icon: Megaphone,
       visible: true,
     },

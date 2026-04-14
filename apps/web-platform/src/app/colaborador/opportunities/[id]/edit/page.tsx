@@ -100,16 +100,25 @@ export default function EditOpportunityPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      <Button variant="ghost" size="sm" onClick={() => router.back()} className="gap-2 -ml-1">
-        <ArrowLeft className="h-4 w-4" /> Voltar
-      </Button>
-
-      <div>
-        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-          Gestão
-        </p>
-        <h1 className="text-2xl font-bold tracking-tight text-foreground">Editar oportunidade</h1>
+    <div className="space-y-6">
+      {/* ── Cabeçalho ── */}
+      <div className="flex flex-col gap-1 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Gestão
+          </p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            Editar oportunidade
+          </h1>
+        </div>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => router.back()}
+          className="gap-2 shrink-0 self-start"
+        >
+          <ArrowLeft className="h-4 w-4" /> Voltar
+        </Button>
       </div>
 
       {error && (
@@ -119,37 +128,39 @@ export default function EditOpportunityPage() {
       )}
 
       <Card>
-        <CardHeader>
+        <CardHeader className="pb-3">
           <CardTitle className="text-base">Dados da oportunidade</CardTitle>
           <CardDescription>Atualize os campos necessários e salve.</CardDescription>
         </CardHeader>
         <Separator />
         <CardContent className="pt-5">
           <form onSubmit={handleSubmit} className="space-y-5">
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Título *</label>
-              <Input
-                required
-                placeholder="Ex: Voluntário para projeto de evangelização"
-                value={form.title}
-                onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
-              />
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">Título *</label>
+                <Input
+                  required
+                  placeholder="Ex: Voluntário para projeto de evangelização"
+                  value={form.title}
+                  onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">Categoria *</label>
+                <Select
+                  value={form.category}
+                  onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
+                >
+                  {CATEGORY_OPTIONS.map((opt) => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
+                  ))}
+                </Select>
+              </div>
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Categoria *</label>
-              <Select
-                value={form.category}
-                onChange={(e) => setForm((f) => ({ ...f, category: e.target.value }))}
-              >
-                {CATEGORY_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>{opt.label}</option>
-                ))}
-              </Select>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Descrição *</label>
+              <label className="text-sm font-medium text-foreground">Descrição *</label>
               <Textarea
                 required
                 rows={7}
@@ -159,9 +170,9 @@ export default function EditOpportunityPage() {
               />
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid gap-4 sm:grid-cols-3">
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Local</label>
+                <label className="text-sm font-medium text-foreground">Local</label>
                 <Input
                   placeholder="Cidade / País"
                   value={form.location}
@@ -171,7 +182,7 @@ export default function EditOpportunityPage() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Modalidade</label>
+                <label className="text-sm font-medium text-foreground">Modalidade</label>
                 <Select
                   value={form.isRemote ? 'remote' : 'presential'}
                   onChange={(e) => {
@@ -183,22 +194,24 @@ export default function EditOpportunityPage() {
                   <option value="remote">Remota</option>
                 </Select>
               </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">Status de publicação</label>
+                <Select
+                  value={form.isPublished ? 'published' : 'draft'}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, isPublished: e.target.value === 'published' }))
+                  }
+                >
+                  <option value="published">Publicada</option>
+                  <option value="draft">Rascunho</option>
+                </Select>
+              </div>
             </div>
 
-            <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">Status de publicação</label>
-              <Select
-                value={form.isPublished ? 'published' : 'draft'}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, isPublished: e.target.value === 'published' }))
-                }
-              >
-                <option value="published">Publicada</option>
-                <option value="draft">Rascunho (não visível aos agentes)</option>
-              </Select>
-            </div>
+            <Separator />
 
-            <div className="flex justify-end gap-3 pt-2">
+            <div className="flex justify-end gap-3">
               <Button type="button" variant="outline" onClick={() => router.back()}>
                 Cancelar
               </Button>

@@ -9,7 +9,6 @@ import { apiFetch } from '../../../lib/api';
 import { type AppSession } from '../../../lib/auth';
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
-import { Card, CardContent } from '../../../components/ui/card';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -107,17 +106,15 @@ export default function AcademyPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <Card>
-        <CardContent className="pt-6">
-          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-            Formação e desenvolvimento
-          </p>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-foreground">Academia Globus Dei</h1>
-          <p className="mt-1.5 text-sm text-muted-foreground">
-            Módulos de formação para agentes de missão. Conclua as aulas e envie o trabalho final para receber sua certificação.
-          </p>
-        </CardContent>
-      </Card>
+      <div className="flex flex-col gap-1">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          Formação e desenvolvimento
+        </p>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Academia Globus Dei</h1>
+        <p className="text-sm text-muted-foreground">
+          Módulos de formação para agentes de missão. Conclua as aulas e envie o trabalho final para receber sua certificação.
+        </p>
+      </div>
 
       {error && (
         <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">

@@ -150,50 +150,17 @@ export default function CollaboratorOpportunityDetailPage() {
     'GlobusDei';
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6">
-      {/* ── Navegação ── */}
-      <div className="flex items-center justify-between">
-        <Button variant="ghost" size="sm" onClick={() => router.back()} className="gap-2 -ml-1">
-          <ArrowLeft className="h-4 w-4" /> Oportunidades
-        </Button>
-
-        {canManage && (
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1.5"
-              disabled={isActing}
-              onClick={handleTogglePublish}
-            >
-              {opportunity.isPublished ? (
-                <><EyeOff className="h-3.5 w-3.5" /> Ocultar</>
-              ) : (
-                <><Eye className="h-3.5 w-3.5" /> Publicar</>
-              )}
-            </Button>
-            <Link href={`/colaborador/opportunities/${opportunity.id}/edit`}>
-              <Button variant="outline" size="sm" className="gap-1.5" disabled={isActing}>
-                <Pencil className="h-3.5 w-3.5" /> Editar
-              </Button>
-            </Link>
-            <Button
-              variant="destructive"
-              size="sm"
-              className="gap-1.5"
-              disabled={isActing}
-              onClick={handleDelete}
-            >
-              <Trash2 className="h-3.5 w-3.5" /> Remover
-            </Button>
-          </div>
-        )}
-      </div>
-
-      {/* ── Card principal ── */}
-      <Card>
-        <CardHeader className="pb-4">
-          <div className="flex flex-wrap items-center gap-2">
+    <div className="space-y-6">
+      {/* ── Cabeçalho com ações ── */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+            Gestão · Oportunidade
+          </p>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
+            {opportunity.title}
+          </h1>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
             <Badge variant={CATEGORY_BADGE[opportunity.category] ?? 'secondary'}>
               {CATEGORY_LABEL[opportunity.category] ?? opportunity.category}
             </Badge>
@@ -206,9 +173,55 @@ export default function CollaboratorOpportunityDetailPage() {
               <Badge variant="secondary">Rascunho</Badge>
             )}
           </div>
-          <CardTitle className="mt-3 text-xl leading-snug">{opportunity.title}</CardTitle>
+        </div>
 
-          <div className="mt-3 flex flex-wrap gap-4 text-sm text-muted-foreground">
+        <div className="flex shrink-0 items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => router.back()}
+            className="gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" /> Voltar
+          </Button>
+          {canManage && (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                className="gap-1.5"
+                disabled={isActing}
+                onClick={handleTogglePublish}
+              >
+                {opportunity.isPublished ? (
+                  <><EyeOff className="h-3.5 w-3.5" /> Ocultar</>
+                ) : (
+                  <><Eye className="h-3.5 w-3.5" /> Publicar</>
+                )}
+              </Button>
+              <Link href={`/colaborador/opportunities/${opportunity.id}/edit`}>
+                <Button variant="outline" size="sm" className="gap-1.5" disabled={isActing}>
+                  <Pencil className="h-3.5 w-3.5" /> Editar
+                </Button>
+              </Link>
+              <Button
+                variant="destructive"
+                size="sm"
+                className="gap-1.5"
+                disabled={isActing}
+                onClick={handleDelete}
+              >
+                <Trash2 className="h-3.5 w-3.5" /> Remover
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* ── Conteúdo ── */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
             {!opportunity.isRemote && opportunity.location && (
               <span className="flex items-center gap-1.5">
                 <MapPin className="h-4 w-4 shrink-0" />
@@ -225,9 +238,7 @@ export default function CollaboratorOpportunityDetailPage() {
             </span>
           </div>
         </CardHeader>
-
         <Separator />
-
         <CardContent className="pt-5 space-y-5">
           <div>
             <h2 className="mb-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
