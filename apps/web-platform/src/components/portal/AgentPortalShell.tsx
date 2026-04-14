@@ -17,6 +17,7 @@ import {
   ChevronRight,
   Loader2,
   Plus,
+  TrendingUp,
 } from 'lucide-react';
 
 import { apiFetch } from '../../lib/api';
@@ -109,6 +110,7 @@ export function AgentPortalShell({ children }: { children: ReactNode }) {
     { href: '/agent/status',             label: 'Onboarding',      icon: ClipboardList },
     { href: '/agent/empreendimentos',    label: 'Empreendimentos', icon: Building2 },
     { href: '/agent/opportunities',      label: 'Oportunidades',   icon: Briefcase },
+    { href: '/agent/investments',         label: 'Investimentos',   icon: TrendingUp },
     { href: '/agent/events',             label: 'Eventos',         icon: CalendarDays },
     { href: '/agent/prayer-requests',    label: 'Intercessão',     icon: HandHeart },
     { href: '/agent/service-requests',   label: 'Solicitações',    icon: Inbox },

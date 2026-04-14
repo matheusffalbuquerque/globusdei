@@ -108,6 +108,16 @@ enum OpportunityCategory {
   OTHER
 }
 
+enum AgentInvestmentType {
+  ONE_TIME
+  RECURRING
+}
+
+enum AgentInvestmentTargetType {
+  AGENT
+  EMPREENDIMENTO
+}
+
 enum FinancialEntryType {
   INCOME
   EXPENSE
@@ -197,6 +207,8 @@ model Agent {
   sentNotifications  Notification[]        @relation("NotificationSenderAgent")
   emailNotificationLogs NotificationEmailLog[] @relation("NotificationEmailAgent")
   opportunities     Opportunity[]          @relation("AgentOpportunities")
+  investmentsMade   AgentInvestment[]      @relation("AgentInvestor")
+  investmentsReceived AgentInvestment[]    @relation("AgentInvestmentTarget")
   createdAt         DateTime               @default(now())
   updatedAt         DateTime               @updatedAt
 }
@@ -311,6 +323,7 @@ model Empreendimento {
   notificationRecipients NotificationRecipient[] @relation("NotificationRecipientEmpreendimento")
   emailNotificationLogs  NotificationEmailLog[] @relation("NotificationEmailEmpreendimento")
   opportunities          Opportunity[]          @relation("EmpreendimentoOpportunities")
+  investmentsReceived    AgentInvestment[]      @relation("EmpreendimentoInvestmentTarget")
   createdAt             DateTime               @default(now())
   updatedAt             DateTime               @updatedAt
 }
@@ -685,6 +698,29 @@ model AgentCertification {
   module    AcademyModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
 
   @@unique([agentId, moduleId])
+}
+
+// ─── Investimentos de agentes ─────────────────────────────────────────────────
+
+model AgentInvestment {
+  id               String                    @id @default(uuid())
+  investorId       String
+  investor         Agent                     @relation("AgentInvestor", fields: [investorId], references: [id], onDelete: Cascade)
+  targetType       AgentInvestmentTargetType
+  targetAgentId    String?
+  targetAgent      Agent?                    @relation("AgentInvestmentTarget", fields: [targetAgentId], references: [id], onDelete: SetNull)
+  targetEmpreendimentoId String?
+  targetEmpreendimento   Empreendimento?     @relation("EmpreendimentoInvestmentTarget", fields: [targetEmpreendimentoId], references: [id], onDelete: SetNull)
+  amount           Float
+  type             AgentInvestmentType       @default(ONE_TIME)
+  notes            String?                   @db.Text
+  investedAt       DateTime                  @default(now())
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+
+  @@index([investorId, investedAt])
+  @@index([targetAgentId, investedAt])
+  @@index([targetEmpreendimentoId, investedAt])
 }
 
 // ─── Oportunidades ────────────────────────────────────────────────────────────

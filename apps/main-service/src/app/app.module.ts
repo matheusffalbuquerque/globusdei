@@ -15,6 +15,7 @@ import { OpportunityModule } from '../opportunity/opportunity.module';
 import { PlatformModule } from '../platform/platform.module';
 import { PrayerRequestModule } from '../prayer-request/prayer-request.module';
 import { NotificationModule } from '../notification/notification.module';
+import { InvestmentModule } from '../investment/investment.module';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -31,6 +32,7 @@ import { AppService } from './app.service';
     OpportunityModule,
     PrayerRequestModule,
     NotificationModule,
+    InvestmentModule,
     ConfigModule.forRoot({ isGlobal: true }),
     PlatformModule,
     AcademyModule,

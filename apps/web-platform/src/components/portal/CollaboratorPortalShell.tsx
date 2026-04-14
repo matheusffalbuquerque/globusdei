@@ -24,6 +24,7 @@ import {
   Bell,
   ChevronRight,
   Loader2,
+  TrendingUp,
 } from 'lucide-react';
 
 import { apiFetch } from '../../lib/api';
@@ -143,6 +144,12 @@ export function CollaboratorPortalShell({ children }: { children: ReactNode }) {
       label: 'Oportunidades',
       icon: Briefcase,
       visible: true,
+    },
+    {
+      href: '/colaborador/investments',
+      label: 'Investimentos',
+      icon: TrendingUp,
+      visible: permissions.canViewFinance,
     },
     {
       href: '/colaborador/events',
