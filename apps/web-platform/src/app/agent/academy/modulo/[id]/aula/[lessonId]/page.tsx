@@ -72,29 +72,30 @@ type Work = {
   review: { feedback: string; approved: boolean } | null;
 } | null;
 
-function youtubeEmbedUrl(url: string): string | null {
+function youtubeEmbedUrl(url: string): string {
+  // Se já é URL de embed, retorna direto (sem parâmetros extras)
+  if (url.includes('youtube.com/embed/')) {
+    const m = url.match(/youtube\.com\/embed\/([A-Za-z0-9_-]{11})/);
+    return m ? `https://www.youtube.com/embed/${m[1]}` : url.split('?')[0];
+  }
   try {
     const u = new URL(url);
-    // https://www.youtube.com/watch?v=VIDEO_ID
     if (u.hostname.includes('youtube.com')) {
       const v = u.searchParams.get('v');
       if (v) return `https://www.youtube.com/embed/${v}`;
-      // https://www.youtube.com/embed/VIDEO_ID ou /shorts/VIDEO_ID
       const parts = u.pathname.split('/').filter(Boolean);
-      const idx = parts.findIndex((p) => p === 'embed' || p === 'shorts');
+      const idx = parts.findIndex((p) => p === 'shorts');
       if (idx !== -1 && parts[idx + 1]) return `https://www.youtube.com/embed/${parts[idx + 1]}`;
     }
-    // https://youtu.be/VIDEO_ID
     if (u.hostname === 'youtu.be') {
       const id = u.pathname.replace('/', '');
       if (id) return `https://www.youtube.com/embed/${id}`;
     }
   } catch {
-    // URL inválida — tenta regex simples
     const m = url.match(/[?&]v=([A-Za-z0-9_-]{11})/) ?? url.match(/youtu\.be\/([A-Za-z0-9_-]{11})/);
     if (m) return `https://www.youtube.com/embed/${m[1]}`;
   }
-  return null;
+  return url; // retorna a própria URL como último recurso
 }
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
@@ -235,7 +236,6 @@ export default function LessonPage() {
   const nextLesson = currentIdx < sortedLessons.length - 1 ? sortedLessons[currentIdx + 1] : null;
   const allDone = progress?.allDone ?? false;
   const embedUrl = lesson.youtubeUrl ? youtubeEmbedUrl(lesson.youtubeUrl) : null;
-
   const tabs = [
     { key: 'descricao' as const, label: 'Descrição', icon: FileText },
     { key: 'duvidas' as const, label: `Dúvidas (${lesson.questions.length})`, icon: MessageCircle },
