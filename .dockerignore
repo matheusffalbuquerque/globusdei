@@ -7,7 +7,7 @@ dist
 **/.next
 **/dist
 
-# Nx cache
+# Nx cache (pesado, não necessário para build)
 .nx/cache
 .nx/workspace-data
 tmp

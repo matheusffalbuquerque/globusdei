@@ -11,7 +11,8 @@ COPY prisma ./prisma
 RUN npx prisma generate
 
 COPY . .
-# Webpack empacota tudo em main.js — sem package.json próprio, prune não é necessário
+# Recria o project graph do Nx (workspace-data não é commitado no git)
+RUN npx nx reset
 RUN npx nx build notification-service --configuration=production --skip-nx-cache
 
 # ─── Stage 2: Runner ──────────────────────────────────────────────────────────

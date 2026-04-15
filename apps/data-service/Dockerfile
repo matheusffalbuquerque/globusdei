@@ -8,6 +8,8 @@ COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts
 
 COPY . .
+# Recria o project graph do Nx (workspace-data não é commitado no git)
+RUN npx nx reset
 # Webpack empacota tudo em main.js — prune não é necessário (sem package.json próprio)
 RUN npx nx build data-service --configuration=production --skip-nx-cache
 

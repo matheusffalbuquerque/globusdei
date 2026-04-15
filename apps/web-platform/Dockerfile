@@ -13,8 +13,11 @@ RUN npm ci --ignore-scripts
 COPY prisma ./prisma
 RUN npx prisma generate
 
-# Copia todo o monorepo e executa o build do Next.js via Nx
+# Copia todo o monorepo
 COPY . .
+
+# Recria o project graph do Nx (workspace-data não é commitado no git)
+RUN npx nx reset
 
 # Variáveis NEXT_PUBLIC_* são incorporadas em build-time pelo Next.js
 # Devem ser passadas via --build-arg no docker build
@@ -25,6 +28,11 @@ ENV NEXT_PUBLIC_MAIN_SERVICE_URL=$NEXT_PUBLIC_MAIN_SERVICE_URL
 ENV NEXT_PUBLIC_FINANCE_SERVICE_URL=$NEXT_PUBLIC_FINANCE_SERVICE_URL
 ENV NEXT_PUBLIC_NOTIFICATION_SERVICE_URL=$NEXT_PUBLIC_NOTIFICATION_SERVICE_URL
 
+# Chama o next build diretamente, sem passar pelo Nx
+# (evita erro "Could not create project graph" no ambiente Docker)
+WORKDIR /app
+
+# Chama o nx build normalmente
 RUN npx nx build web-platform --configuration=production --skip-nx-cache
 
 # ─── Stage 2: Runner ──────────────────────────────────────────────────────────
@@ -46,5 +54,4 @@ USER nextjs
 
 EXPOSE 3000
 
-# O standalone output gera um server.js na raiz do diretório standalone
 CMD ["node", "apps/web-platform/server.js"]
