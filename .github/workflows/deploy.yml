@@ -180,7 +180,7 @@ jobs:
         run: |
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
             cd ~/globusdei
-            docker compose up -d --remove-orphans --no-wait
+            docker compose up -d --remove-orphans
           "
 
       - name: Aguardar containers ficarem healthy
