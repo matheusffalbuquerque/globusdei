@@ -2058,7 +2058,7 @@
           "authenticatorConfig": "google-auto-link review profile config",
           "authenticator": "idp-review-profile",
           "authenticatorFlow": false,
-          "requirement": "REQUIRED",
+          "requirement": "DISABLED",
           "priority": 10,
           "autheticatorFlow": false,
           "userSetupAllowed": false
@@ -2170,7 +2170,7 @@
         },
         {
           "authenticatorFlow": true,
-          "requirement": "ALTERNATIVE",
+          "requirement": "DISABLED",
           "priority": 20,
           "autheticatorFlow": true,
           "flowAlias": "google-auto-link Handle Existing Account",
