@@ -1,0 +1,41 @@
+# Dependencies (reinstalled inside container)
+node_modules
+**/node_modules
+
+# Build artifacts (built inside container or copied from dist)
+dist
+**/.next
+**/dist
+
+# Nx cache
+.nx/cache
+.nx/workspace-data
+tmp
+
+# Test/e2e
+**/*.spec.ts
+**/*.test.ts
+**/*-e2e
+
+# Secrets & local config
+.env
+.env.local
+.env.*.local
+*.env.local
+
+# VCS
+.git
+.gitignore
+.gitattributes
+
+# Editor & OS
+.vscode
+.idea
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Docs
+README.md
+*.md

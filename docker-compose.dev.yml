@@ -1,0 +1,109 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: globusdei-postgres
+    restart: always
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-globusdei}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-root}
+      POSTGRES_DB: ${POSTGRES_DB:-globusdei_db}
+    ports:
+      - "5435:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - globusdei-network
+
+  mongodb:
+    image: mongo:6
+    container_name: globusdei-mongodb
+    restart: always
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_USER:-root}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_PASSWORD:-root}
+    ports:
+      - "27018:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - globusdei-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: globusdei-redis
+    restart: always
+    command: redis-server --requirepass ${REDIS_PASSWORD:-root}
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - globusdei-network
+
+  rabbitmq:
+    image: rabbitmq:3-management-alpine
+    container_name: globusdei-rabbitmq
+    restart: always
+    environment:
+      RABBITMQ_DEFAULT_USER: ${RABBITMQ_USER:-guest}
+      RABBITMQ_DEFAULT_PASS: ${RABBITMQ_PASSWORD:-guest}
+    ports:
+      - "5673:5672"
+      - "15673:15672" # Management interface
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - globusdei-network
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    container_name: globusdei-keycloak
+    command: start-dev --import-realm
+    volumes:
+      - ./keycloak/realm-export.json:/opt/keycloak/data/import/realm.json
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-globusdei_db}
+      KC_DB_USERNAME: ${POSTGRES_USER:-globusdei}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-root}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-admin}
+    ports:
+      - "8085:8080"
+    depends_on:
+      - postgres
+    networks:
+      - globusdei-network
+
+  # Injects real Google OAuth2 credentials into Keycloak via Admin REST API.
+  # The script has its own wait loop — no healthcheck dependency needed.
+  keycloak-config:
+    image: curlimages/curl:latest
+    container_name: globusdei-keycloak-config
+    restart: "no"
+    depends_on:
+      - keycloak
+    environment:
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM:-globusdei}
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-admin2}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-Admin@2024}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+    volumes:
+      - ./keycloak/configure-google-idp.sh:/configure-google-idp.sh
+    entrypoint: ["/bin/sh", "/configure-google-idp.sh"]
+    networks:
+      - globusdei-network
+
+networks:
+  globusdei-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  mongodb_data:
+  redis_data:
+  rabbitmq_data:
