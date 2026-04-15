@@ -2084,14 +2084,14 @@
         {
           "authenticator": "idp-email-verification",
           "authenticatorFlow": false,
-          "requirement": "ALTERNATIVE",
+          "requirement": "DISABLED",
           "priority": 10,
           "autheticatorFlow": false,
           "userSetupAllowed": false
         },
         {
           "authenticatorFlow": true,
-          "requirement": "ALTERNATIVE",
+          "requirement": "DISABLED",
           "priority": 20,
           "autheticatorFlow": true,
           "flowAlias": "google-auto-link Verify Existing Account by Re-authentication",
@@ -2143,7 +2143,7 @@
         },
         {
           "authenticatorFlow": true,
-          "requirement": "REQUIRED",
+          "requirement": "DISABLED",
           "priority": 20,
           "autheticatorFlow": true,
           "flowAlias": "google-auto-link Account verification options",
@@ -2170,7 +2170,7 @@
         },
         {
           "authenticatorFlow": true,
-          "requirement": "DISABLED",
+          "requirement": "ALTERNATIVE",
           "priority": 20,
           "autheticatorFlow": true,
           "flowAlias": "google-auto-link Handle Existing Account",
@@ -2491,6 +2491,27 @@
       "email": "albuquerque0127@gmail.com",
       "emailVerified": true,
       "createdTimestamp": 1776234647638,
+      "enabled": true,
+      "totp": false,
+      "disableableCredentialTypes": [],
+      "requiredActions": [],
+      "notBefore": 0,
+      "access": {
+        "manageGroupMembership": true,
+        "view": true,
+        "mapRoles": true,
+        "impersonate": true,
+        "manage": true
+      }
+    },
+    {
+      "id": "a37d959d-0f0a-4c99-b362-2dab0e468cd8",
+      "username": "leticiasiq027@gmail.com",
+      "firstName": "Letícia",
+      "lastName": "Albuquerque",
+      "email": "leticiasiq027@gmail.com",
+      "emailVerified": true,
+      "createdTimestamp": 1776252048796,
       "enabled": true,
       "totp": false,
       "disableableCredentialTypes": [],
