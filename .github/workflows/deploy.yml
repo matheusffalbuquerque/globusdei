@@ -161,47 +161,52 @@ jobs:
           echo '→ .env gerado com sucesso'
           SSHSCRIPT
 
-      - name: Pull das imagens e restart dos containers
+      - name: Pull das imagens
         run: |
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
             cd ~/globusdei
-
-            # Login no GitHub Container Registry no servidor
             echo '${{ secrets.GITHUB_TOKEN }}' | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-            # Pull de todas as imagens e restart
             docker compose pull
-            docker compose up -d --remove-orphans
-
-            # Aguarda 30s e mostra status
-            sleep 30
-            docker compose ps
           "
 
-      - name: Verificar saúde dos containers
+      - name: Subir containers
         run: |
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
             cd ~/globusdei
-            # Aguarda até 3 minutos para os containers ficarem saudáveis
-            echo '→ Aguardando containers ficarem healthy (máx 3 min)...'
-            for i in \$(seq 1 18); do
-              sleep 10
-              UNHEALTHY=\$(docker compose ps --format json | python3 -c \"
-          import json, sys
-          containers = [json.loads(l) for l in sys.stdin if l.strip()]
-          bad = [c['Name'] for c in containers if c.get('Health') == 'unhealthy']
-          print('\n'.join(bad))
-          \")
-              if [ -z \"\$UNHEALTHY\" ]; then
-                echo 'Todos os containers estão saudáveis!'
-                docker compose ps
-                exit 0
-              fi
-              echo \"Tentativa \$i/18 — ainda aguardando: \$UNHEALTHY\"
-            done
-            echo 'Containers com problema após 3 minutos:'
-            echo \"\$UNHEALTHY\"
-            docker compose ps
-            docker compose logs --tail=50 keycloak
-            exit 1
+            docker compose up -d --remove-orphans
           "
+
+      - name: Aguardar Keycloak ficar healthy
+        run: |
+          for i in $(seq 1 24); do
+            sleep 15
+            echo "→ Tentativa $i/24 — verificando saúde dos containers..."
+            STATUS=$(ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
+              cd ~/globusdei
+              docker compose ps --format json 2>/dev/null | python3 -c \"
+          import json, sys
+          lines = [l for l in sys.stdin if l.strip()]
+          containers = [json.loads(l) for l in lines]
+          unhealthy = [c['Name'] for c in containers if c.get('Health') == 'unhealthy']
+          starting  = [c['Name'] for c in containers if c.get('Health') == 'starting']
+          print('UNHEALTHY:' + ','.join(unhealthy))
+          print('STARTING:' + ','.join(starting))
+          \"
+            ")
+            UNHEALTHY=$(echo "$STATUS" | grep '^UNHEALTHY:' | cut -d: -f2)
+            STARTING=$(echo "$STATUS" | grep '^STARTING:'  | cut -d: -f2)
+            if [ -n "$UNHEALTHY" ]; then
+              echo "Containers unhealthy: $UNHEALTHY"
+              ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/globusdei && docker compose logs --tail=50 keycloak"
+              exit 1
+            fi
+            if [ -z "$STARTING" ]; then
+              echo "Todos os containers estão saudáveis!"
+              ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/globusdei && docker compose ps"
+              exit 0
+            fi
+            echo "   Ainda iniciando: $STARTING"
+          done
+          echo "Timeout: containers não ficaram healthy em 6 minutos"
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/globusdei && docker compose ps && docker compose logs --tail=50 keycloak"
+          exit 1
