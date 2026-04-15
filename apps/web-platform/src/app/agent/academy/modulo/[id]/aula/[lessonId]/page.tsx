@@ -250,73 +250,84 @@ export default function LessonPage() {
       )}
 
       {/* Vídeo + Playlist */}
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_300px]">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-stretch">
         {/* Vídeo */}
-        <div className="overflow-hidden rounded-xl bg-black">
-          {embedUrl ? (
-            <div className="aspect-video w-full">
+        <div
+          className="w-full lg:min-w-0"
+          style={{ flex: '1 1 0%' }}
+        >
+          <div
+            className="relative overflow-hidden rounded-xl bg-black"
+            style={{ paddingTop: '56.25%' }}
+          >
+            {embedUrl ? (
               <iframe
                 src={embedUrl}
                 title={lesson.title}
                 allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowFullScreen
-                className="h-full w-full"
+                className="absolute inset-0 h-full w-full"
               />
-            </div>
-          ) : (
-            <div className="flex aspect-video items-center justify-center bg-muted/40">
-              <div className="text-center">
-                <FileText className="mx-auto h-12 w-12 text-muted-foreground/30" />
-                <p className="mt-2 text-sm text-muted-foreground">Nenhum vídeo disponível para esta aula.</p>
+            ) : (
+              <div className="absolute inset-0 flex items-center justify-center bg-muted/40">
+                <div className="text-center">
+                  <FileText className="mx-auto h-12 w-12 text-muted-foreground/30" />
+                  <p className="mt-2 text-sm text-muted-foreground">Nenhum vídeo disponível para esta aula.</p>
+                </div>
               </div>
-            </div>
-          )}
+            )}
+          </div>
         </div>
 
         {/* Playlist */}
-        <div className="flex flex-col rounded-xl border border-border bg-background shadow-sm">
-          <div className="flex items-center justify-between border-b border-border px-4 py-3">
-            <p className="text-sm font-semibold text-foreground">{mod?.title}</p>
-            <span className="text-xs text-muted-foreground">
-              {progress?.completed ?? 0}/{progress?.total ?? sortedLessons.length}
-            </span>
+        <div
+          className="w-full lg:w-56 lg:min-w-56 lg:self-stretch"
+          style={{ flex: '0 0 32rem' }}
+        >
+          <div className="flex h-full flex-col overflow-hidden rounded-xl border border-border bg-background shadow-sm">
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <p className="text-sm font-semibold text-foreground">{mod?.title}</p>
+              <span className="text-xs text-muted-foreground">
+                {progress?.completed ?? 0}/{progress?.total ?? sortedLessons.length}
+              </span>
+            </div>
+            <nav className="flex-1 overflow-y-auto">
+              {sortedLessons.map((l, i) => {
+                const done = progress?.completedIds.includes(l.id);
+                const active = l.id === lessonId;
+                return (
+                  <button
+                    key={l.id}
+                    onClick={() => router.push(`/agent/academy/modulo/${moduleId}/aula/${l.id}`)}
+                    className={`flex w-full items-center gap-3 border-b border-border/50 px-4 py-3 text-left transition-colors last:border-0 ${
+                      active
+                        ? 'bg-primary/8 text-primary'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground'
+                    }`}
+                  >
+                    {/* Thumbnail placeholder */}
+                    <div className={`relative flex h-12 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md ${active ? 'bg-primary/20' : 'bg-muted'}`}>
+                      <span className="text-xs font-bold opacity-60">{i + 1}</span>
+                      {done && (
+                        <div className="absolute inset-x-0 bottom-0 h-1 bg-emerald-500" />
+                      )}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className={`line-clamp-2 text-xs font-medium leading-snug ${active ? 'text-primary' : 'text-foreground'}`}>
+                        {l.title}
+                      </p>
+                      {done && (
+                        <div className="mt-1 flex items-center gap-1">
+                          <CheckCircle2 className="h-3 w-3 text-emerald-500" />
+                          <span className="text-[10px] text-emerald-600">Concluída</span>
+                        </div>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </nav>
           </div>
-          <nav className="flex-1 overflow-y-auto">
-            {sortedLessons.map((l, i) => {
-              const done = progress?.completedIds.includes(l.id);
-              const active = l.id === lessonId;
-              return (
-                <button
-                  key={l.id}
-                  onClick={() => router.push(`/agent/academy/modulo/${moduleId}/aula/${l.id}`)}
-                  className={`flex w-full items-center gap-3 border-b border-border/50 px-4 py-3 text-left transition-colors last:border-0 ${
-                    active
-                      ? 'bg-primary/8 text-primary'
-                      : 'text-muted-foreground hover:bg-muted hover:text-foreground'
-                  }`}
-                >
-                  {/* Thumbnail placeholder */}
-                  <div className={`relative flex h-12 w-20 shrink-0 items-center justify-center overflow-hidden rounded-md ${active ? 'bg-primary/20' : 'bg-muted'}`}>
-                    <span className="text-xs font-bold opacity-60">{i + 1}</span>
-                    {done && (
-                      <div className="absolute inset-x-0 bottom-0 h-1 bg-emerald-500" />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className={`line-clamp-2 text-xs font-medium leading-snug ${active ? 'text-primary' : 'text-foreground'}`}>
-                      {l.title}
-                    </p>
-                    {done && (
-                      <div className="mt-1 flex items-center gap-1">
-                        <CheckCircle2 className="h-3 w-3 text-emerald-500" />
-                        <span className="text-[10px] text-emerald-600">Concluída</span>
-                      </div>
-                    )}
-                  </div>
-                </button>
-              );
-            })}
-          </nav>
         </div>
       </div>
 
