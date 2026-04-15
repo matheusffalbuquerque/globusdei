@@ -1428,7 +1428,7 @@
       "addReadTokenRoleOnCreate": false,
       "authenticateByDefault": false,
       "linkOnly": false,
-      "firstBrokerLoginFlowAlias": "google-auto-link",
+      "firstBrokerLoginFlowAlias": "google-direct-link",
       "config": {
         "syncMode": "IMPORT",
         "clientSecret": "**********",
@@ -2200,6 +2200,32 @@
           "priority": 20,
           "autheticatorFlow": true,
           "flowAlias": "google-auto-link First broker login - Conditional OTP",
+          "userSetupAllowed": false
+        }
+      ]
+    },
+    {
+      "id": "d69d62b4-2620-426a-b096-61bbcf82559e",
+      "alias": "google-direct-link",
+      "description": "Link automático Google sem verificação",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "idp-create-user-if-unique",
+          "authenticatorFlow": false,
+          "requirement": "ALTERNATIVE",
+          "priority": 0,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "idp-auto-link",
+          "authenticatorFlow": false,
+          "requirement": "ALTERNATIVE",
+          "priority": 1,
+          "autheticatorFlow": false,
           "userSetupAllowed": false
         }
       ]
