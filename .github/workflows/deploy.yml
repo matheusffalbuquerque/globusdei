@@ -85,9 +85,6 @@ jobs:
     environment: production
 
     steps:
-      - name: Checkout do repositório
-        uses: actions/checkout@v4
-
       - name: Configurar chave SSH
         uses: webfactory/ssh-agent@v0.9.0
         with:
@@ -97,14 +94,24 @@ jobs:
         run: |
           ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
-      - name: Copiar docker-compose.yml para o servidor
+      - name: Clonar ou atualizar repositório no servidor
         run: |
-          scp docker-compose.yml ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:~/globusdei/docker-compose.yml
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
+            if [ -d ~/globusdei/.git ]; then
+              echo '→ Repositório já existe, atualizando...'
+              cd ~/globusdei
+              git fetch origin
+              git reset --hard origin/main
+            else
+              echo '→ Clonando repositório pela primeira vez...'
+              git clone https://github.com/matheusffalbuquerque/globusdei.git ~/globusdei
+            fi
+          "
 
       - name: Criar .env no servidor
         run: |
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cat > ~/globusdei/.env << 'ENVEOF'
-          # Gerado automaticamente pelo GitHub Actions — não edite manualmente
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} bash -s << 'SSHSCRIPT'
+          cat > ~/globusdei/.env << ENVEOF
           POSTGRES_USER=globusdei
           POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
           POSTGRES_DB=globusdei_db
@@ -138,21 +145,17 @@ jobs:
           NEXT_PUBLIC_MAIN_SERVICE_URL=${{ secrets.NEXT_PUBLIC_MAIN_SERVICE_URL }}
           NEXT_PUBLIC_FINANCE_SERVICE_URL=${{ secrets.NEXT_PUBLIC_FINANCE_SERVICE_URL }}
           NEXT_PUBLIC_NOTIFICATION_SERVICE_URL=${{ secrets.NEXT_PUBLIC_NOTIFICATION_SERVICE_URL }}
-          ENVEOF"
+          ENVEOF
+          echo '→ .env gerado com sucesso'
+          SSHSCRIPT
 
-      - name: Pull das novas imagens e restart dos containers
+      - name: Pull das imagens e restart dos containers
         run: |
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
             cd ~/globusdei
 
             # Login no GitHub Container Registry no servidor
             echo '${{ secrets.GITHUB_TOKEN }}' | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-
-            # Atualiza as tags das imagens no docker-compose com o SHA do commit
-            export IMAGE_TAG=sha-$(echo '${{ github.sha }}' | cut -c1-7)
-
-            # Substitui 'latest' pelo SHA específico para deploy determinístico
-            sed -i \"s|image: ghcr.io/${{ env.IMAGE_PREFIX }}/\\(.*\\):latest|image: ghcr.io/${{ env.IMAGE_PREFIX }}/\\1:\$IMAGE_TAG|g\" docker-compose.yml 2>/dev/null || true
 
             # Pull de todas as imagens e restart
             docker compose pull
