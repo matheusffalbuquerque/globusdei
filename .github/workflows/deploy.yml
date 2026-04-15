@@ -147,7 +147,7 @@ jobs:
           KEYCLOAK_ADMIN_PASSWORD=${{ secrets.KEYCLOAK_ADMIN_PASSWORD }}
           KEYCLOAK_HOSTNAME=${{ secrets.KEYCLOAK_HOSTNAME }}
           KEYCLOAK_REALM=globusdei
-          KEYCLOAK_CLIENT_ID=globusdei-app
+          KEYCLOAK_CLIENT_ID=globusdei-web
           KEYCLOAK_CLIENT_SECRET=${{ secrets.KEYCLOAK_CLIENT_SECRET }}
           KEYCLOAK_URL=http://keycloak:8080
           KEYCLOAK_ISSUER=http://keycloak:8080/realms/globusdei
