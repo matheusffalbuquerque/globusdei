@@ -28,6 +28,9 @@ COPY --from=builder /app/package-lock.json ./package-lock.json
 # Instala apenas dependências de produção
 RUN npm ci --omit=dev --ignore-scripts
 
+# tslib é devDependency mas referenciado externalmente — copia do builder
+COPY --from=builder /app/node_modules/tslib ./node_modules/tslib
+
 # Copia o bundle gerado pelo Webpack
 COPY --from=builder /app/dist/apps/report-service/main.js ./main.js
 

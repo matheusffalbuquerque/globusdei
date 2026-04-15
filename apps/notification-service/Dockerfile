@@ -32,6 +32,9 @@ COPY --from=builder /app/package-lock.json ./package-lock.json
 # Instala apenas dependências de produção
 RUN npm ci --omit=dev --ignore-scripts
 
+# Copia o Prisma Client gerado no builder (evita re-gerar sem schema)
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+
 # Copia o bundle gerado pelo Webpack
 COPY --from=builder /app/dist/apps/notification-service/main.js ./main.js
 
