@@ -120,6 +120,8 @@ export const authOptions: NextAuthOptions = {
       clientSecret: KEYCLOAK_CLIENT_SECRET,
       issuer: process.env.KEYCLOAK_ISSUER || `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}`,
       authorization: { params: { scope: "openid email profile offline_access" } },
+      checks: ["state"],
+      idToken: false,
     }),
   ],
 
