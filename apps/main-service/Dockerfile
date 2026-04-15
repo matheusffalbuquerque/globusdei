@@ -26,7 +26,17 @@ ENV NODE_ENV=production
 ENV PORT=3001
 ENV HOST=0.0.0.0
 
-# Copia apenas o bundle gerado pelo Webpack
+# Copia o package.json gerado pelo Nx (lista deps externas não bundladas)
+COPY --from=builder /app/dist/apps/main-service/package.json ./package.json
+# Copia o package-lock.json raiz para resolver versões precisas
+COPY --from=builder /app/package-lock.json ./package-lock.json
+# Instala apenas dependências de produção
+RUN npm ci --omit=dev --ignore-scripts
+
+# Copia o Prisma Client gerado
+COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
+
+# Copia o bundle gerado pelo Webpack
 COPY --from=builder /app/dist/apps/main-service/main.js ./main.js
 
 EXPOSE 3001
