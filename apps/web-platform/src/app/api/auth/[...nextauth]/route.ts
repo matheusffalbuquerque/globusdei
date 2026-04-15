@@ -127,6 +127,10 @@ export const authOptions: NextAuthOptions = {
 
   secret: process.env.NEXTAUTH_SECRET || "globusdei-nextauth-secret-dev",
 
+  // Necessário quando rodando atrás de proxy reverso (nginx) — permite
+  // que o NextAuth confie no header X-Forwarded-Proto para cookies Secure.
+  trustHost: true,
+
   // Sessão baseada em JWT (padrão para Credentials + Keycloak).
   session: { strategy: "jwt" },
 
