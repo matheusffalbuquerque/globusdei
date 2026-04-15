@@ -2,7 +2,7 @@
 
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
@@ -20,7 +20,8 @@ const GoogleIcon = () => (
   </svg>
 );
 
-export default function LoginPage() {
+// Componente interno que usa useSearchParams — deve estar dentro de <Suspense>
+function LoginForm() {
   const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -50,6 +51,79 @@ export default function LoginPage() {
   };
 
   return (
+    <Card>
+      <CardHeader className="pb-4">
+        <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          Acesso à plataforma
+        </p>
+      </CardHeader>
+      <CardContent className="space-y-5">
+        {status === 'error' && (
+          <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
+            {errorMsg}
+          </div>
+        )}
+
+        <form onSubmit={handleLogin} className="space-y-4">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground">E-mail</label>
+            <Input
+              type="email"
+              required
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              placeholder="seu@email.com"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium text-foreground">Senha</label>
+            <Input
+              type="password"
+              required
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="••••••••"
+            />
+          </div>
+
+          <Button type="submit" disabled={status === 'loading'} className="w-full">
+            {status === 'loading' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+            {status === 'loading' ? 'Entrando…' : 'Entrar'}
+          </Button>
+        </form>
+
+        <div className="flex items-center gap-3">
+          <Separator className="flex-1" />
+          <span className="text-xs text-muted-foreground">ou continue com</span>
+          <Separator className="flex-1" />
+        </div>
+
+        <Button
+          type="button"
+          variant="outline"
+          className="w-full"
+          onClick={() =>
+            signIn('keycloak', { callbackUrl }, { kc_idp_hint: 'google' })
+          }
+        >
+          <GoogleIcon />
+          Continuar com Google
+        </Button>
+
+        <p className="text-center text-sm text-muted-foreground">
+          Não tem uma conta?{' '}
+          <Link href="/register" className="font-semibold text-primary hover:underline">
+            Crie uma agora
+          </Link>
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+export default function LoginPage() {
+  return (
     <div className="flex min-h-[calc(100vh-130px)] items-center justify-center bg-muted/30 px-4 py-12">
       <div className="w-full max-w-sm">
         {/* Logo */}
@@ -61,74 +135,10 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <Card>
-          <CardHeader className="pb-4">
-            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              Acesso à plataforma
-            </p>
-          </CardHeader>
-          <CardContent className="space-y-5">
-            {status === 'error' && (
-              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
-                {errorMsg}
-              </div>
-            )}
-
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">E-mail</label>
-                <Input
-                  type="email"
-                  required
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="seu@email.com"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">Senha</label>
-                <Input
-                  type="password"
-                  required
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                />
-              </div>
-
-              <Button type="submit" disabled={status === 'loading'} className="w-full">
-                {status === 'loading' && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                {status === 'loading' ? 'Entrando…' : 'Entrar'}
-              </Button>
-            </form>
-
-            <div className="flex items-center gap-3">
-              <Separator className="flex-1" />
-              <span className="text-xs text-muted-foreground">ou continue com</span>
-              <Separator className="flex-1" />
-            </div>
-
-            <Button
-              type="button"
-              variant="outline"
-              className="w-full"
-              onClick={() =>
-                signIn('keycloak', { callbackUrl }, { kc_idp_hint: 'google' })
-              }
-            >
-              <GoogleIcon />
-              Continuar com Google
-            </Button>
-
-            <p className="text-center text-sm text-muted-foreground">
-              Não tem uma conta?{' '}
-              <Link href="/register" className="font-semibold text-primary hover:underline">
-                Crie uma agora
-              </Link>
-            </p>
-          </CardContent>
-        </Card>
+        {/* useSearchParams precisa estar dentro de Suspense no Next.js 13+ */}
+        <Suspense fallback={<div className="h-96 animate-pulse rounded-xl bg-muted" />}>
+          <LoginForm />
+        </Suspense>
       </div>
     </div>
   );
