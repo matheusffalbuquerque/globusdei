@@ -41,7 +41,11 @@ async function refreshAccessToken(token: Record<string, unknown>) {
       body: params,
     });
 
-    if (!res.ok) throw new Error(`Keycloak refresh failed: ${res.status}`);
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      console.error(`[NextAuth] Refresh falhou: HTTP ${res.status} — ${body}`);
+      throw new Error(`Keycloak refresh failed: ${res.status}`);
+    }
 
     const tokens = await res.json();
     const payload = decodePayload(tokens.access_token);
