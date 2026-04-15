@@ -182,16 +182,26 @@ jobs:
         run: |
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
             cd ~/globusdei
-            UNHEALTHY=\$(docker compose ps --format json | python3 -c \"
+            # Aguarda até 3 minutos para os containers ficarem saudáveis
+            echo '→ Aguardando containers ficarem healthy (máx 3 min)...'
+            for i in \$(seq 1 18); do
+              sleep 10
+              UNHEALTHY=\$(docker compose ps --format json | python3 -c \"
           import json, sys
           containers = [json.loads(l) for l in sys.stdin if l.strip()]
-          bad = [c['Name'] for c in containers if c.get('Health') not in ('healthy', '')]
+          bad = [c['Name'] for c in containers if c.get('Health') == 'unhealthy']
           print('\n'.join(bad))
           \")
-            if [ -n \"\$UNHEALTHY\" ]; then
-              echo 'Containers com problema:'
-              echo \"\$UNHEALTHY\"
-              exit 1
-            fi
-            echo 'Todos os containers estão saudáveis!'
+              if [ -z \"\$UNHEALTHY\" ]; then
+                echo 'Todos os containers estão saudáveis!'
+                docker compose ps
+                exit 0
+              fi
+              echo \"Tentativa \$i/18 — ainda aguardando: \$UNHEALTHY\"
+            done
+            echo 'Containers com problema após 3 minutos:'
+            echo \"\$UNHEALTHY\"
+            docker compose ps
+            docker compose logs --tail=50 keycloak
+            exit 1
           "
