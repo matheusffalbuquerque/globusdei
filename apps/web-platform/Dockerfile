@@ -28,11 +28,11 @@ ENV NEXT_PUBLIC_MAIN_SERVICE_URL=$NEXT_PUBLIC_MAIN_SERVICE_URL
 ENV NEXT_PUBLIC_FINANCE_SERVICE_URL=$NEXT_PUBLIC_FINANCE_SERVICE_URL
 ENV NEXT_PUBLIC_NOTIFICATION_SERVICE_URL=$NEXT_PUBLIC_NOTIFICATION_SERVICE_URL
 
-# Chama o next build diretamente, sem passar pelo Nx
-# (evita erro "Could not create project graph" no ambiente Docker)
-WORKDIR /app
+# NX_DAEMON=false: evita que withNx tente iniciar o daemon durante o next build
+# NX_SKIP_NX_CACHE=true: desabilita cache distribuído que requer workspace-data
+ENV NX_DAEMON=false
+ENV NX_SKIP_NX_CACHE=true
 
-# Chama o nx build normalmente
 RUN npx nx build web-platform --configuration=production --skip-nx-cache
 
 # ─── Stage 2: Runner ──────────────────────────────────────────────────────────
