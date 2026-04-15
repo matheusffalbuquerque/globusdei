@@ -8,6 +8,21 @@ const KEYCLOAK_CLIENT_ID = process.env.KEYCLOAK_CLIENT_ID || "globusdei-web";
 const KEYCLOAK_CLIENT_SECRET = process.env.KEYCLOAK_CLIENT_SECRET || "mock-secret-for-dev";
 const TOKEN_URL = `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token`;
 
+// Headers injetados nas chamadas backchannel (NextAuth → http://keycloak:8080).
+// KC_HOSTNAME_BACKCHANNEL_DYNAMIC=true faz o KC usar esses headers para montar
+// o issuer nos tokens, garantindo iss=https://auth.globusdei.org/realms/...
+// e evitando issuer mismatch com KEYCLOAK_ISSUER no refresh_token.
+const KC_PUBLIC_HOST = (process.env.KEYCLOAK_ISSUER || "")
+  .replace(/\/realms\/.*$/, "")   // "https://auth.globusdei.org"
+  .replace(/^https?:\/\//, "");   // "auth.globusdei.org"
+
+const BACKCHANNEL_HEADERS: Record<string, string> = {
+  "Content-Type": "application/x-www-form-urlencoded",
+  "X-Forwarded-Proto": "https",
+  "X-Forwarded-Host": KC_PUBLIC_HOST,
+  "X-Forwarded-Port": "443",
+};
+
 // Margem de segurança: renova o token 60 s antes de expirar.
 const REFRESH_MARGIN_SECONDS = 60;
 
@@ -37,7 +52,7 @@ async function refreshAccessToken(token: Record<string, unknown>) {
 
     const res = await fetch(TOKEN_URL, {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      headers: BACKCHANNEL_HEADERS,
       body: params,
     });
 
@@ -93,7 +108,7 @@ export const authOptions: NextAuthOptions = {
 
           const res = await fetch(TOKEN_URL, {
             method: "POST",
-            headers: { "Content-Type": "application/x-www-form-urlencoded" },
+            headers: BACKCHANNEL_HEADERS,
             body: params,
           });
 

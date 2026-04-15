@@ -94,12 +94,15 @@ services:
       KC_DB_PASSWORD: ${POSTGRES_PASSWORD}
       KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
       KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
-      # KC 26 Hostname v2: KC_HOSTNAME define o FQDN público sem porta.
-      # KC_HOSTNAME_STRICT=true força KC a usar sempre HTTPS + hostname correto
-      # nos tokens e no OIDC discovery, sem vazar porta interna (8080).
-      KC_HOSTNAME: ${KEYCLOAK_HOSTNAME}
+      # KC 26 Hostname v2:
+      # KC_HOSTNAME como URL completa (https://...) é necessário quando
+      # KC_HOSTNAME_BACKCHANNEL_DYNAMIC=true. Isso força o KC a emitir
+      # iss=https://auth.globusdei.org em TODOS os tokens — tanto via
+      # proxy HTTPS quanto via backchannel interno (http://keycloak:8080),
+      # eliminando o issuer mismatch com KEYCLOAK_ISSUER no NextAuth.
+      KC_HOSTNAME: https://${KEYCLOAK_HOSTNAME}
       KC_HOSTNAME_STRICT: "true"
-      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "false"
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: "true"
       KC_PROXY_HEADERS: xforwarded
       KC_HTTP_ENABLED: "true"
       KC_HEALTH_ENABLED: "true"
