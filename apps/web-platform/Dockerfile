@@ -15,7 +15,17 @@ RUN npx prisma generate
 
 # Copia todo o monorepo e executa o build do Next.js via Nx
 COPY . .
-RUN npx nx build web-platform --configuration=production
+
+# Variáveis NEXT_PUBLIC_* são incorporadas em build-time pelo Next.js
+# Devem ser passadas via --build-arg no docker build
+ARG NEXT_PUBLIC_MAIN_SERVICE_URL
+ARG NEXT_PUBLIC_FINANCE_SERVICE_URL
+ARG NEXT_PUBLIC_NOTIFICATION_SERVICE_URL
+ENV NEXT_PUBLIC_MAIN_SERVICE_URL=$NEXT_PUBLIC_MAIN_SERVICE_URL
+ENV NEXT_PUBLIC_FINANCE_SERVICE_URL=$NEXT_PUBLIC_FINANCE_SERVICE_URL
+ENV NEXT_PUBLIC_NOTIFICATION_SERVICE_URL=$NEXT_PUBLIC_NOTIFICATION_SERVICE_URL
+
+RUN npx nx build web-platform --configuration=production --skip-nx-cache
 
 # ─── Stage 2: Runner ──────────────────────────────────────────────────────────
 FROM node:22-alpine AS runner

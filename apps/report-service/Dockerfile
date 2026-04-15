@@ -8,8 +8,9 @@ COPY package.json package-lock.json ./
 RUN npm ci --ignore-scripts
 
 COPY . .
-RUN npx nx build report-service --configuration=production
-RUN npx nx run report-service:prune
+RUN npx nx build report-service --configuration=production --skip-nx-cache
+RUN npx nx run report-service:prune-lockfile --skip-nx-cache
+RUN npx nx run report-service:copy-workspace-modules --skip-nx-cache
 
 # ─── Stage 2: Runner ──────────────────────────────────────────────────────────
 FROM node:22-alpine AS runner

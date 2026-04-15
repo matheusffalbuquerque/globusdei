@@ -26,20 +26,27 @@ jobs:
       packages: write
 
     strategy:
+      fail-fast: false   # não cancela os outros serviços se um falhar
       matrix:
         service:
           - name: web-platform
             dockerfile: apps/web-platform/Dockerfile
+            build_args: true
           - name: main-service
             dockerfile: apps/main-service/Dockerfile
+            build_args: false
           - name: finance-service
             dockerfile: apps/finance-service/Dockerfile
+            build_args: false
           - name: notification-service
             dockerfile: apps/notification-service/Dockerfile
+            build_args: false
           - name: data-service
             dockerfile: apps/data-service/Dockerfile
+            build_args: false
           - name: report-service
             dockerfile: apps/report-service/Dockerfile
+            build_args: false
 
     steps:
       - name: Checkout do repositório
@@ -74,6 +81,11 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.service.name }}
           cache-to: type=gha,mode=max,scope=${{ matrix.service.name }}
+          # NEXT_PUBLIC_* são incorporadas em build-time no Next.js
+          build-args: |
+            ${{ matrix.service.build_args == true && format('NEXT_PUBLIC_MAIN_SERVICE_URL={0}', secrets.NEXT_PUBLIC_MAIN_SERVICE_URL) || '' }}
+            ${{ matrix.service.build_args == true && format('NEXT_PUBLIC_FINANCE_SERVICE_URL={0}', secrets.NEXT_PUBLIC_FINANCE_SERVICE_URL) || '' }}
+            ${{ matrix.service.build_args == true && format('NEXT_PUBLIC_NOTIFICATION_SERVICE_URL={0}', secrets.NEXT_PUBLIC_NOTIFICATION_SERVICE_URL) || '' }}
 
   # ────────────────────────────────────────────────────────────────────────────
   # Job 2: Deploy no servidor via SSH

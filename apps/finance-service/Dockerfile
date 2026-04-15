@@ -11,8 +11,9 @@ COPY prisma ./prisma
 RUN npx prisma generate
 
 COPY . .
-RUN npx nx build finance-service --configuration=production
-RUN npx nx run finance-service:prune
+RUN npx nx build finance-service --configuration=production --skip-nx-cache
+RUN npx nx run finance-service:prune-lockfile --skip-nx-cache
+RUN npx nx run finance-service:copy-workspace-modules --skip-nx-cache
 
 # ─── Stage 2: Runner ──────────────────────────────────────────────────────────
 FROM node:22-alpine AS runner

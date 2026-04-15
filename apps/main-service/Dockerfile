@@ -12,9 +12,10 @@ COPY prisma ./prisma
 RUN npx prisma generate
 
 COPY . .
-RUN npx nx build main-service --configuration=production
-# Prune do lockfile para instalar só dependências de produção
-RUN npx nx run main-service:prune
+RUN npx nx build main-service --configuration=production --skip-nx-cache
+# Gera package.json e lockfile prunados para instalar só prod deps
+RUN npx nx run main-service:prune-lockfile --skip-nx-cache
+RUN npx nx run main-service:copy-workspace-modules --skip-nx-cache
 
 # ─── Stage 2: Runner ──────────────────────────────────────────────────────────
 FROM node:22-alpine AS runner

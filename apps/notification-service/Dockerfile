@@ -11,8 +11,9 @@ COPY prisma ./prisma
 RUN npx prisma generate
 
 COPY . .
-RUN npx nx build notification-service --configuration=production
-RUN npx nx run notification-service:prune
+RUN npx nx build notification-service --configuration=production --skip-nx-cache
+RUN npx nx run notification-service:prune-lockfile --skip-nx-cache
+RUN npx nx run notification-service:copy-workspace-modules --skip-nx-cache
 
 # ─── Stage 2: Runner ──────────────────────────────────────────────────────────
 FROM node:22-alpine AS runner
