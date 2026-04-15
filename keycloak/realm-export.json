@@ -691,6 +691,8 @@
       "id": "19894d33-c790-4aea-9a85-a57750306b42",
       "clientId": "globusdei-web",
       "name": "Globusdei Web Platform",
+      "rootUrl": "https://globusdei.org",
+      "baseUrl": "https://globusdei.org",
       "surrogateAuthRequired": false,
       "enabled": true,
       "alwaysDisplayInConsole": false,
@@ -698,10 +700,13 @@
       "secret": "**********",
       "redirectUris": [
         "http://localhost:3000/*",
-        "http://localhost:3001/*"
+        "https://www.globusdei.org/*",
+        "http://localhost:3001/*",
+        "https://globusdei.org/*"
       ],
       "webOrigins": [
-        "+",
+        "https://www.globusdei.org",
+        "https://globusdei.org",
         "http://localhost:3001",
         "http://localhost:3000"
       ],
