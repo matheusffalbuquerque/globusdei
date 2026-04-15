@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Fragment, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import {
   CheckCircle2,
@@ -205,8 +205,8 @@ export default function CollaboratorPrayerRequestsPage() {
                 </TableHeader>
                 <TableBody>
                   {paginated.map((item) => (
-                    <>
-                      <TableRow key={item.id}>
+                    <Fragment key={item.id}>
+                      <TableRow>
                         <TableCell>
                           <p className="font-medium text-foreground">{item.agent.name}</p>
                           {(item.agent.city || item.agent.country) && (
@@ -304,7 +304,7 @@ export default function CollaboratorPrayerRequestsPage() {
                           </TableCell>
                         </TableRow>
                       )}
-                    </>
+                    </Fragment>
                   ))}
                 </TableBody>
               </Table>
