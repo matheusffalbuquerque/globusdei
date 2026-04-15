@@ -157,6 +157,7 @@ jobs:
           GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET=${{ secrets.GOOGLE_CLIENT_SECRET }}
           NEXTAUTH_URL=${{ secrets.NEXTAUTH_URL }}
+          NEXTAUTH_URL_INTERNAL=http://localhost:3000
           NEXTAUTH_SECRET=${{ secrets.NEXTAUTH_SECRET }}
           ENCRYPTION_KEY=${{ secrets.ENCRYPTION_KEY }}
           INTERNAL_SERVICE_TOKEN=${{ secrets.INTERNAL_SERVICE_TOKEN }}
