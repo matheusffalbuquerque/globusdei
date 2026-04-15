@@ -184,6 +184,18 @@ jobs:
             docker compose up -d --remove-orphans
           "
 
+      - name: Aplicar migrations Prisma
+        run: |
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
+            cd /var/www/globusdei
+            docker exec globusdei-main-service mkdir -p /app/prisma
+            docker cp prisma/schema.prisma globusdei-main-service:/app/prisma/schema.prisma
+            docker cp prisma/migrations globusdei-main-service:/app/prisma/
+            docker exec globusdei-main-service sh -c \"DATABASE_URL='$DATABASE_URL' /app/node_modules/.bin/prisma migrate deploy --schema=/app/prisma/schema.prisma\"
+          "
+        env:
+          DATABASE_URL: postgresql://globusdei:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/globusdei_db?schema=app
+
       - name: Aguardar containers ficarem healthy
         run: |
           for i in $(seq 1 24); do
