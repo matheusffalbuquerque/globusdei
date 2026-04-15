@@ -7,6 +7,16 @@ export enum AuditType {
   AUDIT = 'AUDIT',
 }
 
+export interface AuditLogOptions {
+  actorId: string;
+  actorName?: string;
+  actorEmail?: string;
+  actionType: AuditType;
+  actionDetail: string;
+  entity?: string;
+  ipAddress?: string;
+}
+
 /**
  * Service responsible for recording critical operations directly mapped to the
  * LGPD constraints required by the Reviewer Skill/Documentation rule.
@@ -20,27 +30,39 @@ export class AuditService {
 
   /**
    * Records an audit log enforcing LGPD accountability.
-   * 
+   *
    * @param actorId UUID of the user/system conducting the action
    * @param actionType The category of the log for dashboard filtration
    * @param actionDetail Highly descriptive string of what occurred
    * @param ipAddress IP boundary string, optional
    */
-  async logAction(actorId: string, actionType: AuditType, actionDetail: string, ipAddress?: string): Promise<void> {
+  async logAction(actorId: string, actionType: AuditType, actionDetail: string, ipAddress?: string): Promise<void>;
+  async logAction(options: AuditLogOptions): Promise<void>;
+  async logAction(
+    actorIdOrOptions: string | AuditLogOptions,
+    actionType?: AuditType,
+    actionDetail?: string,
+    ipAddress?: string,
+  ): Promise<void> {
+    const opts: AuditLogOptions =
+      typeof actorIdOrOptions === 'string'
+        ? { actorId: actorIdOrOptions, actionType: actionType!, actionDetail: actionDetail!, ipAddress }
+        : actorIdOrOptions;
+
     try {
       await this.prisma.auditLog.create({
         data: {
-          actorId,
-          actionType,
-          actionDetail,
-          ipAddress,
+          actorId: opts.actorId,
+          actorName: opts.actorName,
+          actorEmail: opts.actorEmail,
+          actionType: opts.actionType,
+          actionDetail: opts.actionDetail,
+          entity: opts.entity,
+          ipAddress: opts.ipAddress,
         },
       });
-      // Simultaneous fast-log output to stdout for external collectors like Kibana
-      this.logger.log(`[${actionType}] Actor: ${actorId} - ${actionDetail} - IP: ${ipAddress || 'unknown'}`);
+      this.logger.log(`[${opts.actionType}] Actor: ${opts.actorId} - ${opts.actionDetail} - IP: ${opts.ipAddress || 'unknown'}`);
     } catch (error) {
-      // Intentionally swallowing database save faults during auditing to not break user runtime,
-      // but escalating to fatal system output.
       this.logger.error(`Critical LGPD audit drop failure:`, error);
     }
   }

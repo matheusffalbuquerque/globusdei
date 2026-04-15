@@ -437,10 +437,18 @@ model EventRsvp {
 model AuditLog {
   id           String   @id @default(uuid())
   actorId      String
+  actorName    String?
+  actorEmail   String?
+  entity       String?
   actionType   String
   actionDetail String
   ipAddress    String?
   createdAt    DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([actorId])
+  @@index([actionType])
+  @@index([entity])
 }
 
 model Question {

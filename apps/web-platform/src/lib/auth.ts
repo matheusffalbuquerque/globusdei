@@ -30,6 +30,7 @@ export type CollaboratorPermissions = {
   canManageContent: boolean;
   canManageFinance: boolean;
   canViewFinance: boolean;
+  isAdmin: boolean;
 };
 
 export function getRealmRoles(session?: AppSession | null): string[] {
@@ -75,6 +76,7 @@ export function getCollaboratorPermissions(
     canManageContent: roles.includes('ADMIN') || roles.includes('PROJECT_MANAGER'),
     canManageFinance: roles.includes('ADMIN') || roles.includes('RESOURCE_MANAGER'),
     canViewFinance: true,
+    isAdmin: roles.includes('ADMIN'),
   };
 }
 

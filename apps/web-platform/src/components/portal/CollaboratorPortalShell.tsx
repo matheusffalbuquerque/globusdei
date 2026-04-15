@@ -25,6 +25,7 @@ import {
   ChevronRight,
   Loader2,
   TrendingUp,
+  ScrollText,
 } from 'lucide-react';
 
 import { apiFetch } from '../../lib/api';
@@ -181,6 +182,12 @@ export function CollaboratorPortalShell({ children }: { children: ReactNode }) {
       label: 'Onboarding',
       icon: ClipboardList,
       visible: permissions.canManageOnboarding,
+    },
+    {
+      href: '/colaborador/logs',
+      label: 'Logs da Plataforma',
+      icon: ScrollText,
+      visible: permissions.isAdmin,
     },
   ];
 

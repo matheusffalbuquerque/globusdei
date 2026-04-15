@@ -42,11 +42,14 @@ export class CollaboratorService {
 
   async getDashboard(user: AuthenticatedUser) {
     const collaborator = await this.getMe(user);
-    await this.audit.logAction(
-      collaborator.id,
-      AuditType.AUDIT,
-      'Visualização do dashboard do colaborador.',
-    );
+    await this.audit.logAction({
+      actorId: collaborator.id,
+      actorName: collaborator.name,
+      actorEmail: collaborator.email,
+      actionType: AuditType.AUDIT,
+      actionDetail: 'Visualização do dashboard do colaborador.',
+      entity: 'Collaborator',
+    });
 
     return this.collaborators.getDashboard(collaborator.id);
   }
@@ -66,11 +69,14 @@ export class CollaboratorService {
     }
 
     const updated = await this.collaborators.updateRoles(collaboratorId, roles);
-    await this.audit.logAction(
-      actorCollaborator.id,
-      AuditType.SECURITY,
-      `Atualização de papéis do colaborador ${collaboratorId}.`,
-    );
+    await this.audit.logAction({
+      actorId: actorCollaborator.id,
+      actorName: actorCollaborator.name,
+      actorEmail: actorCollaborator.email,
+      actionType: AuditType.SECURITY,
+      actionDetail: `Atualização de papéis do colaborador ${collaboratorId}.`,
+      entity: 'Collaborator',
+    });
 
     return updated;
   }
