@@ -150,8 +150,8 @@ jobs:
           KEYCLOAK_CLIENT_ID=globusdei-web
           KEYCLOAK_CLIENT_SECRET=${{ secrets.KEYCLOAK_CLIENT_SECRET }}
           KEYCLOAK_URL=http://keycloak:8080
-          KEYCLOAK_ISSUER=http://keycloak:8080/realms/globusdei
-          KEYCLOAK_JWKS_URI=http://keycloak:8080/realms/globusdei/protocol/openid-connect/certs
+          KEYCLOAK_ISSUER=https://auth.globusdei.org/realms/globusdei
+          KEYCLOAK_JWKS_URI=https://auth.globusdei.org/realms/globusdei/protocol/openid-connect/certs
           KEYCLOAK_ADMIN_CLIENT_ID=admin-cli
           KEYCLOAK_ADMIN_USERNAME=admin
           GOOGLE_CLIENT_ID=${{ secrets.GOOGLE_CLIENT_ID }}
