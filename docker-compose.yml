@@ -99,6 +99,9 @@ services:
       KC_PROXY_HEADERS: xforwarded
       KC_HTTP_ENABLED: "true"
       KC_HEALTH_ENABLED: "true"
+      # Remove o sufixo de rota do nó do AUTH_SESSION_ID (evita cookie_not_found
+      # quando a sessão não é encontrada pelo node routing)
+      KC_SPI_STICKY_SESSION_ENCODER_INFINISPAN_SHOULD_ATTACH_ROUTE: "false"
     ports:
       - "8085:8080"
     depends_on:
