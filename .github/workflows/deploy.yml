@@ -104,11 +104,14 @@ jobs:
 
       - name: Adicionar servidor aos hosts conhecidos
         run: |
-          ssh-keyscan -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
+          PORT="${{ secrets.SSH_PORT || '22' }}"
+          ssh-keyscan -p "$PORT" -H ${{ secrets.SSH_HOST }} >> ~/.ssh/known_hosts
 
       - name: Clonar ou atualizar repositório no servidor
+        env:
+          SSH_OPTS: "-p ${{ secrets.SSH_PORT || '22' }} -o StrictHostKeyChecking=no -o ConnectTimeout=30"
         run: |
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
+          ssh $SSH_OPTS ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
             if [ -d ~/globusdei/.git ]; then
               echo '→ Repositório já existe, atualizando...'
               cd ~/globusdei
@@ -121,8 +124,10 @@ jobs:
           "
 
       - name: Criar .env no servidor
+        env:
+          SSH_OPTS: "-p ${{ secrets.SSH_PORT || '22' }} -o StrictHostKeyChecking=no -o ConnectTimeout=30"
         run: |
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} bash -s << 'SSHSCRIPT'
+          ssh $SSH_OPTS ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} bash -s << 'SSHSCRIPT'
           cat > ~/globusdei/.env << ENVEOF
           POSTGRES_USER=globusdei
           POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
@@ -162,26 +167,32 @@ jobs:
           SSHSCRIPT
 
       - name: Pull das imagens
+        env:
+          SSH_OPTS: "-p ${{ secrets.SSH_PORT || '22' }} -o StrictHostKeyChecking=no -o ConnectTimeout=30"
         run: |
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
+          ssh $SSH_OPTS ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
             cd ~/globusdei
             echo '${{ secrets.GITHUB_TOKEN }}' | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             docker compose pull
           "
 
       - name: Subir containers
+        env:
+          SSH_OPTS: "-p ${{ secrets.SSH_PORT || '22' }} -o StrictHostKeyChecking=no -o ConnectTimeout=30"
         run: |
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
+          ssh $SSH_OPTS ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
             cd ~/globusdei
             docker compose up -d --remove-orphans --no-wait
           "
 
-      - name: Aguardar Keycloak ficar healthy
+      - name: Aguardar containers ficarem healthy
+        env:
+          SSH_OPTS: "-p ${{ secrets.SSH_PORT || '22' }} -o StrictHostKeyChecking=no -o ConnectTimeout=30"
         run: |
           for i in $(seq 1 24); do
             sleep 15
             echo "→ Tentativa $i/24 — verificando saúde dos containers..."
-            STATUS=$(ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
+            STATUS=$(ssh $SSH_OPTS ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
               cd ~/globusdei
               docker compose ps --format json 2>/dev/null | python3 -c \"
           import json, sys
@@ -197,16 +208,16 @@ jobs:
             STARTING=$(echo "$STATUS" | grep '^STARTING:'  | cut -d: -f2)
             if [ -n "$UNHEALTHY" ]; then
               echo "Containers unhealthy: $UNHEALTHY"
-              ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/globusdei && docker compose logs --tail=50 keycloak"
+              ssh $SSH_OPTS ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/globusdei && docker compose logs --tail=50 keycloak"
               exit 1
             fi
             if [ -z "$STARTING" ]; then
               echo "Todos os containers estão saudáveis!"
-              ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/globusdei && docker compose ps"
+              ssh $SSH_OPTS ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/globusdei && docker compose ps"
               exit 0
             fi
             echo "   Ainda iniciando: $STARTING"
           done
           echo "Timeout: containers não ficaram healthy em 6 minutos"
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/globusdei && docker compose ps && docker compose logs --tail=50 keycloak"
+          ssh $SSH_OPTS ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/globusdei && docker compose ps && docker compose logs --tail=50 keycloak"
           exit 1
