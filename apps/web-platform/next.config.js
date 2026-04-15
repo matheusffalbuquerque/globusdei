@@ -14,9 +14,13 @@ const nextConfig = {
   nx: {},
 };
 
-const plugins = [
-  // Add more Next.js plugins to this list if needed.
-  withNx,
-];
-
-module.exports = composePlugins(...plugins)(nextConfig);
+// Em ambiente Docker/CI o withNx tenta criar o project graph e falha
+// quando o workspace-data não está disponível. Nesses casos exportamos
+// a config diretamente sem o plugin Nx.
+if (process.env.DOCKER_BUILD === 'true') {
+  const { nx: _nx, ...nextConfigWithoutNx } = nextConfig;
+  module.exports = nextConfigWithoutNx;
+} else {
+  const plugins = [withNx];
+  module.exports = composePlugins(...plugins)(nextConfig);
+}

@@ -30,8 +30,10 @@ ENV NEXT_PUBLIC_NOTIFICATION_SERVICE_URL=$NEXT_PUBLIC_NOTIFICATION_SERVICE_URL
 
 # NX_DAEMON=false: evita que withNx tente iniciar o daemon durante o next build
 # NX_SKIP_NX_CACHE=true: desabilita cache distribuído que requer workspace-data
+# DOCKER_BUILD=true: instrui o next.config.js a pular o withNx (evita project graph error)
 ENV NX_DAEMON=false
 ENV NX_SKIP_NX_CACHE=true
+ENV DOCKER_BUILD=true
 
 RUN npx nx build web-platform --configuration=production --skip-nx-cache
 
