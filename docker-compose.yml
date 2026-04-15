@@ -139,6 +139,7 @@ services:
     build:
       context: .
       dockerfile: apps/main-service/Dockerfile
+    image: ghcr.io/matheusffalbuquerque/globusdei/main-service:latest
     container_name: globusdei-main-service
     restart: unless-stopped
     environment:
@@ -165,6 +166,7 @@ services:
     build:
       context: .
       dockerfile: apps/finance-service/Dockerfile
+    image: ghcr.io/matheusffalbuquerque/globusdei/finance-service:latest
     container_name: globusdei-finance-service
     restart: unless-stopped
     environment:
@@ -192,6 +194,7 @@ services:
     build:
       context: .
       dockerfile: apps/notification-service/Dockerfile
+    image: ghcr.io/matheusffalbuquerque/globusdei/notification-service:latest
     container_name: globusdei-notification-service
     restart: unless-stopped
     environment:
@@ -221,6 +224,7 @@ services:
     build:
       context: .
       dockerfile: apps/data-service/Dockerfile
+    image: ghcr.io/matheusffalbuquerque/globusdei/data-service:latest
     container_name: globusdei-data-service
     restart: unless-stopped
     environment:
@@ -240,6 +244,7 @@ services:
     build:
       context: .
       dockerfile: apps/report-service/Dockerfile
+    image: ghcr.io/matheusffalbuquerque/globusdei/report-service:latest
     container_name: globusdei-report-service
     restart: unless-stopped
     environment:
@@ -261,6 +266,7 @@ services:
     build:
       context: .
       dockerfile: apps/web-platform/Dockerfile
+    image: ghcr.io/matheusffalbuquerque/globusdei/web-platform:latest
     container_name: globusdei-web-platform
     restart: unless-stopped
     environment:
