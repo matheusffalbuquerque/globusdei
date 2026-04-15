@@ -121,7 +121,8 @@ export const authOptions: NextAuthOptions = {
       issuer: process.env.KEYCLOAK_ISSUER || `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}`,
       authorization: { params: { scope: "openid email profile offline_access" } },
       checks: ["state"],
-      idToken: false,
+      // idToken: true (padrão) — Keycloak 26 retorna id_token no token endpoint.
+      // Com idToken: false, NextAuth usava oauthCallback() que rejeita id_token.
     }),
   ],
 
@@ -160,6 +161,37 @@ export const authOptions: NextAuthOptions = {
         sameSite: "lax",
         path: "/",
         secure: false,
+      },
+    },
+    // state cookie: gerado no início do OAuth e verificado no callback.
+    // Deve ter SameSite=None + Secure para sobreviver ao redirect cross-origin
+    // do Google → Keycloak → app (cross-site). Sem isso: "State cookie was missing".
+    state: {
+      name: `next-auth.state`,
+      options: {
+        httpOnly: true,
+        sameSite: "none",
+        path: "/",
+        secure: true,
+      },
+    },
+    // pkceCodeVerifier: mesmo motivo — é enviado antes do redirect e lido no callback.
+    pkceCodeVerifier: {
+      name: `next-auth.pkce.code_verifier`,
+      options: {
+        httpOnly: true,
+        sameSite: "none",
+        path: "/",
+        secure: true,
+      },
+    },
+    nonce: {
+      name: `next-auth.nonce`,
+      options: {
+        httpOnly: true,
+        sameSite: "none",
+        path: "/",
+        secure: true,
       },
     },
   },
