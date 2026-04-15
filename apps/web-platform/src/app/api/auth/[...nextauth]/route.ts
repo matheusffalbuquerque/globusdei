@@ -127,9 +127,42 @@ export const authOptions: NextAuthOptions = {
 
   secret: process.env.NEXTAUTH_SECRET || "globusdei-nextauth-secret-dev",
 
-  // Necessário quando rodando atrás de proxy reverso (nginx) — permite
-  // que o NextAuth confie no header X-Forwarded-Proto para cookies Secure.
-  trustHost: true,
+  // Quando atrás de proxy reverso HTTPS (nginx → container HTTP),
+  // o NextAuth v4 define useSecureCookies=true pelo NEXTAUTH_URL https://.
+  // Isso faz o Set-Cookie incluir Secure, que o browser só aceita em HTTPS —
+  // correto. Mas o Next.js internamente tenta ler/gravar esses cookies via
+  // http://localhost:3000 (NEXTAUTH_URL_INTERNAL), o que falha.
+  // Solução: cookies sem prefixo __Secure- e sem flag secure na configuração
+  // interna, deixando o nginx/browser gerenciar o Secure corretamente.
+  cookies: {
+    sessionToken: {
+      name: `next-auth.session-token`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: false,
+      },
+    },
+    callbackUrl: {
+      name: `next-auth.callback-url`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: false,
+      },
+    },
+    csrfToken: {
+      name: `next-auth.csrf-token`,
+      options: {
+        httpOnly: true,
+        sameSite: "lax",
+        path: "/",
+        secure: false,
+      },
+    },
+  },
 
   // Sessão baseada em JWT (padrão para Credentials + Keycloak).
   session: { strategy: "jwt" },
