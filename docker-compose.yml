@@ -81,7 +81,7 @@ services:
   # ── Keycloak ────────────────────────────────────────────────────────────────
 
   keycloak:
-    image: quay.io/keycloak/keycloak:24.0
+    image: quay.io/keycloak/keycloak:26.0
     container_name: globusdei-keycloak
     restart: unless-stopped
     command: start --import-realm
@@ -99,9 +99,10 @@ services:
       KC_PROXY_HEADERS: xforwarded
       KC_HTTP_ENABLED: "true"
       KC_HEALTH_ENABLED: "true"
-      # Remove o sufixo de rota do nó do AUTH_SESSION_ID (evita cookie_not_found
-      # quando a sessão não é encontrada pelo node routing)
+      # Remove sufixo de nó do AUTH_SESSION_ID (single-node setup)
       KC_SPI_STICKY_SESSION_ENCODER_INFINISPAN_SHOULD_ATTACH_ROUTE: "false"
+      # KC 26.0: KC_RESTART agora usa CookieScope.FEDERATION (SameSite=None nativo)
+      # JAVA_OPTS_APPEND não é mais necessário para corrigir SameSite
     ports:
       - "8085:8080"
     depends_on:
