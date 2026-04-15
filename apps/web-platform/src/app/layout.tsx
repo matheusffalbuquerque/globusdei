@@ -27,9 +27,12 @@ export const metadata = {
   title: 'Globus Dei - Network de Missões',
   description: 'Conectando missionários, projetos e agências ao redor do mundo.',
   icons: {
-    icon: '/gd_logo.png',
-    shortcut: '/gd_logo.png',
-    apple: '/gd_logo.png',
+    icon: [
+      { url: '/favicon.ico', sizes: '48x48' },
+      { url: '/favicon-32x32.png', sizes: '32x32', type: 'image/png' },
+    ],
+    shortcut: '/favicon.ico',
+    apple: { url: '/apple-touch-icon.png', sizes: '180x180' },
   },
 };
 
