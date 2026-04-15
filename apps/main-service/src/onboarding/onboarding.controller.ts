@@ -16,6 +16,7 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import { KeycloakAuthGuard } from '../auth/keycloak-auth.guard';
 import { PoliciesGuard } from '../auth/policies.guard';
 import {
+  PLATFORM_REALM_ROLES,
   RequireCollaboratorRoles,
   RequireRealmRoles,
 } from '../auth/role.decorators';
@@ -32,7 +33,7 @@ import { OnboardingService } from './onboarding.service';
 @ApiBearerAuth()
 @Controller('onboarding')
 @UseGuards(KeycloakAuthGuard, PoliciesGuard)
-@RequireRealmRoles('agente', 'colaborador', 'administrador')
+@RequireRealmRoles(...PLATFORM_REALM_ROLES)
 export class OnboardingController {
   constructor(private readonly onboarding: OnboardingService) {}
 

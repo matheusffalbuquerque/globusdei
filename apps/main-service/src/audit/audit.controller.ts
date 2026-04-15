@@ -4,7 +4,11 @@ import { CollaboratorRole } from '@prisma/client';
 
 import { KeycloakAuthGuard } from '../auth/keycloak-auth.guard';
 import { PoliciesGuard } from '../auth/policies.guard';
-import { RequireCollaboratorRoles, RequireRealmRoles } from '../auth/role.decorators';
+import {
+  OPERATIONAL_COLLABORATOR_REALM_ROLES,
+  RequireCollaboratorRoles,
+  RequireRealmRoles,
+} from '../auth/role.decorators';
 import { AuditQueryService } from './audit-query.service';
 import { ListAuditLogsDto } from './dto/list-audit-logs.dto';
 
@@ -12,7 +16,7 @@ import { ListAuditLogsDto } from './dto/list-audit-logs.dto';
 @ApiBearerAuth()
 @Controller('audit')
 @UseGuards(KeycloakAuthGuard, PoliciesGuard)
-@RequireRealmRoles('colaborador', 'administrador')
+@RequireRealmRoles(...OPERATIONAL_COLLABORATOR_REALM_ROLES)
 @RequireCollaboratorRoles(CollaboratorRole.ADMIN)
 export class AuditController {
   constructor(private readonly auditQuery: AuditQueryService) {}

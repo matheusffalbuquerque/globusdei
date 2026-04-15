@@ -15,7 +15,12 @@ import { CollaboratorRole } from '@prisma/client';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { KeycloakAuthGuard } from '../auth/keycloak-auth.guard';
 import { PoliciesGuard } from '../auth/policies.guard';
-import { RequireCollaboratorRoles, RequireRealmRoles } from '../auth/role.decorators';
+import {
+  OPERATIONAL_COLLABORATOR_REALM_ROLES,
+  PLATFORM_REALM_ROLES,
+  RequireCollaboratorRoles,
+  RequireRealmRoles,
+} from '../auth/role.decorators';
 import type { AuthenticatedUser } from '../auth/user-context.interface';
 import { AnswerQuestionDto } from './dto/answer-question.dto';
 import { AskQuestionDto } from './dto/ask-question.dto';
@@ -30,7 +35,7 @@ import { AcademyService } from './academy.service';
 @ApiBearerAuth()
 @Controller('academy')
 @UseGuards(KeycloakAuthGuard, PoliciesGuard)
-@RequireRealmRoles('agente', 'colaborador', 'administrador')
+@RequireRealmRoles(...PLATFORM_REALM_ROLES)
 export class AcademyController {
   constructor(private readonly academy: AcademyService) {}
 
@@ -142,13 +147,13 @@ export class AcademyController {
 
   /** Colaborador: lista dúvidas (all ou só pendentes sem resposta) */
   @Get('questions')
-  @RequireRealmRoles('colaborador', 'administrador')
+  @RequireRealmRoles(...OPERATIONAL_COLLABORATOR_REALM_ROLES)
   listQuestions(@Query('pending') pending?: string) {
     return this.academy.listAllQuestions(pending === 'true');
   }
 
   @Post('questions/:questionId/answers')
-  @RequireRealmRoles('colaborador', 'administrador')
+  @RequireRealmRoles(...OPERATIONAL_COLLABORATOR_REALM_ROLES)
   answerQuestion(
     @CurrentUser() user: AuthenticatedUser,
     @Param('questionId') questionId: string,
@@ -175,14 +180,14 @@ export class AcademyController {
 
   /** Colaborador: lista todos os trabalhos */
   @Get('works')
-  @RequireRealmRoles('colaborador', 'administrador')
+  @RequireRealmRoles(...OPERATIONAL_COLLABORATOR_REALM_ROLES)
   listWorks(@Query('status') status?: 'PENDING' | 'APPROVED' | 'REJECTED') {
     return this.academy.listAllWorks(status);
   }
 
   /** Colaborador: avaliar trabalho */
   @Post('works/:workId/review')
-  @RequireRealmRoles('colaborador', 'administrador')
+  @RequireRealmRoles(...OPERATIONAL_COLLABORATOR_REALM_ROLES)
   reviewWork(
     @CurrentUser() user: AuthenticatedUser,
     @Param('workId') workId: string,

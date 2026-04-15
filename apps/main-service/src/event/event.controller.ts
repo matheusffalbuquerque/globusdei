@@ -5,7 +5,11 @@ import { CollaboratorRole } from '@prisma/client';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { KeycloakAuthGuard } from '../auth/keycloak-auth.guard';
 import { PoliciesGuard } from '../auth/policies.guard';
-import { RequireCollaboratorRoles, RequireRealmRoles } from '../auth/role.decorators';
+import {
+  PLATFORM_REALM_ROLES,
+  RequireCollaboratorRoles,
+  RequireRealmRoles,
+} from '../auth/role.decorators';
 import { AuthenticatedUser } from '../auth/user-context.interface';
 import { CreateEventDto } from './dto/create-event.dto';
 import { RsvpEventDto } from './dto/rsvp-event.dto';
@@ -15,7 +19,7 @@ import { EventService } from './event.service';
 @ApiBearerAuth()
 @Controller('events')
 @UseGuards(KeycloakAuthGuard, PoliciesGuard)
-@RequireRealmRoles('agente', 'colaborador', 'administrador')
+@RequireRealmRoles(...PLATFORM_REALM_ROLES)
 export class EventController {
   constructor(private readonly events: EventService) {}
 

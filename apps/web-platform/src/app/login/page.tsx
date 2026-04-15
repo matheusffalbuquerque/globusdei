@@ -3,7 +3,6 @@
 import { signIn } from 'next-auth/react';
 import Link from 'next/link';
 import { useState, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
 import { Loader2 } from 'lucide-react';
 
 import { Button } from '../../components/ui/button';
@@ -22,12 +21,11 @@ const GoogleIcon = () => (
 
 // Componente interno que usa useSearchParams — deve estar dentro de <Suspense>
 function LoginForm() {
-  const searchParams = useSearchParams();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState<'idle' | 'loading' | 'error'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
-  const callbackUrl = searchParams.get('callbackUrl') || '/dashboard';
+  const callbackUrl = '/dashboard';
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();

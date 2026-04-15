@@ -23,6 +23,7 @@ import { KeycloakAuthGuard } from './auth/keycloak-auth.guard';
 import { PoliciesGuard } from './auth/policies.guard';
 import {
   AllowInternalAccess,
+  PLATFORM_REALM_ROLES,
   RequireCollaboratorRoles,
   RequireRealmRoles,
 } from './auth/role.decorators';
@@ -43,7 +44,7 @@ import { WhatsappProvider } from './providers/whatsapp.provider';
 @ApiBearerAuth()
 @Controller('notifications')
 @UseGuards(KeycloakAuthGuard, PoliciesGuard)
-@RequireRealmRoles('agente', 'colaborador', 'administrador')
+@RequireRealmRoles(...PLATFORM_REALM_ROLES)
 export class NotificationController {
   private readonly logger = new Logger(NotificationController.name);
 

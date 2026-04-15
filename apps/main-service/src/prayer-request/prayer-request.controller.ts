@@ -4,7 +4,11 @@ import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { KeycloakAuthGuard } from '../auth/keycloak-auth.guard';
 import { PoliciesGuard } from '../auth/policies.guard';
-import { RequireRealmRoles } from '../auth/role.decorators';
+import {
+  OPERATIONAL_COLLABORATOR_REALM_ROLES,
+  PLATFORM_REALM_ROLES,
+  RequireRealmRoles,
+} from '../auth/role.decorators';
 import { AuthenticatedUser } from '../auth/user-context.interface';
 import { AnswerPrayerRequestDto } from './dto/answer-prayer-request.dto';
 import { CreatePrayerRequestDto } from './dto/create-prayer-request.dto';
@@ -14,7 +18,7 @@ import { PrayerRequestService } from './prayer-request.service';
 @ApiBearerAuth()
 @Controller('prayer-requests')
 @UseGuards(KeycloakAuthGuard, PoliciesGuard)
-@RequireRealmRoles('agente', 'colaborador', 'administrador')
+@RequireRealmRoles(...PLATFORM_REALM_ROLES)
 export class PrayerRequestController {
   constructor(private readonly service: PrayerRequestService) {}
 
@@ -22,21 +26,21 @@ export class PrayerRequestController {
 
   /** Lista pedidos PENDENTES — mais antigos primeiro */
   @Get('pending')
-  @RequireRealmRoles('colaborador', 'administrador')
+  @RequireRealmRoles(...OPERATIONAL_COLLABORATOR_REALM_ROLES)
   listPending() {
     return this.service.listPending();
   }
 
   /** Lista pedidos ATENDIDOS — mais recentes primeiro */
   @Get('answered')
-  @RequireRealmRoles('colaborador', 'administrador')
+  @RequireRealmRoles(...OPERATIONAL_COLLABORATOR_REALM_ROLES)
   listAnswered() {
     return this.service.listAnswered();
   }
 
   /** Marca pedido como atendido */
   @Patch(':id/answer')
-  @RequireRealmRoles('colaborador', 'administrador')
+  @RequireRealmRoles(...OPERATIONAL_COLLABORATOR_REALM_ROLES)
   answer(
     @Param('id') id: string,
     @Body() dto: AnswerPrayerRequestDto,

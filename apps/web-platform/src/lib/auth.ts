@@ -49,7 +49,15 @@ export function isCollaboratorSession(session?: AppSession | null): boolean {
   return hasRealmRole(session, 'colaborador') || hasRealmRole(session, 'administrador');
 }
 
+export function canChoosePortal(session?: AppSession | null): boolean {
+  return isAgentSession(session) && isCollaboratorSession(session);
+}
+
 export function getDashboardHome(session?: AppSession | null): string {
+  if (canChoosePortal(session)) {
+    return '/dashboard';
+  }
+
   if (isCollaboratorSession(session)) {
     return '/colaborador/dashboard';
   }

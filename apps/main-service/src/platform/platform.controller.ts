@@ -5,7 +5,11 @@ import { CollaboratorRole } from '@prisma/client';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { KeycloakAuthGuard } from '../auth/keycloak-auth.guard';
 import { PoliciesGuard } from '../auth/policies.guard';
-import { RequireCollaboratorRoles, RequireRealmRoles } from '../auth/role.decorators';
+import {
+  PLATFORM_REALM_ROLES,
+  RequireCollaboratorRoles,
+  RequireRealmRoles,
+} from '../auth/role.decorators';
 import type { AuthenticatedUser } from '../auth/user-context.interface';
 import { CreateServiceRequestDto } from './dto/create-service-request.dto';
 import { UpdateServiceRequestStatusDto } from './dto/update-service-request-status.dto';
@@ -16,7 +20,7 @@ import { ServiceRequestService } from './service-request.service';
 @ApiBearerAuth()
 @Controller('platform')
 @UseGuards(KeycloakAuthGuard, PoliciesGuard)
-@RequireRealmRoles('agente', 'colaborador', 'administrador')
+@RequireRealmRoles(...PLATFORM_REALM_ROLES)
 export class PlatformController {
   constructor(
     private readonly follows: FollowService,

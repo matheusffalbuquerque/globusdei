@@ -82,9 +82,10 @@ export function AppNavbar() {
   }
 
   /* ── Build nav items per role ── */
-  const dashboardHome = getDashboardHome(typedSession);
+  const dashboardHome = isLoggedIn ? '/dashboard' : getDashboardHome(typedSession);
   const userName = typedSession?.user?.name ?? 'Usuário';
   const userInitial = userName.charAt(0).toUpperCase();
+  const isChoosingPortal = pathname === '/dashboard';
 
   let navItems: NavLinkItem[];
 
@@ -129,12 +130,20 @@ export function AppNavbar() {
             return (
               <Link
                 key={item.href}
-                href={item.href}
+                href={isChoosingPortal ? '#' : item.href}
+                aria-disabled={isChoosingPortal}
+                onClick={(event) => {
+                  if (isChoosingPortal) {
+                    event.preventDefault();
+                  }
+                }}
                 className={cn(
                   'relative flex w-24 flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors',
-                  isActive
-                    ? 'text-foreground after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-full after:bg-foreground'
-                    : 'text-muted-foreground hover:text-foreground',
+                  isChoosingPortal
+                    ? 'cursor-not-allowed text-muted-foreground/50'
+                    : isActive
+                      ? 'text-foreground after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-full after:bg-foreground'
+                      : 'text-muted-foreground hover:text-foreground',
                 )}
               >
                 <span className="relative">
@@ -169,6 +178,12 @@ export function AppNavbar() {
           </button>
         </div>
       </div>
+
+      {isChoosingPortal && (
+        <div className="border-t border-amber-200 bg-amber-50 px-6 py-2 text-center text-xs font-medium text-amber-900">
+          Escolha primeiro se deseja entrar como agente ou colaborador para liberar a navegação.
+        </div>
+      )}
     </header>
   );
 }

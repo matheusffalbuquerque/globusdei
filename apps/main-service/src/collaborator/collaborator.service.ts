@@ -3,6 +3,7 @@ import { CollaboratorRole } from '@prisma/client';
 
 import { AuditService, AuditType } from '../audit/audit.service';
 import type { AuthenticatedUser } from '../auth/user-context.interface';
+import { ListCollaboratorDirectoryDto } from './dto/list-collaborator-directory.dto';
 import { CollaboratorRepository } from './collaborator.repository';
 
 /**
@@ -27,6 +28,9 @@ export class CollaboratorService {
     private readonly audit: AuditService,
   ) {}
 
+  /**
+   * Ensures the authenticated user has a materialized local collaborator profile.
+   */
   async getMe(user: AuthenticatedUser) {
     const realmDerivedRoles = deriveRolesFromRealm(user.realmRoles ?? []);
 
@@ -40,6 +44,9 @@ export class CollaboratorService {
     return collaborator;
   }
 
+  /**
+   * Dashboard aggregates are used by the collaborator home page.
+   */
   async getDashboard(user: AuthenticatedUser) {
     const collaborator = await this.getMe(user);
     await this.audit.logAction({
@@ -58,7 +65,24 @@ export class CollaboratorService {
     return this.collaborators.listAll();
   }
 
-  async updateRoles(actor: AuthenticatedUser, collaboratorId: string, roles: CollaboratorRole[]) {
+  /**
+   * Platform directory exposed to the collaborator portal.
+   */
+  async listPlatformAgents(dto: ListCollaboratorDirectoryDto) {
+    return this.collaborators.listPlatformAgents(dto);
+  }
+
+  /**
+   * Returns only collaborators that currently belong to the internal team.
+   */
+  async listTeam(dto: ListCollaboratorDirectoryDto) {
+    return this.collaborators.listTeam(dto);
+  }
+
+  /**
+   * Updates local collaborator roles from the source agent entry.
+   */
+  async updateAgentRoles(actor: AuthenticatedUser, agentId: string, roles: CollaboratorRole[]) {
     const actorCollaborator = await this.collaborators.findBySubjectOrEmail(actor.sub, actor.email);
     if (!actorCollaborator) {
       throw new NotFoundException('Local collaborator profile not found.');
@@ -68,13 +92,30 @@ export class CollaboratorService {
       throw new ForbiddenException('Only administrators can update collaborator roles.');
     }
 
-    const updated = await this.collaborators.updateRoles(collaboratorId, roles);
+    const agent = await this.collaborators.findAgentById(agentId);
+    if (!agent) {
+      throw new NotFoundException(`Agent ${agentId} not found.`);
+    }
+
+    if (!agent.authSubject) {
+      throw new ForbiddenException(
+        'This agent does not have a linked authentication subject yet and cannot become a collaborator.',
+      );
+    }
+
+    const updated = await this.collaborators.upsertFromAgent({
+      agentId: agent.id,
+      authSubject: agent.authSubject,
+      email: agent.email,
+      name: agent.name,
+      roles,
+    });
     await this.audit.logAction({
       actorId: actorCollaborator.id,
       actorName: actorCollaborator.name,
       actorEmail: actorCollaborator.email,
       actionType: AuditType.SECURITY,
-      actionDetail: `Atualização de papéis do colaborador ${collaboratorId}.`,
+      actionDetail: `Atualização de papéis locais do agente ${agentId}.`,
       entity: 'Collaborator',
     });
 

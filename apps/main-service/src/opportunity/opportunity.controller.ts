@@ -16,6 +16,8 @@ import { CurrentUser } from '../auth/current-user.decorator';
 import { KeycloakAuthGuard } from '../auth/keycloak-auth.guard';
 import { PoliciesGuard } from '../auth/policies.guard';
 import {
+  OPERATIONAL_COLLABORATOR_REALM_ROLES,
+  PLATFORM_REALM_ROLES,
   RequireCollaboratorRoles,
   RequireRealmRoles,
 } from '../auth/role.decorators';
@@ -28,7 +30,7 @@ import { OpportunityService } from './opportunity.service';
 @ApiBearerAuth()
 @Controller('opportunities')
 @UseGuards(KeycloakAuthGuard, PoliciesGuard)
-@RequireRealmRoles('agente', 'colaborador', 'administrador')
+@RequireRealmRoles(...PLATFORM_REALM_ROLES)
 export class OpportunityController {
   constructor(private readonly opportunityService: OpportunityService) {}
 
@@ -43,8 +45,7 @@ export class OpportunityController {
     @Query('search') search?: string,
   ) {
     const isCollaborator =
-      user.realmRoles?.includes('colaborador') ||
-      user.realmRoles?.includes('administrador');
+      OPERATIONAL_COLLABORATOR_REALM_ROLES.some((role) => user.realmRoles?.includes(role));
 
     return isCollaborator
       ? this.opportunityService.listAll(category, search)
@@ -56,8 +57,7 @@ export class OpportunityController {
   @Get(':id')
   findOne(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
     const isCollaborator =
-      user.realmRoles?.includes('colaborador') ||
-      user.realmRoles?.includes('administrador');
+      OPERATIONAL_COLLABORATOR_REALM_ROLES.some((role) => user.realmRoles?.includes(role));
 
     return isCollaborator
       ? this.opportunityService.findOneAsCollaborator(id)

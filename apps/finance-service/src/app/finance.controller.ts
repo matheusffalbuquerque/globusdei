@@ -5,7 +5,9 @@ import { CollaboratorRole, FinancialEntryType } from '@prisma/client';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { KeycloakAuthGuard } from '../auth/keycloak-auth.guard';
 import { PoliciesGuard } from '../auth/policies.guard';
-import { RequireCollaboratorRoles, RequireRealmRoles } from '../auth/role.decorators';
+import {
+  RequireCollaboratorRoles,
+} from '../auth/role.decorators';
 import { AuthenticatedUser } from '../auth/user-context.interface';
 import { CreateAllocationDto } from './dto/create-allocation.dto';
 import { CreateExpenseCategoryDto } from './dto/create-expense-category.dto';
@@ -17,7 +19,12 @@ import { FinanceService } from './finance.service';
 @ApiBearerAuth()
 @Controller('finance')
 @UseGuards(KeycloakAuthGuard, PoliciesGuard)
-@RequireRealmRoles('colaborador', 'administrador')
+@RequireCollaboratorRoles(
+  CollaboratorRole.ADMIN,
+  CollaboratorRole.PEOPLE_MANAGER,
+  CollaboratorRole.PROJECT_MANAGER,
+  CollaboratorRole.RESOURCE_MANAGER,
+)
 export class FinanceController {
   constructor(private readonly finance: FinanceService) {}
 

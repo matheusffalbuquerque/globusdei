@@ -14,6 +14,8 @@ import {
 import {
   LayoutDashboard,
   Building2,
+  Users,
+  UserCog,
   Briefcase,
   Inbox,
   Megaphone,
@@ -30,10 +32,10 @@ import {
 
 import { apiFetch } from '../../lib/api';
 import {
+  canChoosePortal,
   formatCollaboratorRole,
   getCollaboratorPermissions,
   getDashboardHome,
-  isCollaboratorSession,
   type AppSession,
   type CollaboratorPermissions,
   type CollaboratorProfile,
@@ -99,16 +101,24 @@ export function CollaboratorPortalShell({ children }: { children: ReactNode }) {
       router.replace(`/login?callbackUrl=${encodeURIComponent(pathname)}`);
       return;
     }
-    if (status === 'authenticated' && !isCollaboratorSession(typedSession)) {
-      router.replace(getDashboardHome(typedSession));
-    }
   }, [pathname, router, status, typedSession]);
 
   useEffect(() => {
-    if (status === 'authenticated' && isCollaboratorSession(typedSession)) {
+    if (status === 'authenticated') {
       void loadCollaborator();
     }
   }, [status, typedSession?.accessToken, typedSession?.user?.email]);
+
+  useEffect(() => {
+    if (status !== 'authenticated' || !collaborator) {
+      return;
+    }
+
+    const hasLocalCollaboratorAccess = (collaborator.roles ?? []).length > 0;
+    if (!hasLocalCollaboratorAccess) {
+      router.replace(canChoosePortal(typedSession) ? '/dashboard' : getDashboardHome(typedSession));
+    }
+  }, [collaborator, router, status, typedSession]);
 
   const permissions = useMemo(
     () => getCollaboratorPermissions(collaborator),
@@ -184,6 +194,18 @@ export function CollaboratorPortalShell({ children }: { children: ReactNode }) {
       visible: permissions.canManageOnboarding,
     },
     {
+      href: '/colaborador/agentes',
+      label: 'Agentes',
+      icon: UserCog,
+      visible: true,
+    },
+    {
+      href: '/colaborador/colaboradores',
+      label: 'Colaboradores',
+      icon: Users,
+      visible: true,
+    },
+    {
       href: '/colaborador/logs',
       label: 'Logs da Plataforma',
       icon: ScrollText,
@@ -203,8 +225,7 @@ export function CollaboratorPortalShell({ children }: { children: ReactNode }) {
 
   if (
     status === 'loading' ||
-    status === 'unauthenticated' ||
-    !isCollaboratorSession(typedSession)
+    status === 'unauthenticated'
   ) {
     return (
       <div className="flex min-h-[calc(100vh-145px)] items-center justify-center bg-muted/30">
@@ -331,6 +352,11 @@ export function CollaboratorPortalShell({ children }: { children: ReactNode }) {
               {error ? (
                 <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm font-medium text-red-700">
                   {error}
+                </div>
+              ) : collaborator && (collaborator.roles ?? []).length === 0 ? (
+                <div className="flex items-center gap-3 rounded-xl border border-border bg-background px-6 py-4 text-sm font-medium text-muted-foreground shadow-sm">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Redirecionando para o ambiente disponível…
                 </div>
               ) : (
                 children
