@@ -113,7 +113,7 @@ export function AppNavbar() {
   /* ── Logged-in: LinkedIn-style top bar ── */
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-white/95 backdrop-blur-sm">
-      <div className="mx-auto flex h-16 max-w-[1200px] items-stretch justify-between gap-4 px-4">
+      <div className="mx-auto flex h-16 w-full items-stretch justify-between gap-4 px-6">
         {/* Logo */}
         <Link href={dashboardHome} className="flex shrink-0 items-center gap-3">
           <img src="/logo.png" alt="Globus Dei" className="h-10 w-auto" />
