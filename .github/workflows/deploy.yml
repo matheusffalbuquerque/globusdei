@@ -188,13 +188,28 @@ jobs:
         run: |
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
             cd /var/www/globusdei
-            docker exec globusdei-main-service mkdir -p /app/prisma
+
+            # Aguarda o main-service estar em execução (até 60s)
+            echo '→ Aguardando globusdei-main-service...'
+            for i in \$(seq 1 12); do
+              STATE=\$(docker inspect -f '{{.State.Running}}' globusdei-main-service 2>/dev/null || echo 'false')
+              if [ \"\$STATE\" = 'true' ]; then
+                echo '→ Container em execução. Aplicando migrations...'
+                break
+              fi
+              echo \"  tentativa \$i/12 — aguardando 5s...\"
+              sleep 5
+            done
+
+            # Copia schema e migrations atualizados para dentro do container
+            docker exec globusdei-main-service mkdir -p /app/prisma/migrations
             docker cp prisma/schema.prisma globusdei-main-service:/app/prisma/schema.prisma
-            docker cp prisma/migrations globusdei-main-service:/app/prisma/
-            docker exec globusdei-main-service sh -c \"DATABASE_URL='$DATABASE_URL' /app/node_modules/.bin/prisma migrate deploy --schema=/app/prisma/schema.prisma\"
+            docker cp prisma/migrations/. globusdei-main-service:/app/prisma/migrations/
+
+            # Roda prisma migrate deploy usando a DATABASE_URL do container (postgres:5432)
+            docker exec globusdei-main-service sh -c \
+              '/app/node_modules/.bin/prisma migrate deploy --schema=/app/prisma/schema.prisma'
           "
-        env:
-          DATABASE_URL: postgresql://globusdei:${{ secrets.POSTGRES_PASSWORD }}@localhost:5432/globusdei_db?schema=app
 
       - name: Aguardar containers ficarem healthy
         run: |
