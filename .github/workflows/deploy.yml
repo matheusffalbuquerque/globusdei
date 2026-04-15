@@ -116,21 +116,21 @@ jobs:
       - name: Clonar ou atualizar repositório no servidor
         run: |
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
-            if [ -d ~/globusdei/.git ]; then
+            if [ -d /var/www/globusdei/.git ]; then
               echo '→ Repositório já existe, atualizando...'
-              cd ~/globusdei
+              cd /var/www/globusdei
               git fetch origin
               git reset --hard origin/main
             else
               echo '→ Clonando repositório pela primeira vez...'
-              git clone https://github.com/matheusffalbuquerque/globusdei.git ~/globusdei
+              git clone https://github.com/matheusffalbuquerque/globusdei.git /var/www/globusdei
             fi
           "
 
       - name: Criar .env no servidor
         run: |
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} bash -s << 'SSHSCRIPT'
-          cat > ~/globusdei/.env << ENVEOF
+          cat > /var/www/globusdei/.env << ENVEOF
           POSTGRES_USER=globusdei
           POSTGRES_PASSWORD=${{ secrets.POSTGRES_PASSWORD }}
           POSTGRES_DB=globusdei_db
@@ -171,7 +171,7 @@ jobs:
       - name: Pull das imagens
         run: |
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
-            cd ~/globusdei
+            cd /var/www/globusdei
             echo '${{ secrets.GITHUB_TOKEN }}' | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             docker compose pull
           "
@@ -179,7 +179,7 @@ jobs:
       - name: Subir containers
         run: |
           ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
-            cd ~/globusdei
+            cd /var/www/globusdei
             docker compose up -d --remove-orphans
           "
 
@@ -189,7 +189,7 @@ jobs:
             sleep 15
             echo "→ Tentativa $i/24 — verificando saúde dos containers..."
             STATUS=$(ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "
-              cd ~/globusdei
+              cd /var/www/globusdei
               docker compose ps --format json 2>/dev/null | python3 -c \"
           import json, sys
           lines = [l for l in sys.stdin if l.strip()]
@@ -204,16 +204,16 @@ jobs:
             STARTING=$(echo "$STATUS" | grep '^STARTING:'  | cut -d: -f2)
             if [ -n "$UNHEALTHY" ]; then
               echo "Containers unhealthy: $UNHEALTHY"
-              ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/globusdei && docker compose logs --tail=50 keycloak"
+              ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd /var/www/globusdei && docker compose logs --tail=50 keycloak"
               exit 1
             fi
             if [ -z "$STARTING" ]; then
               echo "Todos os containers estão saudáveis!"
-              ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/globusdei && docker compose ps"
+              ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd /var/www/globusdei && docker compose ps"
               exit 0
             fi
             echo "   Ainda iniciando: $STARTING"
           done
           echo "Timeout: containers não ficaram healthy em 6 minutos"
-          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd ~/globusdei && docker compose ps && docker compose logs --tail=50 keycloak"
+          ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "cd /var/www/globusdei && docker compose ps && docker compose logs --tail=50 keycloak"
           exit 1
