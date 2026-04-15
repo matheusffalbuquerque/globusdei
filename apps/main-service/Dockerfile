@@ -12,10 +12,8 @@ COPY prisma ./prisma
 RUN npx prisma generate
 
 COPY . .
+# Webpack empacota tudo em main.js — sem package.json próprio, prune não é necessário
 RUN npx nx build main-service --configuration=production --skip-nx-cache
-# Gera package.json e lockfile prunados para instalar só prod deps
-RUN npx nx run main-service:prune-lockfile --skip-nx-cache
-RUN npx nx run main-service:copy-workspace-modules --skip-nx-cache
 
 # ─── Stage 2: Runner ──────────────────────────────────────────────────────────
 FROM node:22-alpine AS runner
@@ -27,11 +25,8 @@ ENV NODE_ENV=production
 ENV PORT=3001
 ENV HOST=0.0.0.0
 
-# Copia bundle Webpack + package.json com dependências de produção
-COPY --from=builder /app/dist/apps/main-service ./
-
-# Instala apenas as dependências de produção (lockfile já prunado)
-RUN npm ci --omit=dev --ignore-scripts 2>/dev/null || npm install --omit=dev --ignore-scripts
+# Copia apenas o bundle gerado pelo Webpack
+COPY --from=builder /app/dist/apps/main-service/main.js ./main.js
 
 EXPOSE 3001
 
