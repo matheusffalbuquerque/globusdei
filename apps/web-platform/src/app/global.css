@@ -38,3 +38,42 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  .show-flex-under-740 {
+    display: none;
+  }
+
+  .show-block-under-740 {
+    display: none;
+  }
+
+  .portal-shell-sidebar {
+    width: 280px;
+    flex-shrink: 0;
+  }
+
+  .shell-layout-under-740 {
+    display: flex;
+  }
+}
+
+@media (max-width: 740px) {
+  @layer components {
+    .hide-under-740 {
+      display: none !important;
+    }
+
+    .show-flex-under-740 {
+      display: flex !important;
+    }
+
+    .show-block-under-740 {
+      display: block !important;
+    }
+
+    .shell-layout-under-740 {
+      display: block !important;
+    }
+  }
+}

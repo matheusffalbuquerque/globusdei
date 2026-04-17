@@ -28,6 +28,7 @@ import {
   Loader2,
   TrendingUp,
   ScrollText,
+  Menu,
 } from 'lucide-react';
 
 import { apiFetch } from '../../lib/api';
@@ -40,8 +41,17 @@ import {
   type CollaboratorPermissions,
   type CollaboratorProfile,
 } from '../../lib/auth';
+import { useIsMobileViewport } from '../../hooks/useIsMobileViewport';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import { Badge } from '../ui/badge';
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from '../ui/dialog';
 import { Separator } from '../ui/separator';
 import { cn } from '../../lib/utils';
 
@@ -81,6 +91,7 @@ export function CollaboratorPortalShell({ children }: { children: ReactNode }) {
 
   const typedSession = session as AppSession | null;
   const sessionName = typedSession?.user?.name ?? 'Colaborador';
+  const isMobile = useIsMobileViewport();
 
   const loadCollaborator = async () => {
     if (!typedSession) return;
@@ -223,6 +234,98 @@ export function CollaboratorPortalShell({ children }: { children: ReactNode }) {
     [collaborator, isLoadingProfile, permissions],
   );
 
+  const visibleNavigation = navigation.filter((item) => item.visible);
+
+  const renderSidebarContent = (closeOnNavigate: boolean) => (
+    <>
+      <div className="rounded-xl border border-border bg-slate-950 p-4 text-white">
+        <div className="flex items-center gap-3">
+          <Avatar className="h-10 w-10 shrink-0">
+            <AvatarFallback className="bg-primary/20 text-sm font-bold text-primary-foreground">
+              {(collaborator?.name ?? sessionName).charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-white">
+              {collaborator?.name ?? sessionName}
+            </p>
+            <p className="truncate text-xs text-slate-400">Portal do colaborador</p>
+          </div>
+        </div>
+
+        {(collaborator?.roles ?? []).length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {collaborator?.roles.map((role) => (
+              <span
+                key={role}
+                className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-300"
+              >
+                {formatCollaboratorRole(role)}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {(collaborator?.roles ?? []).length === 0 && (
+          <div className="mt-3">
+            <span className="rounded-md border border-amber-400/20 bg-amber-300/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-300">
+              Sem papéis locais
+            </span>
+          </div>
+        )}
+      </div>
+
+      <Separator className="my-5" />
+
+      <nav className="space-y-1">
+        {visibleNavigation.map((item) => {
+          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const Icon = item.icon;
+          const link = (
+            <Link
+              href={item.href}
+              className={cn(
+                'group flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
+                isActive
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+              )}
+            >
+              <span className="flex items-center gap-2.5">
+                <Icon className="h-4 w-4 shrink-0" />
+                {item.label}
+              </span>
+              <span className="flex items-center gap-1.5">
+                {item.badge && (
+                  <Badge
+                    variant="secondary"
+                    className={cn('px-1.5 py-0 text-[10px]', isActive && 'bg-white/20 text-white')}
+                  >
+                    {item.badge}
+                  </Badge>
+                )}
+                <ChevronRight
+                  className={cn(
+                    'h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-60',
+                    isActive && 'opacity-60',
+                  )}
+                />
+              </span>
+            </Link>
+          );
+
+          return closeOnNavigate ? (
+            <DialogClose asChild key={item.href}>
+              {link}
+            </DialogClose>
+          ) : (
+            <div key={item.href}>{link}</div>
+          );
+        })}
+      </nav>
+    </>
+  );
+
   if (
     status === 'loading' ||
     status === 'unauthenticated'
@@ -240,101 +343,17 @@ export function CollaboratorPortalShell({ children }: { children: ReactNode }) {
   return (
     <CollaboratorPortalContext.Provider value={contextValue}>
       <div className="min-h-[calc(100vh-145px)] bg-muted/30">
-        <div className="mx-auto grid min-h-[calc(100vh-145px)] max-w-[1520px] grid-cols-1 xl:grid-cols-[280px_minmax(0,1fr)]">
+        <div className={cn('mx-auto min-h-[calc(100vh-145px)] max-w-[1520px]', isMobile ? 'block' : 'flex')}>
 
           {/* ── Sidebar ── */}
-          <aside className="border-r border-border bg-background px-4 py-6">
-            {/* Profile card */}
-            <div className="rounded-xl border border-border bg-slate-950 p-4 text-white">
-              <div className="flex items-center gap-3">
-                <Avatar className="h-10 w-10 shrink-0">
-                  <AvatarFallback className="bg-primary/20 text-sm font-bold text-primary-foreground">
-                    {(collaborator?.name ?? sessionName).charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-semibold text-white">
-                    {collaborator?.name ?? sessionName}
-                  </p>
-                  <p className="truncate text-xs text-slate-400">Portal do colaborador</p>
-                </div>
-              </div>
-
-              {(collaborator?.roles ?? []).length > 0 && (
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {collaborator?.roles.map((role) => (
-                    <span
-                      key={role}
-                      className="rounded-md border border-white/10 bg-white/5 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-slate-300"
-                    >
-                      {formatCollaboratorRole(role)}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {(collaborator?.roles ?? []).length === 0 && (
-                <div className="mt-3">
-                  <span className="rounded-md border border-amber-400/20 bg-amber-300/10 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-amber-300">
-                    Sem papéis locais
-                  </span>
-                </div>
-              )}
-            </div>
-
-            <Separator className="my-5" />
-
-            {/* Navigation */}
-            <nav className="space-y-1">
-              {navigation
-                .filter((item) => item.visible)
-                .map((item) => {
-                  const isActive =
-                    pathname === item.href || pathname.startsWith(`${item.href}/`);
-                  const Icon = item.icon;
-
-                  return (
-                    <Link
-                      key={item.href}
-                      href={item.href}
-                      className={cn(
-                        'group flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium transition-colors',
-                        isActive
-                          ? 'bg-primary text-primary-foreground'
-                          : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-                      )}
-                    >
-                      <span className="flex items-center gap-2.5">
-                        <Icon className="h-4 w-4 shrink-0" />
-                        {item.label}
-                      </span>
-                      <span className="flex items-center gap-1.5">
-                        {item.badge && (
-                          <Badge
-                            variant="secondary"
-                            className={cn(
-                              'px-1.5 py-0 text-[10px]',
-                              isActive && 'bg-white/20 text-white',
-                            )}
-                          >
-                            {item.badge}
-                          </Badge>
-                        )}
-                        <ChevronRight
-                          className={cn(
-                            'h-3.5 w-3.5 opacity-0 transition-opacity group-hover:opacity-60',
-                            isActive && 'opacity-60',
-                          )}
-                        />
-                      </span>
-                    </Link>
-                  );
-                })}
-            </nav>
-          </aside>
+          {!isMobile && (
+            <aside className="portal-shell-sidebar border-r border-border bg-background px-4 py-6">
+              {renderSidebarContent(false)}
+            </aside>
+          )}
 
           {/* ── Main content ── */}
-          <div className="flex min-w-0 flex-col">
+          <div className="flex min-w-0 flex-1 flex-col">
             <header className="border-b border-border bg-background px-6 py-4">
               <div className="flex items-center justify-between gap-4">
                 <div>
@@ -345,6 +364,27 @@ export function CollaboratorPortalShell({ children }: { children: ReactNode }) {
                     Operação, governança e acompanhamento
                   </h1>
                 </div>
+                {isMobile && (
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <button
+                        type="button"
+                        className="flex h-10 w-10 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-sm"
+                        aria-label="Abrir menu"
+                      >
+                        <Menu className="h-4 w-4" />
+                      </button>
+                    </DialogTrigger>
+                    <DialogContent className="left-auto right-0 top-0 bottom-0 flex h-dvh w-[80vw] max-w-none translate-x-0 translate-y-0 flex-col overflow-hidden rounded-none border-0 border-l border-border p-0">
+                      <DialogHeader className="shrink-0 px-5 pb-3 pt-5 text-left">
+                        <DialogTitle>Menu</DialogTitle>
+                      </DialogHeader>
+                      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-5 pb-5">
+                        {renderSidebarContent(true)}
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                )}
               </div>
             </header>
 

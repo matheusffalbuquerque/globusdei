@@ -1,5 +1,4 @@
 'use client';
-
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
@@ -14,6 +13,7 @@ import {
 } from 'lucide-react';
 
 import { isAgentSession, isCollaboratorSession, getDashboardHome, type AppSession } from '../../lib/auth';
+import { useIsMobileViewport } from '../../hooks/useIsMobileViewport';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import { cn } from '../../lib/utils';
 
@@ -24,6 +24,8 @@ type NavLinkItem = {
   badge?: number;
 };
 
+const MOBILE_NAV_LABELS = new Set(['Rede Global', 'Academia']);
+
 /**
  * AppNavbar renders a public bar when logged out and a LinkedIn-style top nav when logged in.
  */
@@ -32,6 +34,7 @@ export function AppNavbar() {
   const pathname = usePathname();
   const typedSession = session as AppSession | null;
   const isLoggedIn = status === 'authenticated' && !!session;
+  const isMobile = useIsMobileViewport();
 
   /* ── Loading skeleton ── */
   if (status === 'loading') {
@@ -111,57 +114,95 @@ export function AppNavbar() {
     ];
   }
 
+  const mobileNavItems = navItems.filter((item) => MOBILE_NAV_LABELS.has(item.label));
+
   /* ── Logged-in: LinkedIn-style top bar ── */
   return (
     <header className="sticky top-0 z-50 border-b border-border bg-white/95 backdrop-blur-sm">
-      <div className="mx-auto flex h-16 w-full items-stretch justify-between gap-4 px-6">
+      <div className="mx-auto flex h-16 w-full items-stretch justify-between gap-3 px-4">
         {/* Logo */}
         <Link href={dashboardHome} className="flex shrink-0 items-center gap-3">
           <img src="/logo.png" alt="Globus Dei" className="h-10 w-auto" />
-          <span className="font-display text-2xl font-semibold text-primary">Globus Dei</span>
+          {!isMobile && (
+            <span className="font-display text-2xl font-semibold text-primary">
+              Globus Dei
+            </span>
+          )}
         </Link>
 
-        {/* Nav items */}
-        <nav className="flex items-stretch gap-0">
-          {navItems.map((item) => {
-            const isActive =
-              pathname === item.href || pathname.startsWith(`${item.href}/`);
-            const Icon = item.icon;
-            return (
-              <Link
-                key={item.href}
-                href={isChoosingPortal ? '#' : item.href}
-                aria-disabled={isChoosingPortal}
-                onClick={(event) => {
-                  if (isChoosingPortal) {
-                    event.preventDefault();
-                  }
-                }}
-                className={cn(
-                  'relative flex w-24 flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors',
-                  isChoosingPortal
-                    ? 'cursor-not-allowed text-muted-foreground/50'
-                    : isActive
-                      ? 'text-foreground after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-full after:bg-foreground'
-                      : 'text-muted-foreground hover:text-foreground',
-                )}
-              >
-                <span className="relative">
-                  <Icon className="h-5 w-5" />
-                  {item.badge != null && item.badge > 0 && (
-                    <span className="absolute -right-2 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-bold text-white">
-                      {item.badge > 99 ? '99+' : item.badge}
-                    </span>
+        {isMobile ? (
+          <nav className="flex min-w-0 items-center gap-1">
+            {mobileNavItems.map((item) => {
+              const isActive =
+                pathname === item.href || pathname.startsWith(`${item.href}/`);
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={isChoosingPortal ? '#' : item.href}
+                  aria-disabled={isChoosingPortal}
+                  onClick={(event) => {
+                    if (isChoosingPortal) {
+                      event.preventDefault();
+                    }
+                  }}
+                  className={cn(
+                    'flex items-center gap-1 rounded-lg px-2 py-2 text-xs font-medium transition-colors',
+                    isChoosingPortal
+                      ? 'cursor-not-allowed text-muted-foreground/50'
+                      : isActive
+                        ? 'bg-primary/10 text-primary'
+                        : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                   )}
-                </span>
-                <span className="leading-none">{item.label}</span>
-              </Link>
-            );
-          })}
-        </nav>
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  <span>{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+        ) : (
+          <nav className="flex items-stretch gap-0">
+            {navItems.map((item) => {
+              const isActive =
+                pathname === item.href || pathname.startsWith(`${item.href}/`);
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={isChoosingPortal ? '#' : item.href}
+                  aria-disabled={isChoosingPortal}
+                  onClick={(event) => {
+                    if (isChoosingPortal) {
+                      event.preventDefault();
+                    }
+                  }}
+                  className={cn(
+                    'relative flex w-24 flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors',
+                    isChoosingPortal
+                      ? 'cursor-not-allowed text-muted-foreground/50'
+                      : isActive
+                        ? 'text-foreground after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-full after:bg-foreground'
+                        : 'text-muted-foreground hover:text-foreground',
+                  )}
+                >
+                  <span className="relative">
+                    <Icon className="h-5 w-5" />
+                    {item.badge != null && item.badge > 0 && (
+                      <span className="absolute -right-2 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-bold text-white">
+                        {item.badge > 99 ? '99+' : item.badge}
+                      </span>
+                    )}
+                  </span>
+                  <span className="leading-none">{item.label}</span>
+                </Link>
+              );
+            })}
+          </nav>
+        )}
 
         {/* Right: avatar + sign out */}
-        <div className="flex shrink-0 items-center gap-3">
+        <div className="flex shrink-0 items-center gap-2">
           <Avatar className="h-8 w-8">
             <AvatarFallback className="bg-primary/15 text-xs font-bold text-primary">
               {userInitial}
@@ -174,7 +215,7 @@ export function AppNavbar() {
             className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
           >
             <LogOut className="h-4 w-4" />
-            <span className="hidden sm:inline">Sair</span>
+            {!isMobile && <span>Sair</span>}
           </button>
         </div>
       </div>
