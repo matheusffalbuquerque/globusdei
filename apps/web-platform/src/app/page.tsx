@@ -270,10 +270,10 @@ export default function LandingPage() {
       <section className="py-24 border-t border-slate-100">
         <div className="container mx-auto px-8 grid grid-cols-2 lg:grid-cols-4 gap-12">
           {[
-            { n: '500+', l: 'Projetos Ativos' },
-            { n: '2.5K+', l: 'Missionários' },
-            { n: '80+', l: 'Países' },
-            { n: '150+', l: 'Agências Parceiras' },
+            { n: '15+', l: 'Projetos Ativos' },
+            { n: '15+', l: 'Apoiados' },
+            { n: '8+', l: 'Países' },
+            { n: '5+', l: 'Agências Parceiras' },
           ].map((stat, i) => (
             <div key={i} className="text-center">
               <div className="text-5xl font-display font-black text-slate-900 mb-3">{stat.n}</div>
