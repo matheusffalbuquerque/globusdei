@@ -3,8 +3,10 @@
  */
 export interface NotificationPayload {
   to: string;
+  from?: string;
   subject?: string;
   message: string;
+  html?: string;
   templateId?: string;
   metadata?: Record<string, unknown>;
 }

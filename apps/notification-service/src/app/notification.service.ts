@@ -18,6 +18,7 @@ import { EmailProvider } from './providers/email.provider';
 import { CreateNotificationDto, NotificationRecipientDto } from './dto/create-notification.dto';
 import { SendDirectMessageDto } from './dto/send-direct-message.dto';
 import { SendEmailDto } from './dto/send-email.dto';
+import { SendWelcomeEmailDto } from './dto/send-welcome-email.dto';
 import { UpdateNotificationDto } from './dto/update-notification.dto';
 
 /**
@@ -176,13 +177,13 @@ export class NotificationService {
           return {
             ...recipient,
             status: 'SENT' as const,
-            provider: 'mock-email-provider',
+            provider: this.emailProvider.providerName,
           };
         } catch (error) {
           return {
             ...recipient,
             status: 'FAILED' as const,
-            provider: 'mock-email-provider',
+            provider: this.emailProvider.providerName,
             errorMessage: (error as Error).message,
           };
         }
@@ -210,6 +211,26 @@ export class NotificationService {
       sent: results.filter((result) => result.status === 'SENT').length,
       failed: results.filter((result) => result.status === 'FAILED').length,
       recipients: results,
+    };
+  }
+
+  async sendWelcomeEmail(dto: SendWelcomeEmailDto) {
+    const { subject, text, html } = this.buildWelcomeEmail(dto.name);
+
+    await this.emailProvider.send({
+      to: dto.email,
+      subject,
+      message: text,
+      html,
+      metadata: {
+        template: 'welcome',
+      },
+    });
+
+    return {
+      status: 'SENT' as const,
+      provider: this.emailProvider.providerName,
+      recipientEmail: dto.email,
     };
   }
 
@@ -315,6 +336,51 @@ export class NotificationService {
     }
 
     throw new BadRequestException('Email sending supports only agents or initiatives.');
+  }
+
+  private buildWelcomeEmail(name?: string) {
+    const firstName = name?.trim().split(/\s+/)[0] ?? 'novo membro';
+    const subject = 'Boas-vindas à Globus Dei';
+    const text = [
+      `Olá, ${firstName}!`,
+      '',
+      'Sua conta na plataforma Globus Dei foi criada com sucesso.',
+      'A partir de agora você já pode acessar a plataforma e acompanhar sua jornada.',
+      '',
+      'Se precisar de apoio, responda este e-mail e nosso time fará o atendimento.',
+      '',
+      'Com carinho,',
+      'Equipe Globus Dei',
+    ].join('\n');
+    const html = `
+      <div style="background:#f5f7fb;padding:32px 16px;font-family:Arial,sans-serif;color:#23324d;">
+        <div style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid #d7dfeb;border-radius:20px;overflow:hidden;">
+          <div style="padding:32px 32px 20px;background:linear-gradient(135deg,#fff7ef 0%,#ffffff 100%);border-bottom:1px solid #e8edf5;">
+            <div style="font-size:28px;font-weight:700;color:#9b4f2f;">Globus Dei</div>
+            <div style="margin-top:12px;font-size:14px;letter-spacing:0.12em;text-transform:uppercase;color:#6c7da0;">Boas-vindas</div>
+            <h1 style="margin:8px 0 0;font-size:30px;line-height:1.2;color:#10213d;">Sua jornada começa agora</h1>
+          </div>
+          <div style="padding:32px;">
+            <p style="margin:0 0 16px;font-size:16px;line-height:1.7;">Olá, <strong>${firstName}</strong>!</p>
+            <p style="margin:0 0 16px;font-size:16px;line-height:1.7;">
+              Sua conta na plataforma Globus Dei foi criada com sucesso. Agora você já pode acessar o portal,
+              acompanhar oportunidades, conteúdos e comunicações da plataforma.
+            </p>
+            <p style="margin:0 0 16px;font-size:16px;line-height:1.7;">
+              Se precisar de apoio, responda este e-mail e nosso time fará o atendimento.
+            </p>
+            <div style="margin-top:24px;padding:20px;border-radius:16px;background:#f7fafc;border:1px solid #dbe5f0;">
+              <p style="margin:0;font-size:14px;line-height:1.7;color:#51627f;">
+                Este e-mail foi enviado por Globus Dei usando o canal oficial
+                <strong> comunica@globusdei.org</strong>.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    `.trim();
+
+    return { subject, text, html };
   }
 
   private async validateRecipient(recipient: NotificationRecipientDto) {

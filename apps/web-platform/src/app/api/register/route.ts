@@ -10,6 +10,11 @@ const KEYCLOAK_ADMIN_USERNAME =
   process.env.KEYCLOAK_ADMIN_USERNAME || 'admin2';
 const KEYCLOAK_ADMIN_PASSWORD =
   process.env.KEYCLOAK_ADMIN_PASSWORD || 'Admin@2024';
+const NOTIFICATION_SERVICE_URL =
+  process.env.NOTIFICATION_SERVICE_URL ||
+  process.env.NEXT_PUBLIC_NOTIFICATION_SERVICE_URL ||
+  'http://localhost:3004/api';
+const INTERNAL_SERVICE_TOKEN = process.env.INTERNAL_SERVICE_TOKEN;
 
 /** Obtém um token de administrador no realm master via password grant. */
 async function getAdminToken(): Promise<string> {
@@ -71,6 +76,27 @@ async function assignRealmRoles(
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Falha ao atribuir roles: ${res.status} — ${text}`);
+  }
+}
+
+async function sendWelcomeEmail(email: string, name: string): Promise<void> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  if (INTERNAL_SERVICE_TOKEN) {
+    headers['x-internal-service-token'] = INTERNAL_SERVICE_TOKEN;
+  }
+
+  const res = await fetch(`${NOTIFICATION_SERVICE_URL}/notifications/internal/welcome-email`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({ email, name }),
+  });
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Falha ao enviar e-mail de boas-vindas: ${res.status} — ${text}`);
   }
 }
 
@@ -163,6 +189,13 @@ export async function POST(req: NextRequest) {
     } catch (roleErr) {
       // Não bloqueia o cadastro se a atribuição de role falhar
       console.error('[register] Falha ao atribuir role agente:', roleErr);
+    }
+
+    try {
+      await sendWelcomeEmail(email, name);
+      console.log(`[register] E-mail de boas-vindas enviado para ${email}`);
+    } catch (emailErr) {
+      console.error('[register] Falha ao enviar e-mail de boas-vindas:', emailErr);
     }
 
     return NextResponse.json(

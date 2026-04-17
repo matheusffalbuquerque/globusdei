@@ -31,6 +31,7 @@ import type { AuthenticatedUser } from './auth/user-context.interface';
 import { CreateNotificationDto } from './dto/create-notification.dto';
 import { SendDirectMessageDto } from './dto/send-direct-message.dto';
 import { SendEmailDto } from './dto/send-email.dto';
+import { SendWelcomeEmailDto } from './dto/send-welcome-email.dto';
 import { UpdateNotificationDto } from './dto/update-notification.dto';
 import { NotificationService } from './notification.service';
 import { EventPattern, Payload } from '@nestjs/microservices';
@@ -147,6 +148,12 @@ export class NotificationController {
     @Body() dto: CreateNotificationDto,
   ) {
     return this.notificationService.createNotification(user, dto);
+  }
+
+  @Post('internal/welcome-email')
+  @AllowInternalAccess()
+  sendInternalWelcomeEmail(@Body() dto: SendWelcomeEmailDto) {
+    return this.notificationService.sendWelcomeEmail(dto);
   }
 
   /**
