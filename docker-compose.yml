@@ -309,6 +309,7 @@ services:
       NEXT_PUBLIC_FINANCE_SERVICE_URL: ${NEXT_PUBLIC_FINANCE_SERVICE_URL:-http://finance-service:3002/api}
       NEXT_PUBLIC_NOTIFICATION_SERVICE_URL: ${NEXT_PUBLIC_NOTIFICATION_SERVICE_URL:-http://notification-service:3004/api}
       NOTIFICATION_SERVICE_URL: ${NOTIFICATION_SERVICE_URL:-http://notification-service:3004/api}
+      MAIN_SERVICE_URL: ${MAIN_SERVICE_URL:-http://main-service:3001/api}
       INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
     ports:
       - "3000:3000"

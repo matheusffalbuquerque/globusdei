@@ -60,4 +60,8 @@ export class AgentService {
 
     return this.agents.getDashboard(agent.id);
   }
+
+  async provisionFromRegister(params: { authSubject: string; email: string; name: string }) {
+    return this.agents.upsertFromIdentity(params);
+  }
 }

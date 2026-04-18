@@ -16,6 +16,7 @@ export class KeycloakAuthGuard implements CanActivate {
   private readonly issuer =
     process.env.KEYCLOAK_ISSUER ?? 'http://localhost:8085/realms/globusdei';
   private readonly audience = process.env.KEYCLOAK_CLIENT_ID;
+  private readonly internalToken = process.env.INTERNAL_SERVICE_TOKEN;
   private readonly jwks = jwksClient({
     jwksUri:
       process.env.KEYCLOAK_JWKS_URI ??
@@ -34,6 +35,20 @@ export class KeycloakAuthGuard implements CanActivate {
     if (authorization?.startsWith('Bearer ')) {
       const token = authorization.substring('Bearer '.length);
       request.user = await this.verifyToken(token);
+      return true;
+    }
+
+    const internalToken = request.headers['x-internal-service-token'];
+    const internalTokenValue = Array.isArray(internalToken) ? internalToken[0] : internalToken;
+    if (internalTokenValue && this.internalToken && internalTokenValue === this.internalToken) {
+      request.user = {
+        sub: 'internal-service',
+        email: 'internal@globusdei.local',
+        name: 'Internal Service',
+        preferredUsername: 'internal-service',
+        realmRoles: ['administrador'],
+        isInternalService: true,
+      } satisfies AuthenticatedUser;
       return true;
     }
 

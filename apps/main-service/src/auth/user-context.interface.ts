@@ -5,4 +5,5 @@ export interface AuthenticatedUser {
   preferredUsername: string;
   realmRoles: string[];
   accessToken?: string;
+  isInternalService?: boolean;
 }

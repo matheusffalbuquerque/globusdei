@@ -15,6 +15,8 @@ const NOTIFICATION_SERVICE_URL =
   process.env.NEXT_PUBLIC_NOTIFICATION_SERVICE_URL ||
   'http://localhost:3004/api';
 const INTERNAL_SERVICE_TOKEN = process.env.INTERNAL_SERVICE_TOKEN;
+const MAIN_SERVICE_URL =
+  process.env.MAIN_SERVICE_URL || 'http://main-service:3001/api';
 
 /** Obtém um token de administrador no realm master via password grant. */
 async function getAdminToken(): Promise<string> {
@@ -76,6 +78,22 @@ async function assignRealmRoles(
   if (!res.ok) {
     const text = await res.text();
     throw new Error(`Falha ao atribuir roles: ${res.status} — ${text}`);
+  }
+}
+
+async function provisionAgent(authSubject: string, email: string, name: string): Promise<void> {
+  if (!INTERNAL_SERVICE_TOKEN) return;
+  const res = await fetch(`${MAIN_SERVICE_URL}/agents/internal/provision`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-internal-service-token': INTERNAL_SERVICE_TOKEN,
+    },
+    body: JSON.stringify({ authSubject, email, name }),
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Falha ao provisionar agente: ${res.status} — ${text}`);
   }
 }
 
@@ -189,6 +207,14 @@ export async function POST(req: NextRequest) {
     } catch (roleErr) {
       // Não bloqueia o cadastro se a atribuição de role falhar
       console.error('[register] Falha ao atribuir role agente:', roleErr);
+    }
+
+    // --- Provisionar agente no PostgreSQL imediatamente ---
+    try {
+      await provisionAgent(userId, email, name);
+      console.log(`[register] Agente provisionado no banco para ${email}`);
+    } catch (provisionErr) {
+      console.error('[register] Falha ao provisionar agente no banco:', provisionErr);
     }
 
     try {

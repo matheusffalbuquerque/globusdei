@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, UseGuards } from '@nestjs/common';
+import { Body, Controller, ForbiddenException, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
 
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -35,5 +35,20 @@ export class AgentController {
   @Get(':id')
   getAgent(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {
     return this.agentService.findOne(id, user);
+  }
+
+  /**
+   * Endpoint interno para provisionar um agente imediatamente após o cadastro.
+   * Requer x-internal-service-token.
+   */
+  @Post('internal/provision')
+  provisionAgent(
+    @CurrentUser() user: AuthenticatedUser,
+    @Body() dto: { authSubject: string; email: string; name: string },
+  ) {
+    if (!user.isInternalService) {
+      throw new ForbiddenException('Acesso restrito a serviços internos.');
+    }
+    return this.agentService.provisionFromRegister(dto);
   }
 }
