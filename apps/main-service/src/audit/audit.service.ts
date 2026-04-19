@@ -29,6 +29,34 @@ export class AuditService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
+   * Resolve actor name and email from Agent or Collaborator tables.
+   * The actorId may be a DB Agent.id, Agent.authSubject, or Collaborator.id.
+   */
+  private async resolveActor(actorId: string): Promise<{ actorName?: string; actorEmail?: string }> {
+    try {
+      // Try Agent by id first
+      const agentById = await this.prisma.agent.findUnique({ where: { id: actorId }, select: { name: true, email: true } });
+      if (agentById) return { actorName: agentById.name, actorEmail: agentById.email };
+
+      // Try Agent by authSubject
+      const agentBySub = await this.prisma.agent.findFirst({ where: { authSubject: actorId }, select: { name: true, email: true } });
+      if (agentBySub) return { actorName: agentBySub.name, actorEmail: agentBySub.email };
+
+      // Try Collaborator by id
+      const collaborator = await this.prisma.collaborator.findUnique({ where: { id: actorId }, select: { name: true, email: true } });
+      if (collaborator) return { actorName: collaborator.name, actorEmail: collaborator.email };
+
+      // Try Collaborator by authSubject
+      const collaboratorBySub = await this.prisma.collaborator.findFirst({ where: { authSubject: actorId }, select: { name: true, email: true } });
+      if (collaboratorBySub) return { actorName: collaboratorBySub.name, actorEmail: collaboratorBySub.email };
+    } catch {
+      // Non-blocking: if resolution fails, log without enrichment
+    }
+
+    return {};
+  }
+
+  /**
    * Records an audit log enforcing LGPD accountability.
    *
    * @param actorId UUID of the user/system conducting the action
@@ -49,6 +77,13 @@ export class AuditService {
         ? { actorId: actorIdOrOptions, actionType: actionType!, actionDetail: actionDetail!, ipAddress }
         : actorIdOrOptions;
 
+    // Auto-enrich actorName/actorEmail if not provided
+    if (!opts.actorName || !opts.actorEmail) {
+      const resolved = await this.resolveActor(opts.actorId);
+      opts.actorName = opts.actorName ?? resolved.actorName;
+      opts.actorEmail = opts.actorEmail ?? resolved.actorEmail;
+    }
+
     try {
       await this.prisma.auditLog.create({
         data: {
@@ -61,7 +96,7 @@ export class AuditService {
           ipAddress: opts.ipAddress,
         },
       });
-      this.logger.log(`[${opts.actionType}] Actor: ${opts.actorId} - ${opts.actionDetail} - IP: ${opts.ipAddress || 'unknown'}`);
+      this.logger.log(`[${opts.actionType}] Actor: ${opts.actorName ?? opts.actorId} <${opts.actorEmail ?? '?'}> - ${opts.actionDetail} - IP: ${opts.ipAddress || 'unknown'}`);
     } catch (error) {
       this.logger.error(`Critical LGPD audit drop failure:`, error);
     }
