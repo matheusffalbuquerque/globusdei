@@ -76,6 +76,14 @@ export class AgentService {
     return this.agents.upsertFromIdentity(params);
   }
 
+  async getPublicProfile(slug: string) {
+    const agent = await this.agents.findPublicBySlug(slug);
+    if (!agent || !agent.isActive || agent.status !== 'APPROVED') {
+      throw new NotFoundException(`Perfil não encontrado.`);
+    }
+    return agent;
+  }
+
   async checkSlug(slug: string, currentAgentId?: string) {
     if (!/^[a-z0-9-]+$/.test(slug)) {
       return { available: false, reason: 'Formato inválido. Use apenas minúsculas, números e hifens.' };

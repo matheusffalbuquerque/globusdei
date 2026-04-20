@@ -17,7 +17,9 @@ import {
   Briefcase,
   GraduationCap,
   Award,
-  Calendar
+  Calendar,
+  Lightbulb,
+  Languages,
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -297,7 +299,7 @@ export default function AgentProfilePage() {
                 )}
                 {agent.skills?.length > 0 && (
                   <div>
-                    <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Competências</p>
+                    <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground"><Lightbulb className="w-3 h-3" /> Competências</p>
                     <div className="flex flex-wrap gap-2">
                       {agent.skills.map((s: { skill: { id: string, name: string } }) => (
                         <Badge key={s.skill.id} variant="outline" className="border-primary/20 bg-primary/5">{s.skill.name}</Badge>
@@ -307,7 +309,7 @@ export default function AgentProfilePage() {
                 )}
                 {agent.languages?.length > 0 && (
                   <div>
-                    <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Idiomas</p>
+                    <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground"><Languages className="w-3 h-3" /> Idiomas</p>
                     <div className="flex flex-wrap gap-2">
                       {agent.languages.map((l: { language: { id: string, name: string }; proficiencyLevel: string }) => (
                          <Badge key={l.language.id} variant="secondary">

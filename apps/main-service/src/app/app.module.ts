@@ -17,6 +17,7 @@ import { PrayerRequestModule } from '../prayer-request/prayer-request.module';
 import { NotificationModule } from '../notification/notification.module';
 import { InvestmentModule } from '../investment/investment.module';
 import { SystemConfigModule } from '../system-config/system-config.module';
+import { LocationModule } from '../location/location.module';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -38,6 +39,7 @@ import { AppService } from './app.service';
     PlatformModule,
     AcademyModule,
     SystemConfigModule,
+    LocationModule,
   ],
   controllers: [AppController],
   providers: [AppService, KeycloakAuthGuard, PoliciesGuard],

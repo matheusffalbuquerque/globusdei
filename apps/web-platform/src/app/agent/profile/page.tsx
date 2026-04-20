@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../../../components/ui/dialog';
 import { ProfileHistoryTab, ProfileExperience, ProfileEducation, ProfileCourse } from '../../../components/profile/ProfileHistoryTab';
 import { ProfileAbilitiesTab } from '../../../components/profile/ProfileAbilitiesTab';
+import { LocationAutocomplete } from '../../../components/ui/LocationAutocomplete';
 
 type ProfileForm = {
   phone: string;
@@ -285,34 +286,22 @@ export default function AgentProfilePage() {
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">Cidade base</label>
-                <Input
-                  type="text"
-                  value={form.city}
-                  onChange={(e) => setForm((c) => ({ ...c, city: e.target.value }))}
-                  placeholder="Cidade"
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="text-sm font-medium text-foreground">Localização <span className="text-red-500">*</span></label>
+                <LocationAutocomplete 
+                  session={session as AppSession} 
+                  initialValue={[form.city, form.state, form.country].filter(Boolean).join(', ')}
+                  onSelect={(loc, rawText) => {
+                    setForm(c => ({
+                      ...c,
+                      city: loc.city,
+                      state: loc.state,
+                      country: loc.country || rawText // fallback
+                    }));
+                  }}
+                  placeholder="Selecione sua cidade, estado ou país da lista..."
                 />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">Estado</label>
-                <Input
-                  type="text"
-                  value={form.state}
-                  onChange={(e) => setForm((c) => ({ ...c, state: e.target.value }))}
-                  placeholder="Estado"
-                />
-              </div>
-
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">País</label>
-                <Input
-                  type="text"
-                  value={form.country}
-                  onChange={(e) => setForm((c) => ({ ...c, country: e.target.value }))}
-                  placeholder="País"
-                />
+                <p className="text-xs text-muted-foreground mt-1">Busque e selecione a opção que aparecer na lista. O país é preenchido automaticamente.</p>
               </div>
               
               <div className="space-y-1.5">

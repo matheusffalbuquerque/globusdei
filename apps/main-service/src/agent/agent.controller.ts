@@ -13,6 +13,18 @@ import { CreateAgentCourseDto } from './dto/courses/create-course.dto';
 import { AgentService } from './agent.service';
 
 @ApiTags('agents')
+@Controller('agents')
+export class PublicAgentController {
+  constructor(private readonly agentService: AgentService) {}
+
+  /** Perfil público de um agente pelo slug — sem autenticação */
+  @Get('public/:slug')
+  getPublicProfile(@Param('slug') slug: string) {
+    return this.agentService.getPublicProfile(slug);
+  }
+}
+
+@ApiTags('agents')
 @ApiBearerAuth()
 @Controller('agents')
 @UseGuards(KeycloakAuthGuard, PoliciesGuard)

@@ -76,6 +76,47 @@ export class AgentRepository {
     });
   }
 
+  findPublicBySlug(slug: string) {
+    return this.prisma.agent.findUnique({
+      where: { slug },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        publicBio: true,
+        shortDescription: true,
+        photoUrl: true,
+        coverUrl: true,
+        city: true,
+        state: true,
+        country: true,
+        portfolioUrl: true,
+        currentDenomination: true,
+        status: true,
+        isActive: true,
+        vocationalAreas: {
+          include: { vocationalArea: true },
+        },
+        skills: {
+          include: { skill: true },
+        },
+        languages: {
+          include: { language: true },
+        },
+        experiences: {
+          include: { experienceType: true },
+          orderBy: { startDate: 'desc' },
+        },
+        education: {
+          orderBy: { startDate: 'desc' },
+        },
+        courses: {
+          orderBy: { issueDate: 'desc' },
+        },
+      },
+    });
+  }
+
   async upsertFromIdentity(params: {
     authSubject: string;
     email: string;
