@@ -47,7 +47,6 @@ type AgentProfile = {
   name: string;
   email: string;
   status: string;
-  vocationType?: string | null;
   city?: string | null;
   country?: string | null;
 };
@@ -158,9 +157,6 @@ export function AgentPortalShell({ children }: { children: ReactNode }) {
           <Badge variant="secondary" className="w-fit border-white/10 bg-white/5 text-[10px] font-semibold uppercase tracking-wider text-slate-300">
             {formatAgentStatus(agent?.status)}
           </Badge>
-          {agent?.vocationType && (
-            <p className="text-[11px] text-slate-400">{agent.vocationType}</p>
-          )}
         </div>
       </div>
 

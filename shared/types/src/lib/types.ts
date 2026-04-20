@@ -15,12 +15,6 @@ export interface User {
  * who are registered to receive support or participate in initiatives.
  */
 export interface Agent extends User {
-  /** The specific role or vocation of the agent (e.g. Missionary, Student, Pastor) */
-  vocationType: string;
-  
-  /** Detailed background information and current needs of the agent */
-  description: string;
-  
   /** Determines if the agent is currently active in the field */
   isActive: boolean;
 }

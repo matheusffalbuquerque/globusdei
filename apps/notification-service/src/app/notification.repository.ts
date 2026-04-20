@@ -34,8 +34,7 @@ export class NotificationRepository {
         authSubject: params.authSubject,
         email: params.email,
         name: params.name,
-        vocationType: 'Não informado',
-        description: 'Perfil criado automaticamente pelo NotificationService.',
+        status: 'ENTERED',
       },
     });
   }

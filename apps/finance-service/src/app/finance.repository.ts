@@ -29,7 +29,7 @@ export class FinanceRepository {
   listAgents() {
     return this.prisma.agent.findMany({
       where: { isActive: true },
-      select: { id: true, name: true, email: true, vocationType: true, city: true, country: true },
+      select: { id: true, name: true, email: true, city: true, country: true },
       orderBy: { name: 'asc' },
     });
   }

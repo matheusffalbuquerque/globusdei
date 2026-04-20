@@ -1,5 +1,7 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { IsBoolean, IsOptional, IsString, IsDateString } from 'class-validator';
+import { LanguageProficiency } from '@prisma/client';
+import { Type } from 'class-transformer';
 
 export class UpdateAgentProfileDto {
   @ApiPropertyOptional()
@@ -52,15 +54,7 @@ export class UpdateAgentProfileDto {
   @IsString()
   nationalityId?: string;
 
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  vocationType?: string;
 
-  @ApiPropertyOptional()
-  @IsOptional()
-  @IsString()
-  description?: string;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -81,4 +75,16 @@ export class UpdateAgentProfileDto {
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  vocationalAreaIds?: string[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  skillIds?: string[];
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  languageRecords?: { languageId: string; proficiencyLevel: LanguageProficiency }[];
 }

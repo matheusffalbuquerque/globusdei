@@ -11,7 +11,6 @@ type PlatformAgentDirectoryItem = {
   email: string;
   city: string | null;
   country: string | null;
-  vocationType: string;
   status: AgentStatus;
   isActive: boolean;
   createdAt: Date;
@@ -39,7 +38,6 @@ type TeamCollaboratorDirectoryItem = {
     status: AgentStatus;
     city: string | null;
     country: string | null;
-    vocationType: string;
     isActive: boolean;
   } | null;
 };
@@ -58,7 +56,6 @@ export class CollaboratorRepository {
     email: true,
     city: true,
     country: true,
-    vocationType: true,
     status: true,
     isActive: true,
     createdAt: true,
@@ -212,7 +209,6 @@ export class CollaboratorRepository {
               { email: { contains: dto.search, mode: 'insensitive' } },
               { city: { contains: dto.search, mode: 'insensitive' } },
               { country: { contains: dto.search, mode: 'insensitive' } },
-              { vocationType: { contains: dto.search, mode: 'insensitive' } },
             ],
           }
         : {}),
@@ -378,7 +374,6 @@ export class CollaboratorRepository {
                 status: agent.status,
                 city: agent.city,
                 country: agent.country,
-                vocationType: agent.vocationType,
                 isActive: agent.isActive,
               }
             : null,

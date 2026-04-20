@@ -29,6 +29,7 @@ import {
   TrendingUp,
   ScrollText,
   Menu,
+  Settings,
 } from 'lucide-react';
 
 import { apiFetch } from '../../lib/api';
@@ -220,6 +221,12 @@ export function CollaboratorPortalShell({ children }: { children: ReactNode }) {
       href: '/colaborador/logs',
       label: 'Logs da Plataforma',
       icon: ScrollText,
+      visible: permissions.isAdmin,
+    },
+    {
+      href: '/colaborador/configuracoes',
+      label: 'Configurações',
+      icon: Settings,
       visible: permissions.isAdmin,
     },
   ];

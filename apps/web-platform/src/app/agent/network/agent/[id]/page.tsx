@@ -13,7 +13,14 @@ import {
   UserCheck,
   UserPlus,
   X,
+  Building2,
+  Briefcase,
+  GraduationCap,
+  Award,
+  Calendar
 } from 'lucide-react';
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 import { apiFetch } from '../../../../../lib/api';
 import { type AppSession } from '../../../../../lib/auth';
@@ -30,7 +37,6 @@ type AgentDetail = {
   email: string;
   city: string | null;
   country: string | null;
-  vocationType: string;
   publicBio: string | null;
   status: string;
   connection: {
@@ -38,6 +44,12 @@ type AgentDetail = {
     status: ConnectionStatus;
     isSender: boolean;
   } | null;
+  experiences?: { id: string; title: string; organization: string; startDate: string; endDate?: string; description?: string }[];
+  education?: { id: string; course: string; degree?: string; institution: string; startDate: string; endDate?: string }[];
+  courses?: { id: string; title: string; institution: string; issueDate?: string }[];
+  skills?: { skill: { id: string; name: string } }[];
+  languages?: { language: { id: string; name: string }; proficiencyLevel: string }[];
+  vocationalAreas?: { vocationalArea: { id: string; name: string } }[];
 };
 
 function initials(name: string) {
@@ -60,11 +72,13 @@ export default function AgentProfilePage() {
   const loadAgent = async () => {
     if (!session || !agentId) return;
     try {
-      // Fetch all agents and find the one with matching id
-      const all: AgentDetail[] = await apiFetch('/connections/agents', { session: s });
-      const found = all.find((a) => a.id === agentId);
+      const [all, agentProfile] = await Promise.all([
+        apiFetch('/connections/agents', { session: s }),
+        apiFetch(`/agents/${agentId}`, { session: s })
+      ]);
+      const found = all.find((a: AgentDetail) => a.id === agentId);
       if (!found) throw new Error('Agente não encontrado.');
-      setAgent(found);
+      setAgent({ ...agentProfile, connection: found.connection });
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -176,9 +190,6 @@ export default function AgentProfilePage() {
           <div className="flex items-start justify-between gap-4">
             <div>
               <h1 className="text-xl font-bold text-foreground">{agent.name}</h1>
-              {agent.vocationType && (
-                <p className="text-sm text-muted-foreground">{agent.vocationType}</p>
-              )}
             </div>
 
             <div className="flex shrink-0 gap-2">
@@ -265,6 +276,101 @@ export default function AgentProfilePage() {
               <div>
                 <p className="mb-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Sobre</p>
                 <p className="text-sm leading-relaxed text-foreground whitespace-pre-line">{agent.publicBio}</p>
+              </div>
+            </>
+          )}
+
+          {/* Habilidades e Idiomas */}
+          {(agent.skills?.length > 0 || agent.languages?.length > 0 || agent.vocationalAreas?.length > 0) && (
+            <>
+              <Separator className="my-5" />
+              <div className="space-y-4">
+                {agent.vocationalAreas?.length > 0 && (
+                  <div>
+                    <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Áreas de Atuação</p>
+                    <div className="flex flex-wrap gap-2">
+                      {agent.vocationalAreas.map((v: { vocationalArea: { id: string, name: string } }) => (
+                        <Badge key={v.vocationalArea.id} variant="secondary">{v.vocationalArea.name}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {agent.skills?.length > 0 && (
+                  <div>
+                    <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Competências</p>
+                    <div className="flex flex-wrap gap-2">
+                      {agent.skills.map((s: { skill: { id: string, name: string } }) => (
+                        <Badge key={s.skill.id} variant="outline" className="border-primary/20 bg-primary/5">{s.skill.name}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {agent.languages?.length > 0 && (
+                  <div>
+                    <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Idiomas</p>
+                    <div className="flex flex-wrap gap-2">
+                      {agent.languages.map((l: { language: { id: string, name: string }; proficiencyLevel: string }) => (
+                         <Badge key={l.language.id} variant="secondary">
+                           {l.language.name} <span className="opacity-50 ml-1">({l.proficiencyLevel})</span>
+                         </Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+
+          {/* Histórico */}
+          {(agent.experiences?.length > 0 || agent.education?.length > 0 || agent.courses?.length > 0) && (
+            <>
+              <Separator className="my-5" />
+              <div className="space-y-6">
+                {agent.experiences?.length > 0 && (
+                  <div>
+                    <p className="mb-3 text-[11px] font-medium uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><Briefcase className="w-3.5 h-3.5"/> Experiência</p>
+                    <div className="space-y-4">
+                      {agent.experiences.map((exp: { id: string; title: string; organization: string; startDate: string; endDate?: string; description?: string }) => (
+                        <div key={exp.id} className="relative pl-4 border-l-2 border-muted">
+                          <h4 className="font-semibold text-sm">{exp.title}</h4>
+                          <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5"><Building2 className="w-3 h-3"/> {exp.organization}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5"><Calendar className="w-3 h-3"/> {exp.startDate ? format(new Date(exp.startDate), "MMM yyyy", { locale: ptBR }) : ''} - {exp.endDate ? format(new Date(exp.endDate), "MMM yyyy", { locale: ptBR }) : 'Atualmente'}</p>
+                          {exp.description && <p className="text-sm mt-1.5 text-muted-foreground line-clamp-3">{exp.description}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                
+                {agent.education?.length > 0 && (
+                  <div>
+                    <p className="mb-3 text-[11px] font-medium uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><GraduationCap className="w-3.5 h-3.5"/> Formação Acadêmica</p>
+                    <div className="space-y-4">
+                      {agent.education.map((edu: { id: string; course: string; degree?: string; institution: string; startDate: string; endDate?: string }) => (
+                        <div key={edu.id} className="relative pl-4 border-l-2 border-muted">
+                          <h4 className="font-semibold text-sm">{edu.course} {edu.degree ? `(${edu.degree})` : ''}</h4>
+                          <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5"><Building2 className="w-3 h-3"/> {edu.institution}</p>
+                          <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5"><Calendar className="w-3 h-3"/> {edu.startDate ? format(new Date(edu.startDate), "MMM yyyy", { locale: ptBR }) : ''} - {edu.endDate ? format(new Date(edu.endDate), "MMM yyyy", { locale: ptBR }) : 'Concluído'}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {agent.courses?.length > 0 && (
+                  <div>
+                    <p className="mb-3 text-[11px] font-medium uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><Award className="w-3.5 h-3.5"/> Cursos e Certificações</p>
+                    <div className="space-y-4">
+                      {agent.courses.map((course: { id: string; title: string; institution: string; issueDate?: string }) => (
+                        <div key={course.id} className="relative pl-4 border-l-2 border-muted">
+                          <h4 className="font-semibold text-sm">{course.title}</h4>
+                          <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5"><Building2 className="w-3 h-3"/> {course.institution}</p>
+                          {course.issueDate && <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5"><Calendar className="w-3 h-3"/> Emitido em {format(new Date(course.issueDate), "MMM yyyy", { locale: ptBR })}</p>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           )}

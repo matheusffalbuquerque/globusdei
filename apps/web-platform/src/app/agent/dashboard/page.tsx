@@ -143,9 +143,6 @@ export default function AgentDashboard() {
             <p className="mt-1.5 text-base font-semibold text-white">
               {formatAgentStatus(agent?.status)}
             </p>
-            <p className="mt-0.5 text-xs text-slate-400">
-              {agent?.vocationType || 'Vocação ainda não informada'}
-            </p>
           </div>
         </CardContent>
       </Card>

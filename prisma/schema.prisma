@@ -189,10 +189,8 @@ model Agent {
   birthDate             DateTime?
   nationalityId         String?
   nationality           Nationality?            @relation(fields: [nationalityId], references: [id])
-  vocationType          String
   currentDenomination   String?
   shortDescription      String?                 @db.Text
-  description           String                  @db.Text
   publicBio             String?                 @db.Text
   privateNotes          String?                 @db.Text
   city                  String?

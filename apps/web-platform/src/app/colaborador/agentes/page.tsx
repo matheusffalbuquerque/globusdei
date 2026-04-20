@@ -44,7 +44,6 @@ type AgentDirectoryItem = {
   email: string;
   city: string | null;
   country: string | null;
-  vocationType: string;
   status: string;
   isActive: boolean;
   collaborator: {
@@ -333,10 +332,9 @@ export default function CollaboratorAgentsPage() {
                       </TableCell>
 
                       <TableCell>
-                        <div className="space-y-1">
-                          <p className="text-sm font-medium text-foreground">{agent.vocationType}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {agent.isActive ? 'Conta ativa' : 'Conta inativa'}
+                        <div className="flex flex-col gap-1.5">
+                          <p className="text-sm font-medium text-foreground">
+                            {[agent.city, agent.country].filter(Boolean).join(', ') || 'Origem não informada'}
                           </p>
                         </div>
                       </TableCell>

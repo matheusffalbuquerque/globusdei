@@ -4,6 +4,9 @@ import { AuditService, AuditType } from '../audit/audit.service';
 import type { AuthenticatedUser } from '../auth/user-context.interface';
 import { AgentRepository } from './agent.repository';
 import { UpdateAgentProfileDto } from './dto/update-agent-profile.dto';
+import { CreateAgentExperienceDto } from './dto/experiences/create-experience.dto';
+import { CreateAgentEducationDto } from './dto/education/create-education.dto';
+import { CreateAgentCourseDto } from './dto/courses/create-course.dto';
 
 @Injectable()
 export class AgentService {
@@ -85,5 +88,35 @@ export class AgentService {
       return { available: true };
     }
     return { available: false, reason: 'O slug já está em uso.' };
+  }
+  // --- Profile Nested Entities CRUD ---
+  async addExperience(user: AuthenticatedUser, data: CreateAgentExperienceDto) {
+    const agent = await this.getMe(user);
+    return this.agents.addExperience(agent.id, data);
+  }
+
+  async removeExperience(user: AuthenticatedUser, experienceId: string) {
+    const agent = await this.getMe(user);
+    return this.agents.removeExperience(agent.id, experienceId);
+  }
+
+  async addEducation(user: AuthenticatedUser, data: CreateAgentEducationDto) {
+    const agent = await this.getMe(user);
+    return this.agents.addEducation(agent.id, data);
+  }
+
+  async removeEducation(user: AuthenticatedUser, educationId: string) {
+    const agent = await this.getMe(user);
+    return this.agents.removeEducation(agent.id, educationId);
+  }
+
+  async addCourse(user: AuthenticatedUser, data: CreateAgentCourseDto) {
+    const agent = await this.getMe(user);
+    return this.agents.addCourse(agent.id, data);
+  }
+
+  async removeCourse(user: AuthenticatedUser, courseId: string) {
+    const agent = await this.getMe(user);
+    return this.agents.removeCourse(agent.id, courseId);
   }
 }

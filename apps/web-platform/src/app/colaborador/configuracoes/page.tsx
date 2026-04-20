@@ -20,7 +20,7 @@ export default async function SettingsPage() {
   return (
     <div className="flex-1 space-y-4 p-8 pt-6">
       <div className="flex items-center justify-between space-y-2">
-        <h2 className="text-3xl font-bold tracking-tight">Configurações Base</h2>
+        <h2 className="text-3xl font-bold tracking-tight">Configurações</h2>
       </div>
       <p className="text-muted-foreground">
         Gerencie as listas de opções exibidas nos perfis dos agentes e nos formulários da plataforma.

@@ -43,7 +43,6 @@ type TeamCollaboratorItem = {
     status: string;
     city: string | null;
     country: string | null;
-    vocationType: string;
     isActive: boolean;
   } | null;
 };
@@ -270,10 +269,7 @@ export default function CollaboratorsDirectoryPage() {
 
                     <TableCell>
                       {collaborator.agent ? (
-                        <div className="space-y-1">
-                          <p className="text-sm font-medium text-foreground">
-                            {collaborator.agent.vocationType}
-                          </p>
+                        <div className="flex shrink-0 flex-col items-end gap-1 text-right">
                           <p className="text-xs text-muted-foreground">
                             {[collaborator.agent.city, collaborator.agent.country].filter(Boolean).join(', ') || 'Origem não informada'}
                           </p>

@@ -14,11 +14,12 @@ import { Input } from '../../../components/ui/input';
 import { Separator } from '../../../components/ui/separator';
 import { Textarea } from '../../../components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '../../../components/ui/dialog';
+import { ProfileHistoryTab, ProfileExperience, ProfileEducation, ProfileCourse } from '../../../components/profile/ProfileHistoryTab';
+import { ProfileAbilitiesTab } from '../../../components/profile/ProfileAbilitiesTab';
 
 type ProfileForm = {
   phone: string;
-  vocationType: string;
-  description: string;
   publicBio: string;
   city: string;
   country: string;
@@ -30,6 +31,9 @@ type ProfileForm = {
   currentDenomination: string;
   shortDescription: string;
   portfolioUrl: string;
+  vocationalAreaIds: string[];
+  skillIds: string[];
+  languageRecords: { languageId: string; proficiencyLevel: string }[];
 };
 
 function agentStatusVariant(s?: string) {
@@ -49,8 +53,6 @@ export default function AgentProfilePage() {
   const { agent, reloadAgent } = useAgentPortal();
   const [form, setForm] = useState<ProfileForm>({
     phone: '',
-    vocationType: '',
-    description: '',
     publicBio: '',
     city: '',
     country: '',
@@ -62,7 +64,16 @@ export default function AgentProfilePage() {
     currentDenomination: '',
     shortDescription: '',
     portfolioUrl: '',
+    vocationalAreaIds: [],
+    skillIds: [],
+    languageRecords: [],
   });
+  
+  const [experiences, setExperiences] = useState<ProfileExperience[]>([]);
+  const [education, setEducation] = useState<ProfileEducation[]>([]);
+  const [courses, setCourses] = useState<ProfileCourse[]>([]);
+  
+  const [vocationalAreasList, setVocationalAreasList] = useState<{ id: string; name: string }[]>([]);
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [error, setError] = useState<string | null>(null);
 
@@ -71,12 +82,14 @@ export default function AgentProfilePage() {
       return;
     }
 
-    void apiFetch('/agents/me', { session: session as AppSession })
-      .then((profile) =>
+    Promise.all([
+      apiFetch('/agents/me', { session: session as AppSession }),
+      apiFetch('/system-config/vocational-areas', { session: session as AppSession })
+    ])
+      .then(([profile, areas]) => {
+        setVocationalAreasList(areas);
         setForm({
           phone: profile.phone ?? '',
-          vocationType: profile.vocationType ?? '',
-          description: profile.description ?? '',
           publicBio: profile.publicBio ?? '',
           city: profile.city ?? '',
           country: profile.country ?? '',
@@ -88,8 +101,14 @@ export default function AgentProfilePage() {
           currentDenomination: profile.currentDenomination ?? '',
           shortDescription: profile.shortDescription ?? '',
           portfolioUrl: profile.portfolioUrl ?? '',
-        }),
-      )
+          vocationalAreaIds: profile.vocationalAreas?.map((v: { vocationalAreaId: string }) => v.vocationalAreaId) ?? [],
+          skillIds: profile.skills?.map((s: { skillId: string }) => s.skillId) ?? [],
+          languageRecords: profile.languages?.map((l: { languageId: string; proficiencyLevel: string }) => ({ languageId: l.languageId, proficiencyLevel: l.proficiencyLevel })) ?? [],
+        });
+        setExperiences(profile.experiences ?? []);
+        setEducation(profile.education ?? []);
+        setCourses(profile.courses ?? []);
+      })
       .catch((requestError) => setError((requestError as Error).message));
   }, [session]);
 
@@ -110,6 +129,17 @@ export default function AgentProfilePage() {
       setError((requestError as Error).message);
       setStatus('idle');
     }
+  };
+
+  const loadAgentProfile = () => {
+    if (!session) return;
+    apiFetch('/agents/me', { session: session as AppSession })
+      .then((profile) => {
+        setExperiences(profile.experiences ?? []);
+        setEducation(profile.education ?? []);
+        setCourses(profile.courses ?? []);
+      })
+      .catch(console.error);
   };
 
   return (
@@ -149,7 +179,7 @@ export default function AgentProfilePage() {
                 <label className="text-sm font-medium text-foreground">Slug (Sua URL Base)</label>
                 <div className="flex items-center">
                    <span className="bg-muted px-3 py-2 border border-r-0 border-border rounded-l-md text-sm text-muted-foreground flex-shrink-0">
-                     globusdei.com/
+                     globusdei.org/
                    </span>
                    <Input
                     className="rounded-l-none"
@@ -181,14 +211,68 @@ export default function AgentProfilePage() {
                 />
               </div>
 
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">Vocação</label>
-                <Input
-                  type="text"
-                  value={form.vocationType}
-                  onChange={(e) => setForm((c) => ({ ...c, vocationType: e.target.value }))}
-                  placeholder="Missionário, mobilizador, intercessor…"
-                />
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="text-sm font-medium text-foreground">Áreas de Atuação & Vocação</label>
+                <div className="flex flex-col gap-3">
+                  <div className="flex flex-wrap gap-2">
+                    {form.vocationalAreaIds.length === 0 ? (
+                      <span className="text-sm text-muted-foreground italic">Nenhuma área selecionada</span>
+                    ) : (
+                      form.vocationalAreaIds.map((vId) => {
+                        const area = vocationalAreasList.find(a => a.id === vId);
+                        return area ? (
+                          <Badge key={vId} variant="secondary" className="gap-1 px-2.5 py-1">
+                            {area.name}
+                            <button
+                              type="button"
+                              className="ml-1 text-muted-foreground hover:text-foreground"
+                              onClick={() => setForm(c => ({
+                                ...c,
+                                vocationalAreaIds: c.vocationalAreaIds.filter(id => id !== vId)
+                              }))}
+                            >
+                              &times;
+                            </button>
+                          </Badge>
+                        ) : null;
+                      })
+                    )}
+                  </div>
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <Button type="button" variant="outline" size="sm" className="w-fit">
+                        Adicionar área de atuação
+                      </Button>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Selecione as áreas de atuação</DialogTitle>
+                      </DialogHeader>
+                      <div className="max-h-[300px] overflow-y-auto space-y-2 mt-4 px-1">
+                        {vocationalAreasList.map((area) => {
+                          const isSelected = form.vocationalAreaIds.includes(area.id);
+                          return (
+                            <label key={area.id} className="flex items-center gap-3 p-2 rounded-md hover:bg-muted/50 cursor-pointer border border-transparent hover:border-border transition-colors">
+                              <input
+                                type="checkbox"
+                                className="h-4 w-4 rounded border-border accent-primary"
+                                checked={isSelected}
+                                onChange={(e) => {
+                                  if (e.target.checked) {
+                                    setForm(c => ({ ...c, vocationalAreaIds: [...c.vocationalAreaIds, area.id] }));
+                                  } else {
+                                    setForm(c => ({ ...c, vocationalAreaIds: c.vocationalAreaIds.filter(id => id !== area.id) }));
+                                  }
+                                }}
+                              />
+                              <span className="text-sm font-medium">{area.name}</span>
+                            </label>
+                          );
+                        })}
+                      </div>
+                    </DialogContent>
+                  </Dialog>
+                </div>
               </div>
 
               <div className="space-y-1.5 md:col-span-2">
@@ -240,26 +324,6 @@ export default function AgentProfilePage() {
                   placeholder="https://..."
                 />
               </div>
-
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">País</label>
-                <Input
-                  type="text"
-                  value={form.country}
-                  onChange={(e) => setForm((c) => ({ ...c, country: e.target.value }))}
-                  placeholder="País"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Descrição interna</label>
-              <Textarea
-                rows={5}
-                value={form.description}
-                onChange={(e) => setForm((c) => ({ ...c, description: e.target.value }))}
-                placeholder="Descreva sua atuação, disponibilidade e foco ministerial."
-              />
             </div>
 
             <div className="space-y-1.5">
@@ -314,25 +378,23 @@ export default function AgentProfilePage() {
       </TabsContent>
       
       <TabsContent value="historico">
-        <Card>
-          <CardHeader>
-             <CardTitle>Linha do Tempo (Histórico)</CardTitle>
-          </CardHeader>
-          <CardContent>
-             <p className="text-sm text-muted-foreground">O módulo de histórico de experiências estará disponível nas próximas atualizações para montagem da linha do tempo.</p>
-          </CardContent>
-        </Card>
+        <ProfileHistoryTab 
+           session={session as AppSession} 
+           initialExperiences={experiences} 
+           initialEducation={education} 
+           initialCourses={courses} 
+           onChanged={loadAgentProfile} 
+        />
       </TabsContent>
 
       <TabsContent value="habilidades">
-        <Card>
-          <CardHeader>
-             <CardTitle>Habilidades & Acadêmico</CardTitle>
-          </CardHeader>
-          <CardContent>
-             <p className="text-sm text-muted-foreground">O painel avançado de idiomas e competências conectadas ao sistema mestre estará disponível em breve.</p>
-          </CardContent>
-        </Card>
+        <ProfileAbilitiesTab 
+           session={session as AppSession}
+           form={form}
+           setForm={setForm}
+           handleSubmit={handleSubmit}
+           status={status}
+        />
       </TabsContent>
       
       </Tabs>
@@ -365,14 +427,7 @@ export default function AgentProfilePage() {
                 {agent?.email ?? 'Sem email'}
               </p>
             </div>
-            <div className="rounded-lg bg-muted/40 p-3">
-              <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
-                Vocação
-              </p>
-              <p className="mt-1 text-sm font-medium text-foreground">
-                {agent?.vocationType || 'Ainda não definida'}
-              </p>
-            </div>
+
           </CardContent>
         </Card>
 

@@ -31,7 +31,6 @@ type AgentCard = {
   email: string;
   city: string | null;
   country: string | null;
-  vocationType: string;
   publicBio: string | null;
   status: string;
   connection: {
@@ -452,9 +451,6 @@ function AgentCardItem({
         >
           {agent.name}
         </button>
-        {agent.vocationType && (
-          <p className="mt-0.5 line-clamp-1 text-xs text-muted-foreground">{agent.vocationType}</p>
-        )}
         {(agent.city || agent.country) && (
           <p className="mt-0.5 text-[11px] text-muted-foreground">
             {[agent.city, agent.country].filter(Boolean).join(', ')}

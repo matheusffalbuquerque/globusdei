@@ -4,7 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 
 const AGENT_SELECT = {
   id: true, name: true, email: true, city: true, country: true,
-  vocationType: true, publicBio: true, status: true,
+  publicBio: true, status: true,
 } as const;
 
 @Injectable()
