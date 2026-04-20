@@ -173,6 +173,7 @@ jobs:
           SMTP_PASS=${{ secrets.SMTP_PASS }}
           MAIL_FROM_NAME=${{ secrets.MAIL_FROM_NAME }}
           MAIL_FROM_ADDRESS=${{ secrets.MAIL_FROM_ADDRESS }}
+          GOOGLE_PLACES_API_KEY=${{ secrets.GOOGLE_PLACES_API_KEY }}
           ENVEOF
           echo '→ .env gerado com sucesso'
           SSHSCRIPT
