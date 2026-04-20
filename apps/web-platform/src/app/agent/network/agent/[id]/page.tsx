@@ -283,7 +283,7 @@ export default function AgentProfilePage() {
           )}
 
           {/* Habilidades e Idiomas */}
-          {(agent.skills?.length > 0 || agent.languages?.length > 0 || agent.vocationalAreas?.length > 0) && (
+          {((agent.skills?.length ?? 0) > 0 || (agent.languages?.length ?? 0) > 0 || (agent.vocationalAreas?.length ?? 0) > 0) && (
             <>
               <Separator className="my-5" />
               <div className="space-y-4">
