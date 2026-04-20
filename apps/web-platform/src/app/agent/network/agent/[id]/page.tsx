@@ -287,31 +287,31 @@ export default function AgentProfilePage() {
             <>
               <Separator className="my-5" />
               <div className="space-y-4">
-                {agent.vocationalAreas?.length > 0 && (
+                {(agent.vocationalAreas?.length ?? 0) > 0 && (
                   <div>
                     <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground">Áreas de Atuação</p>
                     <div className="flex flex-wrap gap-2">
-                      {agent.vocationalAreas.map((v: { vocationalArea: { id: string, name: string } }) => (
+                      {agent.vocationalAreas?.map((v: { vocationalArea: { id: string, name: string } }) => (
                         <Badge key={v.vocationalArea.id} variant="secondary">{v.vocationalArea.name}</Badge>
                       ))}
                     </div>
                   </div>
                 )}
-                {agent.skills?.length > 0 && (
+                {(agent.skills?.length ?? 0) > 0 && (
                   <div>
                     <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground"><Lightbulb className="w-3 h-3" /> Competências</p>
                     <div className="flex flex-wrap gap-2">
-                      {agent.skills.map((s: { skill: { id: string, name: string } }) => (
+                      {agent.skills?.map((s: { skill: { id: string, name: string } }) => (
                         <Badge key={s.skill.id} variant="outline" className="border-primary/20 bg-primary/5">{s.skill.name}</Badge>
                       ))}
                     </div>
                   </div>
                 )}
-                {agent.languages?.length > 0 && (
+                {(agent.languages?.length ?? 0) > 0 && (
                   <div>
                     <p className="mb-2 text-[11px] font-medium uppercase tracking-wider text-muted-foreground"><Languages className="w-3 h-3" /> Idiomas</p>
                     <div className="flex flex-wrap gap-2">
-                      {agent.languages.map((l: { language: { id: string, name: string }; proficiencyLevel: string }) => (
+                      {agent.languages?.map((l: { language: { id: string, name: string }; proficiencyLevel: string }) => (
                          <Badge key={l.language.id} variant="secondary">
                            {l.language.name} <span className="opacity-50 ml-1">({l.proficiencyLevel})</span>
                          </Badge>
@@ -324,15 +324,15 @@ export default function AgentProfilePage() {
           )}
 
           {/* Histórico */}
-          {(agent.experiences?.length > 0 || agent.education?.length > 0 || agent.courses?.length > 0) && (
+          {((agent.experiences?.length ?? 0) > 0 || (agent.education?.length ?? 0) > 0 || (agent.courses?.length ?? 0) > 0) && (
             <>
               <Separator className="my-5" />
               <div className="space-y-6">
-                {agent.experiences?.length > 0 && (
+                {(agent.experiences?.length ?? 0) > 0 && (
                   <div>
                     <p className="mb-3 text-[11px] font-medium uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><Briefcase className="w-3.5 h-3.5"/> Experiência</p>
                     <div className="space-y-4">
-                      {agent.experiences.map((exp: { id: string; title: string; organization: string; startDate: string; endDate?: string; description?: string }) => (
+                      {agent.experiences?.map((exp: { id: string; title: string; organization: string; startDate: string; endDate?: string; description?: string }) => (
                         <div key={exp.id} className="relative pl-4 border-l-2 border-muted">
                           <h4 className="font-semibold text-sm">{exp.title}</h4>
                           <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5"><Building2 className="w-3 h-3"/> {exp.organization}</p>
@@ -344,11 +344,11 @@ export default function AgentProfilePage() {
                   </div>
                 )}
                 
-                {agent.education?.length > 0 && (
+                {(agent.education?.length ?? 0) > 0 && (
                   <div>
                     <p className="mb-3 text-[11px] font-medium uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><GraduationCap className="w-3.5 h-3.5"/> Formação Acadêmica</p>
                     <div className="space-y-4">
-                      {agent.education.map((edu: { id: string; course: string; degree?: string; institution: string; startDate: string; endDate?: string }) => (
+                      {agent.education?.map((edu: { id: string; course: string; degree?: string; institution: string; startDate: string; endDate?: string }) => (
                         <div key={edu.id} className="relative pl-4 border-l-2 border-muted">
                           <h4 className="font-semibold text-sm">{edu.course} {edu.degree ? `(${edu.degree})` : ''}</h4>
                           <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5"><Building2 className="w-3 h-3"/> {edu.institution}</p>
@@ -359,11 +359,11 @@ export default function AgentProfilePage() {
                   </div>
                 )}
 
-                {agent.courses?.length > 0 && (
+                {(agent.courses?.length ?? 0) > 0 && (
                   <div>
                     <p className="mb-3 text-[11px] font-medium uppercase tracking-wider text-muted-foreground flex items-center gap-1.5"><Award className="w-3.5 h-3.5"/> Cursos e Certificações</p>
                     <div className="space-y-4">
-                      {agent.courses.map((course: { id: string; title: string; institution: string; issueDate?: string }) => (
+                      {agent.courses?.map((course: { id: string; title: string; institution: string; issueDate?: string }) => (
                         <div key={course.id} className="relative pl-4 border-l-2 border-muted">
                           <h4 className="font-semibold text-sm">{course.title}</h4>
                           <p className="text-xs text-muted-foreground flex items-center gap-1.5 mt-0.5"><Building2 className="w-3 h-3"/> {course.institution}</p>
