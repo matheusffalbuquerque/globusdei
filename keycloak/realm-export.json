@@ -39,6 +39,7 @@
   "bruteForceProtected": false,
   "permanentLockout": false,
   "maxTemporaryLockouts": 0,
+  "bruteForceStrategy": "MULTIPLE",
   "maxFailureWaitSeconds": 900,
   "minimumQuickLoginWaitSeconds": 60,
   "waitIncrementSeconds": 60,
@@ -537,6 +538,7 @@
       "frontchannelLogout": false,
       "protocol": "openid-connect",
       "attributes": {
+        "realm_client": "false",
         "post.logout.redirect.uris": "+"
       },
       "authenticationFlowBindingOverrides": {},
@@ -547,6 +549,7 @@
         "acr",
         "profile",
         "roles",
+        "basic",
         "email"
       ],
       "optionalClientScopes": [
@@ -581,6 +584,7 @@
       "frontchannelLogout": false,
       "protocol": "openid-connect",
       "attributes": {
+        "realm_client": "false",
         "post.logout.redirect.uris": "+",
         "pkce.code.challenge.method": "S256"
       },
@@ -602,6 +606,7 @@
         "acr",
         "profile",
         "roles",
+        "basic",
         "email"
       ],
       "optionalClientScopes": [
@@ -631,15 +636,19 @@
       "publicClient": true,
       "frontchannelLogout": false,
       "protocol": "openid-connect",
-      "attributes": {},
+      "attributes": {
+        "realm_client": "false",
+        "client.use.lightweight.access.token.enabled": "true"
+      },
       "authenticationFlowBindingOverrides": {},
-      "fullScopeAllowed": false,
+      "fullScopeAllowed": true,
       "nodeReRegistrationTimeout": 0,
       "defaultClientScopes": [
         "web-origins",
         "acr",
         "profile",
         "roles",
+        "basic",
         "email"
       ],
       "optionalClientScopes": [
@@ -669,7 +678,9 @@
       "publicClient": false,
       "frontchannelLogout": false,
       "protocol": "openid-connect",
-      "attributes": {},
+      "attributes": {
+        "realm_client": "true"
+      },
       "authenticationFlowBindingOverrides": {},
       "fullScopeAllowed": false,
       "nodeReRegistrationTimeout": 0,
@@ -721,8 +732,9 @@
       "frontchannelLogout": false,
       "protocol": "openid-connect",
       "attributes": {
-        "post.logout.redirect.uris": "+",
-        "client.secret.creation.time": "1776235482"
+        "realm_client": "false",
+        "client.secret.creation.time": "1776235482",
+        "post.logout.redirect.uris": "+"
       },
       "authenticationFlowBindingOverrides": {},
       "fullScopeAllowed": true,
@@ -732,6 +744,7 @@
         "acr",
         "profile",
         "roles",
+        "basic",
         "email"
       ],
       "optionalClientScopes": [
@@ -761,7 +774,9 @@
       "publicClient": false,
       "frontchannelLogout": false,
       "protocol": "openid-connect",
-      "attributes": {},
+      "attributes": {
+        "realm_client": "true"
+      },
       "authenticationFlowBindingOverrides": {},
       "fullScopeAllowed": false,
       "nodeReRegistrationTimeout": 0,
@@ -806,11 +821,13 @@
       "frontchannelLogout": false,
       "protocol": "openid-connect",
       "attributes": {
+        "realm_client": "false",
+        "client.use.lightweight.access.token.enabled": "true",
         "post.logout.redirect.uris": "+",
         "pkce.code.challenge.method": "S256"
       },
       "authenticationFlowBindingOverrides": {},
-      "fullScopeAllowed": false,
+      "fullScopeAllowed": true,
       "nodeReRegistrationTimeout": 0,
       "protocolMappers": [
         {
@@ -835,6 +852,7 @@
         "acr",
         "profile",
         "roles",
+        "basic",
         "email"
       ],
       "optionalClientScopes": [
@@ -853,8 +871,8 @@
       "protocol": "openid-connect",
       "attributes": {
         "include.in.token.scope": "true",
-        "display.on.consent.screen": "true",
-        "consent.screen.text": "${addressScopeConsentText}"
+        "consent.screen.text": "${addressScopeConsentText}",
+        "display.on.consent.screen": "true"
       },
       "protocolMappers": [
         {
@@ -929,8 +947,8 @@
       "protocol": "openid-connect",
       "attributes": {
         "include.in.token.scope": "true",
-        "display.on.consent.screen": "true",
-        "consent.screen.text": "${profileScopeConsentText}"
+        "consent.screen.text": "${profileScopeConsentText}",
+        "display.on.consent.screen": "true"
       },
       "protocolMappers": [
         {
@@ -1163,8 +1181,8 @@
       "protocol": "openid-connect",
       "attributes": {
         "include.in.token.scope": "true",
-        "display.on.consent.screen": "true",
-        "consent.screen.text": "${phoneScopeConsentText}"
+        "consent.screen.text": "${phoneScopeConsentText}",
+        "display.on.consent.screen": "true"
       },
       "protocolMappers": [
         {
@@ -1197,6 +1215,44 @@
             "access.token.claim": "true",
             "claim.name": "phone_number",
             "jsonType.label": "String"
+          }
+        }
+      ]
+    },
+    {
+      "id": "21ab9b6f-dc48-46f8-ba2a-b63eb0ba9a9a",
+      "name": "basic",
+      "description": "OpenID Connect scope for add all basic claims to the token",
+      "protocol": "openid-connect",
+      "attributes": {
+        "include.in.token.scope": "false",
+        "display.on.consent.screen": "false"
+      },
+      "protocolMappers": [
+        {
+          "id": "05877797-9439-495f-b754-30de6aabf44a",
+          "name": "sub",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-sub-mapper",
+          "consentRequired": false,
+          "config": {
+            "introspection.token.claim": "true",
+            "access.token.claim": "true"
+          }
+        },
+        {
+          "id": "49e800c5-e920-4fdd-879e-260b40fb0ab5",
+          "name": "auth_time",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usersessionmodel-note-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.session.note": "AUTH_TIME",
+            "id.token.claim": "true",
+            "introspection.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "auth_time",
+            "jsonType.label": "long"
           }
         }
       ]
@@ -1256,8 +1312,8 @@
       "protocol": "openid-connect",
       "attributes": {
         "include.in.token.scope": "false",
-        "display.on.consent.screen": "true",
-        "consent.screen.text": "${rolesScopeConsentText}"
+        "consent.screen.text": "${rolesScopeConsentText}",
+        "display.on.consent.screen": "true"
       },
       "protocolMappers": [
         {
@@ -1267,12 +1323,12 @@
           "protocolMapper": "oidc-usermodel-client-role-mapper",
           "consentRequired": false,
           "config": {
-            "introspection.token.claim": "true",
-            "multivalued": "true",
             "user.attribute": "foo",
+            "introspection.token.claim": "true",
             "access.token.claim": "true",
             "claim.name": "resource_access.${client_id}.roles",
-            "jsonType.label": "String"
+            "jsonType.label": "String",
+            "multivalued": "true"
           }
         },
         {
@@ -1282,12 +1338,12 @@
           "protocolMapper": "oidc-usermodel-realm-role-mapper",
           "consentRequired": false,
           "config": {
-            "introspection.token.claim": "true",
-            "multivalued": "true",
             "user.attribute": "foo",
+            "introspection.token.claim": "true",
             "access.token.claim": "true",
             "claim.name": "realm_access.roles",
-            "jsonType.label": "String"
+            "jsonType.label": "String",
+            "multivalued": "true"
           }
         },
         {
@@ -1310,8 +1366,8 @@
       "protocol": "openid-connect",
       "attributes": {
         "include.in.token.scope": "true",
-        "display.on.consent.screen": "true",
-        "consent.screen.text": "${emailScopeConsentText}"
+        "consent.screen.text": "${emailScopeConsentText}",
+        "display.on.consent.screen": "true"
       },
       "protocolMappers": [
         {
@@ -1365,8 +1421,8 @@
       "protocol": "openid-connect",
       "attributes": {
         "include.in.token.scope": "false",
-        "display.on.consent.screen": "false",
-        "consent.screen.text": ""
+        "consent.screen.text": "",
+        "display.on.consent.screen": "false"
       },
       "protocolMappers": [
         {
@@ -1389,7 +1445,8 @@
     "email",
     "roles",
     "web-origins",
-    "acr"
+    "acr",
+    "basic"
   ],
   "defaultOptionalClientScopes": [
     "offline_access",
@@ -1428,7 +1485,8 @@
       "addReadTokenRoleOnCreate": false,
       "authenticateByDefault": false,
       "linkOnly": false,
-      "firstBrokerLoginFlowAlias": "google-direct-link",
+      "hideOnLogin": false,
+      "firstBrokerLoginFlowAlias": "google-auto-link",
       "config": {
         "syncMode": "IMPORT",
         "clientSecret": "**********",
@@ -1440,14 +1498,14 @@
   ],
   "identityProviderMappers": [
     {
-      "id": "9011aa8a-c0ef-41d8-b093-97b2d2332ad0",
-      "name": "google-family-name-mapper",
+      "id": "12eb44a7-84df-40ae-8631-9f8240e6f590",
+      "name": "google-email-mapper",
       "identityProviderAlias": "google",
       "identityProviderMapper": "oidc-user-attribute-idp-mapper",
       "config": {
         "syncMode": "INHERIT",
-        "claim": "family_name",
-        "user.attribute": "lastName"
+        "claim": "email",
+        "user.attribute": "email"
       }
     },
     {
@@ -1462,6 +1520,17 @@
       }
     },
     {
+      "id": "9011aa8a-c0ef-41d8-b093-97b2d2332ad0",
+      "name": "google-family-name-mapper",
+      "identityProviderAlias": "google",
+      "identityProviderMapper": "oidc-user-attribute-idp-mapper",
+      "config": {
+        "syncMode": "INHERIT",
+        "claim": "family_name",
+        "user.attribute": "lastName"
+      }
+    },
+    {
       "id": "6493b41f-5626-4cf0-b570-ad337c53519f",
       "name": "google-picture-mapper",
       "identityProviderAlias": "google",
@@ -1470,17 +1539,6 @@
         "syncMode": "INHERIT",
         "claim": "picture",
         "user.attribute": "picture"
-      }
-    },
-    {
-      "id": "12eb44a7-84df-40ae-8631-9f8240e6f590",
-      "name": "google-email-mapper",
-      "identityProviderAlias": "google",
-      "identityProviderMapper": "oidc-user-attribute-idp-mapper",
-      "config": {
-        "syncMode": "INHERIT",
-        "claim": "email",
-        "user.attribute": "email"
       }
     }
   ],
@@ -2496,12 +2554,17 @@
     "cibaAuthRequestedUserHint": "login_hint",
     "oauth2DeviceCodeLifespan": "600",
     "oauth2DevicePollingInterval": "5",
+    "clientOfflineSessionMaxLifespan": "0",
+    "clientSessionIdleTimeout": "0",
     "parRequestUriLifespan": "60",
+    "clientSessionMaxLifespan": "0",
+    "clientOfflineSessionIdleTimeout": "0",
     "cibaInterval": "5",
     "realmReusableOtpCode": "false"
   },
-  "keycloakVersion": "24.0.5",
+  "keycloakVersion": "26.0.8",
   "userManagedAccessAllowed": false,
+  "organizationsEnabled": false,
   "clientProfiles": {
     "profiles": []
   },
@@ -2509,6 +2572,27 @@
     "policies": []
   },
   "users": [
+    {
+      "id": "afe2798d-82ca-492b-863e-257ae3162319",
+      "username": "abcsarahkbenavides@gmail.com",
+      "firstName": "Sarah",
+      "lastName": "Katherine Benavides Alvarez",
+      "email": "abcsarahkbenavides@gmail.com",
+      "emailVerified": true,
+      "createdTimestamp": 1776422089119,
+      "enabled": true,
+      "totp": false,
+      "disableableCredentialTypes": [],
+      "requiredActions": [],
+      "notBefore": 0,
+      "access": {
+        "manageGroupMembership": true,
+        "view": true,
+        "mapRoles": true,
+        "impersonate": true,
+        "manage": true
+      }
+    },
     {
       "id": "45793d1a-268f-4a49-aacb-05c28957b947",
       "username": "albuquerque0127@gmail.com",
@@ -2531,6 +2615,32 @@
       }
     },
     {
+      "id": "e0e53383-45eb-46b1-bea1-9b11aa687b6f",
+      "username": "alexandreh2o@gmail.com",
+      "firstName": "Alle",
+      "lastName": "Silva",
+      "email": "alexandreh2o@gmail.com",
+      "emailVerified": true,
+      "attributes": {
+        "picture": [
+          "https://lh3.googleusercontent.com/a/ACg8ocJ5VTUbQvPGvr2SvTWnY7tGptCeci8fy75V-u9Nwz4cxs7eNX0lBw=s96-c"
+        ]
+      },
+      "createdTimestamp": 1776524334938,
+      "enabled": true,
+      "totp": false,
+      "disableableCredentialTypes": [],
+      "requiredActions": [],
+      "notBefore": 0,
+      "access": {
+        "manageGroupMembership": true,
+        "view": true,
+        "mapRoles": true,
+        "impersonate": true,
+        "manage": true
+      }
+    },
+    {
       "id": "a37d959d-0f0a-4c99-b362-2dab0e468cd8",
       "username": "leticiasiq027@gmail.com",
       "firstName": "Letícia",
@@ -2538,6 +2648,121 @@
       "email": "leticiasiq027@gmail.com",
       "emailVerified": true,
       "createdTimestamp": 1776252048796,
+      "enabled": true,
+      "totp": false,
+      "disableableCredentialTypes": [],
+      "requiredActions": [],
+      "notBefore": 0,
+      "access": {
+        "manageGroupMembership": true,
+        "view": true,
+        "mapRoles": true,
+        "impersonate": true,
+        "manage": true
+      }
+    },
+    {
+      "id": "cdd358d4-9443-4fab-80b1-93f5036104b3",
+      "username": "murilaliberato@gmail.com",
+      "firstName": "Murila",
+      "lastName": "Oliveira Liberato",
+      "email": "murilaliberato@gmail.com",
+      "emailVerified": true,
+      "createdTimestamp": 1776431567495,
+      "enabled": true,
+      "totp": false,
+      "disableableCredentialTypes": [],
+      "requiredActions": [],
+      "notBefore": 0,
+      "access": {
+        "manageGroupMembership": true,
+        "view": true,
+        "mapRoles": true,
+        "impersonate": true,
+        "manage": true
+      }
+    },
+    {
+      "id": "dc675cd2-e710-4158-9116-a4d5123e5f70",
+      "username": "s.isadora@ufms.br",
+      "firstName": "ISADORA DA SILVA DOS",
+      "lastName": "SANTOS",
+      "email": "s.isadora@ufms.br",
+      "emailVerified": true,
+      "attributes": {
+        "picture": [
+          "https://lh3.googleusercontent.com/a/ACg8ocKLq2EgcIGiN3tvOn711B_XBlQ-IjGZUqZPT9GjJ2hvXWhMoZXf=s96-c"
+        ]
+      },
+      "createdTimestamp": 1776431140441,
+      "enabled": true,
+      "totp": false,
+      "disableableCredentialTypes": [],
+      "requiredActions": [],
+      "notBefore": 0,
+      "access": {
+        "manageGroupMembership": true,
+        "view": true,
+        "mapRoles": true,
+        "impersonate": true,
+        "manage": true
+      }
+    },
+    {
+      "id": "b07aabf6-7906-470f-96c1-827c2963e726",
+      "username": "thielybenavidesrayssa@gmail.com",
+      "firstName": "Rayssa",
+      "lastName": "Thiely Benavides",
+      "email": "thielybenavidesrayssa@gmail.com",
+      "emailVerified": true,
+      "createdTimestamp": 1776288330612,
+      "enabled": true,
+      "totp": false,
+      "disableableCredentialTypes": [],
+      "requiredActions": [],
+      "notBefore": 0,
+      "access": {
+        "manageGroupMembership": true,
+        "view": true,
+        "mapRoles": true,
+        "impersonate": true,
+        "manage": true
+      }
+    },
+    {
+      "id": "b440813c-30cb-4039-9bda-900ea3fe235a",
+      "username": "yerkobenavidesalvarez@gmail.com",
+      "firstName": "Yerko",
+      "lastName": "Benavides Álvarez",
+      "email": "yerkobenavidesalvarez@gmail.com",
+      "emailVerified": true,
+      "attributes": {
+        "picture": [
+          "https://lh3.googleusercontent.com/a/ACg8ocL4SsV4URHkFBHwzl5ObBC5Akwk2dJ9eT4SI803jE5HO_Qy05_j=s96-c"
+        ]
+      },
+      "createdTimestamp": 1776403968561,
+      "enabled": true,
+      "totp": false,
+      "disableableCredentialTypes": [],
+      "requiredActions": [],
+      "notBefore": 0,
+      "access": {
+        "manageGroupMembership": true,
+        "view": true,
+        "mapRoles": true,
+        "impersonate": true,
+        "manage": true
+      }
+    },
+    {
+      "id": "ea224a94-8055-4731-b900-659f73e1ea54",
+      "username": "youcanpublicidade@gmail.com",
+      "firstName": "Leticia",
+      "lastName": "Siqueira de Paula Albuquerque",
+      "email": "youcanpublicidade@gmail.com",
+      "emailVerified": true,
+      "createdTimestamp": 1776269209344,
       "enabled": true,
       "totp": false,
       "disableableCredentialTypes": [],
