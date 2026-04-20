@@ -7,23 +7,26 @@
 
 */
 -- CreateEnum
-CREATE TYPE "LanguageProficiency" AS ENUM ('BASIC', 'INTERMEDIATE', 'ADVANCED', 'FLUENT', 'NATIVE');
+DO $$ BEGIN
+  CREATE TYPE "LanguageProficiency" AS ENUM ('BASIC', 'INTERMEDIATE', 'ADVANCED', 'FLUENT', 'NATIVE');
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AlterTable
-ALTER TABLE "Agent" DROP COLUMN "description",
-DROP COLUMN "vocationType",
-ADD COLUMN     "birthDate" TIMESTAMP(3),
-ADD COLUMN     "coverUrl" TEXT,
-ADD COLUMN     "currentDenomination" TEXT,
-ADD COLUMN     "nationalityId" TEXT,
-ADD COLUMN     "photoUrl" TEXT,
-ADD COLUMN     "portfolioUrl" TEXT,
-ADD COLUMN     "shortDescription" TEXT,
-ADD COLUMN     "slug" TEXT,
-ADD COLUMN     "state" TEXT;
+ALTER TABLE "Agent" DROP COLUMN IF EXISTS "description",
+DROP COLUMN IF EXISTS "vocationType",
+ADD COLUMN IF NOT EXISTS "birthDate" TIMESTAMP(3),
+ADD COLUMN IF NOT EXISTS "coverUrl" TEXT,
+ADD COLUMN IF NOT EXISTS "currentDenomination" TEXT,
+ADD COLUMN IF NOT EXISTS "nationalityId" TEXT,
+ADD COLUMN IF NOT EXISTS "photoUrl" TEXT,
+ADD COLUMN IF NOT EXISTS "portfolioUrl" TEXT,
+ADD COLUMN IF NOT EXISTS "shortDescription" TEXT,
+ADD COLUMN IF NOT EXISTS "slug" TEXT,
+ADD COLUMN IF NOT EXISTS "state" TEXT;
 
 -- CreateTable
-CREATE TABLE "Nationality" (
+CREATE TABLE IF NOT EXISTS "Nationality" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "code" TEXT NOT NULL,
@@ -34,7 +37,7 @@ CREATE TABLE "Nationality" (
 );
 
 -- CreateTable
-CREATE TABLE "Language" (
+CREATE TABLE IF NOT EXISTS "Language" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "code" TEXT NOT NULL,
@@ -45,7 +48,7 @@ CREATE TABLE "Language" (
 );
 
 -- CreateTable
-CREATE TABLE "ExperienceType" (
+CREATE TABLE IF NOT EXISTS "ExperienceType" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
@@ -56,7 +59,7 @@ CREATE TABLE "ExperienceType" (
 );
 
 -- CreateTable
-CREATE TABLE "Skill" (
+CREATE TABLE IF NOT EXISTS "Skill" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
@@ -67,7 +70,7 @@ CREATE TABLE "Skill" (
 );
 
 -- CreateTable
-CREATE TABLE "VocationalArea" (
+CREATE TABLE IF NOT EXISTS "VocationalArea" (
     "id" TEXT NOT NULL,
     "name" TEXT NOT NULL,
     "description" TEXT,
@@ -78,7 +81,7 @@ CREATE TABLE "VocationalArea" (
 );
 
 -- CreateTable
-CREATE TABLE "AgentExperience" (
+CREATE TABLE IF NOT EXISTS "AgentExperience" (
     "id" TEXT NOT NULL,
     "agentId" TEXT NOT NULL,
     "experienceTypeId" TEXT NOT NULL,
@@ -95,7 +98,7 @@ CREATE TABLE "AgentExperience" (
 );
 
 -- CreateTable
-CREATE TABLE "AgentSkill" (
+CREATE TABLE IF NOT EXISTS "AgentSkill" (
     "agentId" TEXT NOT NULL,
     "skillId" TEXT NOT NULL,
     "contextInfo" TEXT,
@@ -105,7 +108,7 @@ CREATE TABLE "AgentSkill" (
 );
 
 -- CreateTable
-CREATE TABLE "AgentVocationalArea" (
+CREATE TABLE IF NOT EXISTS "AgentVocationalArea" (
     "agentId" TEXT NOT NULL,
     "vocationalAreaId" TEXT NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -114,7 +117,7 @@ CREATE TABLE "AgentVocationalArea" (
 );
 
 -- CreateTable
-CREATE TABLE "AgentLanguage" (
+CREATE TABLE IF NOT EXISTS "AgentLanguage" (
     "agentId" TEXT NOT NULL,
     "languageId" TEXT NOT NULL,
     "proficiencyLevel" "LanguageProficiency" NOT NULL,
@@ -124,7 +127,7 @@ CREATE TABLE "AgentLanguage" (
 );
 
 -- CreateTable
-CREATE TABLE "AgentEducation" (
+CREATE TABLE IF NOT EXISTS "AgentEducation" (
     "id" TEXT NOT NULL,
     "agentId" TEXT NOT NULL,
     "institution" TEXT NOT NULL,
@@ -140,7 +143,7 @@ CREATE TABLE "AgentEducation" (
 );
 
 -- CreateTable
-CREATE TABLE "AgentCourse" (
+CREATE TABLE IF NOT EXISTS "AgentCourse" (
     "id" TEXT NOT NULL,
     "agentId" TEXT NOT NULL,
     "title" TEXT NOT NULL,
@@ -155,7 +158,7 @@ CREATE TABLE "AgentCourse" (
 );
 
 -- CreateTable
-CREATE TABLE "AgentLink" (
+CREATE TABLE IF NOT EXISTS "AgentLink" (
     "id" TEXT NOT NULL,
     "agentId" TEXT NOT NULL,
     "title" TEXT NOT NULL,
@@ -167,7 +170,7 @@ CREATE TABLE "AgentLink" (
 );
 
 -- CreateTable
-CREATE TABLE "AgentRecommendation" (
+CREATE TABLE IF NOT EXISTS "AgentRecommendation" (
     "id" TEXT NOT NULL,
     "recommenderId" TEXT NOT NULL,
     "recommendedId" TEXT NOT NULL,
@@ -179,67 +182,109 @@ CREATE TABLE "AgentRecommendation" (
 );
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Nationality_name_key" ON "Nationality"("name");
+CREATE UNIQUE INDEX IF NOT EXISTS "Nationality_name_key" ON "Nationality"("name");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Nationality_code_key" ON "Nationality"("code");
+CREATE UNIQUE INDEX IF NOT EXISTS "Nationality_code_key" ON "Nationality"("code");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Language_name_key" ON "Language"("name");
+CREATE UNIQUE INDEX IF NOT EXISTS "Language_name_key" ON "Language"("name");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Language_code_key" ON "Language"("code");
+CREATE UNIQUE INDEX IF NOT EXISTS "Language_code_key" ON "Language"("code");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "ExperienceType_name_key" ON "ExperienceType"("name");
+CREATE UNIQUE INDEX IF NOT EXISTS "ExperienceType_name_key" ON "ExperienceType"("name");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Skill_name_key" ON "Skill"("name");
+CREATE UNIQUE INDEX IF NOT EXISTS "Skill_name_key" ON "Skill"("name");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "VocationalArea_name_key" ON "VocationalArea"("name");
+CREATE UNIQUE INDEX IF NOT EXISTS "VocationalArea_name_key" ON "VocationalArea"("name");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Agent_slug_key" ON "Agent"("slug");
+CREATE UNIQUE INDEX IF NOT EXISTS "Agent_slug_key" ON "Agent"("slug");
 
 -- AddForeignKey
-ALTER TABLE "Agent" ADD CONSTRAINT "Agent_nationalityId_fkey" FOREIGN KEY ("nationalityId") REFERENCES "Nationality"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "Agent" ADD CONSTRAINT "Agent_nationalityId_fkey" FOREIGN KEY ("nationalityId") REFERENCES "Nationality"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "AgentExperience" ADD CONSTRAINT "AgentExperience_agentId_fkey" FOREIGN KEY ("agentId") REFERENCES "Agent"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "AgentExperience" ADD CONSTRAINT "AgentExperience_agentId_fkey" FOREIGN KEY ("agentId") REFERENCES "Agent"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "AgentExperience" ADD CONSTRAINT "AgentExperience_experienceTypeId_fkey" FOREIGN KEY ("experienceTypeId") REFERENCES "ExperienceType"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "AgentExperience" ADD CONSTRAINT "AgentExperience_experienceTypeId_fkey" FOREIGN KEY ("experienceTypeId") REFERENCES "ExperienceType"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "AgentSkill" ADD CONSTRAINT "AgentSkill_agentId_fkey" FOREIGN KEY ("agentId") REFERENCES "Agent"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "AgentSkill" ADD CONSTRAINT "AgentSkill_agentId_fkey" FOREIGN KEY ("agentId") REFERENCES "Agent"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "AgentSkill" ADD CONSTRAINT "AgentSkill_skillId_fkey" FOREIGN KEY ("skillId") REFERENCES "Skill"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "AgentSkill" ADD CONSTRAINT "AgentSkill_skillId_fkey" FOREIGN KEY ("skillId") REFERENCES "Skill"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "AgentVocationalArea" ADD CONSTRAINT "AgentVocationalArea_agentId_fkey" FOREIGN KEY ("agentId") REFERENCES "Agent"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "AgentVocationalArea" ADD CONSTRAINT "AgentVocationalArea_agentId_fkey" FOREIGN KEY ("agentId") REFERENCES "Agent"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "AgentVocationalArea" ADD CONSTRAINT "AgentVocationalArea_vocationalAreaId_fkey" FOREIGN KEY ("vocationalAreaId") REFERENCES "VocationalArea"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "AgentVocationalArea" ADD CONSTRAINT "AgentVocationalArea_vocationalAreaId_fkey" FOREIGN KEY ("vocationalAreaId") REFERENCES "VocationalArea"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "AgentLanguage" ADD CONSTRAINT "AgentLanguage_agentId_fkey" FOREIGN KEY ("agentId") REFERENCES "Agent"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "AgentLanguage" ADD CONSTRAINT "AgentLanguage_agentId_fkey" FOREIGN KEY ("agentId") REFERENCES "Agent"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "AgentLanguage" ADD CONSTRAINT "AgentLanguage_languageId_fkey" FOREIGN KEY ("languageId") REFERENCES "Language"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "AgentLanguage" ADD CONSTRAINT "AgentLanguage_languageId_fkey" FOREIGN KEY ("languageId") REFERENCES "Language"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "AgentEducation" ADD CONSTRAINT "AgentEducation_agentId_fkey" FOREIGN KEY ("agentId") REFERENCES "Agent"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "AgentEducation" ADD CONSTRAINT "AgentEducation_agentId_fkey" FOREIGN KEY ("agentId") REFERENCES "Agent"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "AgentCourse" ADD CONSTRAINT "AgentCourse_agentId_fkey" FOREIGN KEY ("agentId") REFERENCES "Agent"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "AgentCourse" ADD CONSTRAINT "AgentCourse_agentId_fkey" FOREIGN KEY ("agentId") REFERENCES "Agent"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "AgentLink" ADD CONSTRAINT "AgentLink_agentId_fkey" FOREIGN KEY ("agentId") REFERENCES "Agent"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "AgentLink" ADD CONSTRAINT "AgentLink_agentId_fkey" FOREIGN KEY ("agentId") REFERENCES "Agent"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "AgentRecommendation" ADD CONSTRAINT "AgentRecommendation_recommenderId_fkey" FOREIGN KEY ("recommenderId") REFERENCES "Agent"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "AgentRecommendation" ADD CONSTRAINT "AgentRecommendation_recommenderId_fkey" FOREIGN KEY ("recommenderId") REFERENCES "Agent"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- AddForeignKey
-ALTER TABLE "AgentRecommendation" ADD CONSTRAINT "AgentRecommendation_recommendedId_fkey" FOREIGN KEY ("recommendedId") REFERENCES "Agent"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "AgentRecommendation" ADD CONSTRAINT "AgentRecommendation_recommendedId_fkey" FOREIGN KEY ("recommendedId") REFERENCES "Agent"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
