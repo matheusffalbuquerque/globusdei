@@ -38,6 +38,14 @@ export class AgentService {
 
   async updateMe(user: AuthenticatedUser, data: UpdateAgentProfileDto) {
     const agent = await this.getMe(user);
+
+    if (data.slug && data.slug !== agent.slug) {
+      const slugCheck = await this.checkSlug(data.slug, agent.id);
+      if (!slugCheck.available) {
+        throw new Error(`Slug não pode ser salvo: ${slugCheck.reason}`);
+      }
+    }
+
     const updated = await this.agents.updateProfile(agent.id, data);
 
     await this.audit.logAction(
@@ -63,5 +71,19 @@ export class AgentService {
 
   async provisionFromRegister(params: { authSubject: string; email: string; name: string }) {
     return this.agents.upsertFromIdentity(params);
+  }
+
+  async checkSlug(slug: string, currentAgentId?: string) {
+    if (!/^[a-z0-9-]+$/.test(slug)) {
+      return { available: false, reason: 'Formato inválido. Use apenas minúsculas, números e hifens.' };
+    }
+    const existing = await this.agents.findBySlug(slug);
+    if (!existing) {
+      return { available: true };
+    }
+    if (existing.id === currentAgentId) {
+      return { available: true };
+    }
+    return { available: false, reason: 'O slug já está em uso.' };
   }
 }

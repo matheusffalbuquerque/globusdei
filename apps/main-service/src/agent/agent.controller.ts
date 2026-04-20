@@ -22,6 +22,11 @@ export class AgentController {
     return this.agentService.getMe(user);
   }
 
+  @Get('check-slug/:slug')
+  checkSlug(@Param('slug') slug: string, @CurrentUser() user: AuthenticatedUser) {
+    return this.agentService.checkSlug(slug, user.sub);
+  }
+
   @Patch('me')
   updateMe(@CurrentUser() user: AuthenticatedUser, @Body() dto: UpdateAgentProfileDto) {
     return this.agentService.updateMe(user, dto);

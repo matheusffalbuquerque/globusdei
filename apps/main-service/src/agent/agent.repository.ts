@@ -26,6 +26,12 @@ export class AgentRepository {
     });
   }
 
+  findBySlug(slug: string) {
+    return this.prisma.agent.findUnique({
+      where: { slug }
+    });
+  }
+
   async upsertFromIdentity(params: {
     authSubject: string;
     email: string;

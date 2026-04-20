@@ -16,6 +16,7 @@ import { PlatformModule } from '../platform/platform.module';
 import { PrayerRequestModule } from '../prayer-request/prayer-request.module';
 import { NotificationModule } from '../notification/notification.module';
 import { InvestmentModule } from '../investment/investment.module';
+import { SystemConfigModule } from '../system-config/system-config.module';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -36,6 +37,7 @@ import { AppService } from './app.service';
     ConfigModule.forRoot({ isGlobal: true }),
     PlatformModule,
     AcademyModule,
+    SystemConfigModule,
   ],
   controllers: [AppController],
   providers: [AppService, KeycloakAuthGuard, PoliciesGuard],

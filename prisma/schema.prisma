@@ -169,87 +169,117 @@ enum NotificationEmailStatus {
   FAILED
 }
 
+enum LanguageProficiency {
+  BASIC
+  INTERMEDIATE
+  ADVANCED
+  FLUENT
+  NATIVE
+}
+
 model Agent {
-  id                String                 @id @default(uuid())
-  authSubject       String?                @unique
-  name              String
-  email             String                 @unique
-  phone             String?
-  vocationType      String
-  description       String                 @db.Text
-  publicBio         String?                @db.Text
-  privateNotes      String?                @db.Text
-  city              String?
-  country           String?
-  isActive          Boolean                @default(true)
-  status            AgentStatus            @default(ENTERED)
-  scheduledSlotId   String?                @unique
-  scheduledSlot     AvailabilitySlot?      @relation(fields: [scheduledSlotId], references: [id])
-  interviewLink     String?
-  interviewDate     DateTime?
-  interviewerId     String?
-  feedback          String?                @db.Text
-  ownedEmpreendimentos Empreendimento[]      @relation("EmpreendimentoOwner")
-  sentInvites       EmpreendimentoInvite[]   @relation("EmpreendimentoInviter")
-  empreendimentos   EmpreendimentoMember[]
-  sentConnections   Connection[]           @relation("SentConnections")
-  receivedConnections Connection[]         @relation("ReceivedConnections")
-  followedIniciativas EmpreendimentoFollow[]
-  serviceRequests   ServiceRequest[]
-  answers           Answer[]
-  prayerRequests    PrayerRequest[]
-  moduleEnrollments AgentModuleEnrollment[]
-  lessonProgresses  LessonProgress[]
-  lessonQuestions   LessonQuestion[]
-  finalWorks        FinalWork[]
-  certifications    AgentCertification[]
+  id                    String                  @id @default(uuid())
+  authSubject           String?                 @unique
+  name                  String
+  photoUrl              String?
+  coverUrl              String?
+  slug                  String?                 @unique
+  email                 String                  @unique
+  phone                 String?
+  birthDate             DateTime?
+  nationalityId         String?
+  nationality           Nationality?            @relation(fields: [nationalityId], references: [id])
+  vocationType          String
+  currentDenomination   String?
+  shortDescription      String?                 @db.Text
+  description           String                  @db.Text
+  publicBio             String?                 @db.Text
+  privateNotes          String?                 @db.Text
+  city                  String?
+  state                 String?
+  country               String?
+  portfolioUrl          String?
+  isActive              Boolean                 @default(true)
+  status                AgentStatus             @default(ENTERED)
+  scheduledSlotId       String?                 @unique
+  scheduledSlot         AvailabilitySlot?       @relation(fields: [scheduledSlotId], references: [id])
+  interviewLink         String?
+  interviewDate         DateTime?
+  interviewerId         String?
+  feedback              String?                 @db.Text
+  ownedEmpreendimentos  Empreendimento[]        @relation("EmpreendimentoOwner")
+  sentInvites           EmpreendimentoInvite[]  @relation("EmpreendimentoInviter")
+  empreendimentos       EmpreendimentoMember[]
+  sentConnections       Connection[]            @relation("SentConnections")
+  receivedConnections   Connection[]            @relation("ReceivedConnections")
+  followedIniciativas   EmpreendimentoFollow[]
+  serviceRequests       ServiceRequest[]
+  answers               Answer[]
+  prayerRequests        PrayerRequest[]
+  moduleEnrollments     AgentModuleEnrollment[]
+  lessonProgresses      LessonProgress[]
+  lessonQuestions       LessonQuestion[]
+  finalWorks            FinalWork[]
+  certifications        AgentCertification[]
   receivedNotifications NotificationRecipient[] @relation("NotificationRecipientAgent")
-  sentNotifications  Notification[]        @relation("NotificationSenderAgent")
-  emailNotificationLogs NotificationEmailLog[] @relation("NotificationEmailAgent")
-  opportunities     Opportunity[]          @relation("AgentOpportunities")
-  investmentsMade   AgentInvestment[]      @relation("AgentInvestor")
-  investmentsReceived AgentInvestment[]    @relation("AgentInvestmentTarget")
-  createdAt         DateTime               @default(now())
-  updatedAt         DateTime               @updatedAt
+  sentNotifications     Notification[]          @relation("NotificationSenderAgent")
+  emailNotificationLogs NotificationEmailLog[]  @relation("NotificationEmailAgent")
+  opportunities         Opportunity[]           @relation("AgentOpportunities")
+  investmentsMade       AgentInvestment[]       @relation("AgentInvestor")
+  investmentsReceived   AgentInvestment[]       @relation("AgentInvestmentTarget")
+
+  // Profiling relations
+  experiences             AgentExperience[]
+  skills                  AgentSkill[]
+  vocationalAreas         AgentVocationalArea[]
+  languages               AgentLanguage[]
+  education               AgentEducation[]
+  courses                 AgentCourse[]
+  links                   AgentLink[]
+  recommendationsReceived AgentRecommendation[] @relation("ReceivedRecommendations")
+  recommendationsSent     AgentRecommendation[] @relation("SentRecommendations")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 }
 
 model Collaborator {
-  id                    String             @id @default(uuid())
-  authSubject           String             @unique
-  name                  String
-  email                 String             @unique
-  isActive              Boolean            @default(true)
-  roles                 CollaboratorRole[]
-  expertiseAreas        String[]
-  notes                 String?            @db.Text
-  availabilitySlots     AvailabilitySlot[]
-  assignedServiceRequests ServiceRequest[] @relation("AssignedRequests")
-  managedEmpreendimentos Empreendimento[]  @relation("InternalResponsible")
-  announcements         Announcement[]     @relation("AnnouncementAuthor")
-  serviceLogs           ServiceLog[]
-  financialEntries      FinancialEntry[]
-  recordedInvestments   Investment[]
-  recordedAllocations   Allocation[]
-  answeredPrayerRequests PrayerRequest[]   @relation("PrayerAnsweredBy")
-  lessonAnswers          LessonAnswer[]
-  finalWorkReviews       FinalWorkReview[]
-  sentNotifications      Notification[]         @relation("NotificationSenderCollaborator")
-  receivedNotifications  NotificationRecipient[] @relation("NotificationRecipientCollaborator")
-  sentEmailLogs          NotificationEmailLog[] @relation("NotificationEmailSenderCollaborator")
-  opportunities          Opportunity[]          @relation("CollaboratorOpportunities")
-  createdAt             DateTime           @default(now())
-  updatedAt             DateTime           @updatedAt
+  id                      String                  @id @default(uuid())
+  authSubject             String                  @unique
+  name                    String
+  email                   String                  @unique
+  isActive                Boolean                 @default(true)
+  roles                   CollaboratorRole[]
+  expertiseAreas          String[]
+  notes                   String?                 @db.Text
+  availabilitySlots       AvailabilitySlot[]
+  assignedServiceRequests ServiceRequest[]        @relation("AssignedRequests")
+  managedEmpreendimentos  Empreendimento[]        @relation("InternalResponsible")
+  announcements           Announcement[]          @relation("AnnouncementAuthor")
+  serviceLogs             ServiceLog[]
+  financialEntries        FinancialEntry[]
+  recordedInvestments     Investment[]
+  recordedAllocations     Allocation[]
+  answeredPrayerRequests  PrayerRequest[]         @relation("PrayerAnsweredBy")
+  lessonAnswers           LessonAnswer[]
+  finalWorkReviews        FinalWorkReview[]
+  sentNotifications       Notification[]          @relation("NotificationSenderCollaborator")
+  receivedNotifications   NotificationRecipient[] @relation("NotificationRecipientCollaborator")
+  sentEmailLogs           NotificationEmailLog[]  @relation("NotificationEmailSenderCollaborator")
+  opportunities           Opportunity[]           @relation("CollaboratorOpportunities")
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
 }
 
 model Connection {
-  id          String           @id @default(uuid())
-  senderId    String
-  receiverId  String
-  status      ConnectionStatus @default(PENDING)
-  sender      Agent            @relation("SentConnections", fields: [senderId], references: [id], onDelete: Cascade)
-  receiver    Agent            @relation("ReceivedConnections", fields: [receiverId], references: [id], onDelete: Cascade)
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id         String           @id @default(uuid())
+  senderId   String
+  receiverId String
+  status     ConnectionStatus @default(PENDING)
+  sender     Agent            @relation("SentConnections", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver   Agent            @relation("ReceivedConnections", fields: [receiverId], references: [id], onDelete: Cascade)
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
 
   @@unique([senderId, receiverId])
 }
@@ -265,75 +295,75 @@ model EmpreendimentoFollow {
 }
 
 model Announcement {
-  id         String           @id @default(uuid())
-  title      String
-  content    String           @db.Text
-  type       AnnouncementType @default(SYSTEM)
-  targetId   String?
-  authorId   String
-  author     Collaborator     @relation("AnnouncementAuthor", fields: [authorId], references: [id], onDelete: Cascade)
-  createdAt  DateTime         @default(now())
-  updatedAt  DateTime         @updatedAt
+  id        String           @id @default(uuid())
+  title     String
+  content   String           @db.Text
+  type      AnnouncementType @default(SYSTEM)
+  targetId  String?
+  authorId  String
+  author    Collaborator     @relation("AnnouncementAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
 }
 
 model ServiceRequest {
-  id                     String               @id @default(uuid())
+  id                     String                 @id @default(uuid())
   agentId                String
-  agent                  Agent                @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  agent                  Agent                  @relation(fields: [agentId], references: [id], onDelete: Cascade)
   category               ServiceRequestCategory
-  status                 ServiceRequestStatus @default(OPEN)
-  description            String               @db.Text
+  status                 ServiceRequestStatus   @default(OPEN)
+  description            String                 @db.Text
   assignedCollaboratorId String?
-  assignedCollaborator   Collaborator?        @relation("AssignedRequests", fields: [assignedCollaboratorId], references: [id])
-  internalNotes          String?              @db.Text
-  createdAt              DateTime             @default(now())
-  updatedAt              DateTime             @updatedAt
+  assignedCollaborator   Collaborator?          @relation("AssignedRequests", fields: [assignedCollaboratorId], references: [id])
+  internalNotes          String?                @db.Text
+  createdAt              DateTime               @default(now())
+  updatedAt              DateTime               @updatedAt
 }
 
 model Empreendimento {
-  id                    String                 @id @default(uuid())
-  name                  String
-  description           String                 @db.Text
-  establishedDate       DateTime
-  type                  EmpreendimentoType
-  category              EmpreendimentoCategory
-  socialLinks           Json?
-  portfolioUrl          String?
-  location              String?
-  actuationRegions      String?                @db.Text
-  logoUrl               String?
-  bannerUrl             String?
-  monthlyExpenses       Float                  @default(0)
-  incomeSources         String?                @db.Text
-  needType              NeedType               @default(MAINTENANCE)
-  receivesInvestments   Boolean                @default(false)
-  isBankVerified        Boolean                @default(false)
-  bankDetails           String?                @db.Text
-  priorityScore         Int                    @default(0)
-  followUpStatus        FollowUpStatus         @default(OPEN)
-  internalNotes         String?                @db.Text
-  internalResponsibleId String?
-  internalResponsible   Collaborator?          @relation("InternalResponsible", fields: [internalResponsibleId], references: [id])
-  ownerId               String
-  owner                 Agent                  @relation("EmpreendimentoOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  agents                EmpreendimentoMember[]
-  invites               EmpreendimentoInvite[]
-  followers             EmpreendimentoFollow[]
-  serviceLogs           ServiceLog[]
+  id                     String                  @id @default(uuid())
+  name                   String
+  description            String                  @db.Text
+  establishedDate        DateTime
+  type                   EmpreendimentoType
+  category               EmpreendimentoCategory
+  socialLinks            Json?
+  portfolioUrl           String?
+  location               String?
+  actuationRegions       String?                 @db.Text
+  logoUrl                String?
+  bannerUrl              String?
+  monthlyExpenses        Float                   @default(0)
+  incomeSources          String?                 @db.Text
+  needType               NeedType                @default(MAINTENANCE)
+  receivesInvestments    Boolean                 @default(false)
+  isBankVerified         Boolean                 @default(false)
+  bankDetails            String?                 @db.Text
+  priorityScore          Int                     @default(0)
+  followUpStatus         FollowUpStatus          @default(OPEN)
+  internalNotes          String?                 @db.Text
+  internalResponsibleId  String?
+  internalResponsible    Collaborator?           @relation("InternalResponsible", fields: [internalResponsibleId], references: [id])
+  ownerId                String
+  owner                  Agent                   @relation("EmpreendimentoOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  agents                 EmpreendimentoMember[]
+  invites                EmpreendimentoInvite[]
+  followers              EmpreendimentoFollow[]
+  serviceLogs            ServiceLog[]
   notificationRecipients NotificationRecipient[] @relation("NotificationRecipientEmpreendimento")
-  emailNotificationLogs  NotificationEmailLog[] @relation("NotificationEmailEmpreendimento")
-  opportunities          Opportunity[]          @relation("EmpreendimentoOpportunities")
-  investmentsReceived    AgentInvestment[]      @relation("EmpreendimentoInvestmentTarget")
-  createdAt             DateTime               @default(now())
-  updatedAt             DateTime               @updatedAt
+  emailNotificationLogs  NotificationEmailLog[]  @relation("NotificationEmailEmpreendimento")
+  opportunities          Opportunity[]           @relation("EmpreendimentoOpportunities")
+  investmentsReceived    AgentInvestment[]       @relation("EmpreendimentoInvestmentTarget")
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
 }
 
 model Notification {
-  id                   String                   @id @default(uuid())
+  id                   String                  @id @default(uuid())
   type                 NotificationType
-  scope                NotificationScope        @default(PERSONAL)
+  scope                NotificationScope       @default(PERSONAL)
   title                String
-  message              String                   @db.Text
+  message              String                  @db.Text
   actionUrl            String?
   metadata             Json?
   sourceEntityType     String?
@@ -341,30 +371,30 @@ model Notification {
   senderAgentId        String?
   senderCollaboratorId String?
   senderSystemLabel    String?
-  senderAgent          Agent?                   @relation("NotificationSenderAgent", fields: [senderAgentId], references: [id], onDelete: SetNull)
-  senderCollaborator   Collaborator?            @relation("NotificationSenderCollaborator", fields: [senderCollaboratorId], references: [id], onDelete: SetNull)
+  senderAgent          Agent?                  @relation("NotificationSenderAgent", fields: [senderAgentId], references: [id], onDelete: SetNull)
+  senderCollaborator   Collaborator?           @relation("NotificationSenderCollaborator", fields: [senderCollaboratorId], references: [id], onDelete: SetNull)
   recipients           NotificationRecipient[]
   emailLogs            NotificationEmailLog[]
-  createdAt            DateTime                 @default(now())
-  updatedAt            DateTime                 @updatedAt
+  createdAt            DateTime                @default(now())
+  updatedAt            DateTime                @updatedAt
 
   @@index([type, createdAt])
   @@index([senderCollaboratorId, createdAt])
 }
 
 model NotificationRecipient {
-  id                String                 @id @default(uuid())
-  notificationId    String
-  targetType        NotificationTargetType
-  agentId           String?
-  collaboratorId    String?
-  empreendimentoId  String?
-  readAt            DateTime?
-  createdAt         DateTime               @default(now())
-  notification      Notification           @relation(fields: [notificationId], references: [id], onDelete: Cascade)
-  agent             Agent?                 @relation("NotificationRecipientAgent", fields: [agentId], references: [id], onDelete: Cascade)
-  collaborator      Collaborator?          @relation("NotificationRecipientCollaborator", fields: [collaboratorId], references: [id], onDelete: Cascade)
-  empreendimento    Empreendimento?        @relation("NotificationRecipientEmpreendimento", fields: [empreendimentoId], references: [id], onDelete: Cascade)
+  id               String                 @id @default(uuid())
+  notificationId   String
+  targetType       NotificationTargetType
+  agentId          String?
+  collaboratorId   String?
+  empreendimentoId String?
+  readAt           DateTime?
+  createdAt        DateTime               @default(now())
+  notification     Notification           @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  agent            Agent?                 @relation("NotificationRecipientAgent", fields: [agentId], references: [id], onDelete: Cascade)
+  collaborator     Collaborator?          @relation("NotificationRecipientCollaborator", fields: [collaboratorId], references: [id], onDelete: Cascade)
+  empreendimento   Empreendimento?        @relation("NotificationRecipientEmpreendimento", fields: [empreendimentoId], references: [id], onDelete: Cascade)
 
   @@index([agentId, createdAt])
   @@index([collaboratorId, createdAt])
@@ -409,17 +439,17 @@ model EmpreendimentoMember {
 }
 
 model Event {
-  id            String       @id @default(uuid())
-  title         String
-  description   String       @db.Text
-  date          DateTime
-  location      String?
-  isOnline      Boolean      @default(false)
-  isCancelled   Boolean      @default(false)
-  createdById   String?
-  createdAt     DateTime     @default(now())
-  updatedAt     DateTime     @updatedAt
-  rsvps         EventRsvp[]
+  id          String      @id @default(uuid())
+  title       String
+  description String      @db.Text
+  date        DateTime
+  location    String?
+  isOnline    Boolean     @default(false)
+  isCancelled Boolean     @default(false)
+  createdById String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  rsvps       EventRsvp[]
 }
 
 model EventRsvp {
@@ -486,28 +516,28 @@ model AvailabilitySlot {
 }
 
 model EmpreendimentoInvite {
-  id                String                  @id @default(uuid())
-  empreendimentoId  String
-  empreendimento    Empreendimento          @relation(fields: [empreendimentoId], references: [id], onDelete: Cascade)
-  email             String
-  role              EmpreendimentoAgentRole @default(CONTRIBUTOR)
-  status            InviteStatus            @default(PENDING)
-  token             String                  @unique
-  inviterId         String
-  inviter           Agent                   @relation("EmpreendimentoInviter", fields: [inviterId], references: [id], onDelete: Cascade)
-  createdAt         DateTime                @default(now())
-  updatedAt         DateTime                @updatedAt
+  id               String                  @id @default(uuid())
+  empreendimentoId String
+  empreendimento   Empreendimento          @relation(fields: [empreendimentoId], references: [id], onDelete: Cascade)
+  email            String
+  role             EmpreendimentoAgentRole @default(CONTRIBUTOR)
+  status           InviteStatus            @default(PENDING)
+  token            String                  @unique
+  inviterId        String
+  inviter          Agent                   @relation("EmpreendimentoInviter", fields: [inviterId], references: [id], onDelete: Cascade)
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
 }
 
 model ServiceLog {
-  id                String       @id @default(uuid())
-  empreendimentoId  String
-  empreendimento    Empreendimento @relation(fields: [empreendimentoId], references: [id], onDelete: Cascade)
-  collaboratorId    String
-  collaborator      Collaborator @relation(fields: [collaboratorId], references: [id], onDelete: Cascade)
-  action            String
-  content           String       @db.Text
-  createdAt         DateTime     @default(now())
+  id               String         @id @default(uuid())
+  empreendimentoId String
+  empreendimento   Empreendimento @relation(fields: [empreendimentoId], references: [id], onDelete: Cascade)
+  collaboratorId   String
+  collaborator     Collaborator   @relation(fields: [collaboratorId], references: [id], onDelete: Cascade)
+  action           String
+  content          String         @db.Text
+  createdAt        DateTime       @default(now())
 }
 
 model ExpenseCategory {
@@ -521,99 +551,99 @@ model ExpenseCategory {
 }
 
 model Investment {
-  id            String              @id @default(uuid())
-  amount        Float
-  description   String?             @db.Text
-  targetType    FinancialTargetType
-  targetId      String?
-  targetName    String?
-  recordedById  String
-  recordedBy    Collaborator        @relation(fields: [recordedById], references: [id], onDelete: Cascade)
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
+  id             String              @id @default(uuid())
+  amount         Float
+  description    String?             @db.Text
+  targetType     FinancialTargetType
+  targetId       String?
+  targetName     String?
+  recordedById   String
+  recordedBy     Collaborator        @relation(fields: [recordedById], references: [id], onDelete: Cascade)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
   financialEntry FinancialEntry?
 }
 
 model Allocation {
-  id            String              @id @default(uuid())
-  amount        Float
-  description   String?             @db.Text
-  targetType    FinancialTargetType
-  targetId      String
-  targetName    String
-  recordedById  String
-  recordedBy    Collaborator        @relation(fields: [recordedById], references: [id], onDelete: Cascade)
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
+  id             String              @id @default(uuid())
+  amount         Float
+  description    String?             @db.Text
+  targetType     FinancialTargetType
+  targetId       String
+  targetName     String
+  recordedById   String
+  recordedBy     Collaborator        @relation(fields: [recordedById], references: [id], onDelete: Cascade)
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
   financialEntry FinancialEntry?
 }
 
 model FinancialEntry {
-  id             String              @id @default(uuid())
-  type           FinancialEntryType
-  amount         Float
-  description    String              @db.Text
-  occurredAt     DateTime            @default(now())
-  targetType     FinancialTargetType?
-  targetId       String?
-  targetName     String?
-  categoryId     String?
-  category       ExpenseCategory?    @relation(fields: [categoryId], references: [id])
-  recordedById   String
-  recordedBy     Collaborator        @relation(fields: [recordedById], references: [id], onDelete: Cascade)
-  investmentId   String?             @unique
-  investment     Investment?         @relation(fields: [investmentId], references: [id])
-  allocationId   String?             @unique
-  allocation     Allocation?         @relation(fields: [allocationId], references: [id])
-  createdAt      DateTime            @default(now())
-  updatedAt      DateTime            @updatedAt
+  id           String               @id @default(uuid())
+  type         FinancialEntryType
+  amount       Float
+  description  String               @db.Text
+  occurredAt   DateTime             @default(now())
+  targetType   FinancialTargetType?
+  targetId     String?
+  targetName   String?
+  categoryId   String?
+  category     ExpenseCategory?     @relation(fields: [categoryId], references: [id])
+  recordedById String
+  recordedBy   Collaborator         @relation(fields: [recordedById], references: [id], onDelete: Cascade)
+  investmentId String?              @unique
+  investment   Investment?          @relation(fields: [investmentId], references: [id])
+  allocationId String?              @unique
+  allocation   Allocation?          @relation(fields: [allocationId], references: [id])
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
 }
 
 model PrayerRequest {
-  id              String              @id @default(uuid())
-  agentId         String
-  agent           Agent               @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  request         String              @db.Text
-  status          PrayerRequestStatus @default(PENDING)
-  answeredById    String?
-  answeredBy      Collaborator?       @relation("PrayerAnsweredBy", fields: [answeredById], references: [id])
-  answeredAt      DateTime?
-  internalNote    String?             @db.Text
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
+  id           String              @id @default(uuid())
+  agentId      String
+  agent        Agent               @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  request      String              @db.Text
+  status       PrayerRequestStatus @default(PENDING)
+  answeredById String?
+  answeredBy   Collaborator?       @relation("PrayerAnsweredBy", fields: [answeredById], references: [id])
+  answeredAt   DateTime?
+  internalNote String?             @db.Text
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
 }
 
 // ─── Academia Globus Dei ────────────────────────────────────────────────────
 
 model AcademyModule {
-  id               String    @id @default(uuid())
+  id               String                  @id @default(uuid())
   title            String
-  description      String    @db.Text
+  description      String                  @db.Text
   coverUrl         String?
-  workInstructions String    @default("") @db.Text
-  isPublished      Boolean   @default(false)
-  order            Int       @default(0)
+  workInstructions String                  @default("") @db.Text
+  isPublished      Boolean                 @default(false)
+  order            Int                     @default(0)
   lessons          Lesson[]
   enrollments      AgentModuleEnrollment[]
   finalWorks       FinalWork[]
   certifications   AgentCertification[]
-  createdAt        DateTime  @default(now())
-  updatedAt        DateTime  @updatedAt
+  createdAt        DateTime                @default(now())
+  updatedAt        DateTime                @updatedAt
 }
 
 model Lesson {
-  id           String          @id @default(uuid())
-  moduleId     String
-  module       AcademyModule   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  title        String
-  description  String          @db.Text
-  youtubeUrl   String?
-  order        Int             @default(0)
-  materials    LessonMaterial[]
-  progresses   LessonProgress[]
-  questions    LessonQuestion[]
-  createdAt    DateTime        @default(now())
-  updatedAt    DateTime        @updatedAt
+  id          String           @id @default(uuid())
+  moduleId    String
+  module      AcademyModule    @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  title       String
+  description String           @db.Text
+  youtubeUrl  String?
+  order       Int              @default(0)
+  materials   LessonMaterial[]
+  progresses  LessonProgress[]
+  questions   LessonQuestion[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
 }
 
 model LessonMaterial {
@@ -637,26 +667,26 @@ model LessonProgress {
 }
 
 model LessonQuestion {
-  id        String           @id @default(uuid())
+  id        String         @id @default(uuid())
   lessonId  String
   agentId   String
-  content   String           @db.Text
-  lesson    Lesson           @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  agent     Agent            @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  content   String         @db.Text
+  lesson    Lesson         @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  agent     Agent          @relation(fields: [agentId], references: [id], onDelete: Cascade)
   answers   LessonAnswer[]
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
 }
 
 model LessonAnswer {
-  id           String         @id @default(uuid())
-  questionId   String
+  id             String         @id @default(uuid())
+  questionId     String
   collaboratorId String
-  content      String         @db.Text
-  question     LessonQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
-  collaborator Collaborator   @relation(fields: [collaboratorId], references: [id], onDelete: Cascade)
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  content        String         @db.Text
+  question       LessonQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  collaborator   Collaborator   @relation(fields: [collaboratorId], references: [id], onDelete: Cascade)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
 }
 
 model AgentModuleEnrollment {
@@ -670,40 +700,40 @@ model AgentModuleEnrollment {
 }
 
 model FinalWork {
-  id        String          @id @default(uuid())
+  id        String           @id @default(uuid())
   moduleId  String
   agentId   String
-  content   String?         @db.Text
+  content   String?          @db.Text
   fileUrl   String?
-  status    FinalWorkStatus @default(PENDING)
-  module    AcademyModule   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
-  agent     Agent           @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  status    FinalWorkStatus  @default(PENDING)
+  module    AcademyModule    @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  agent     Agent            @relation(fields: [agentId], references: [id], onDelete: Cascade)
   review    FinalWorkReview?
-  createdAt DateTime        @default(now())
-  updatedAt DateTime        @updatedAt
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
 
   @@unique([moduleId, agentId])
 }
 
 model FinalWorkReview {
-  id             String      @id @default(uuid())
-  workId         String      @unique
+  id             String       @id @default(uuid())
+  workId         String       @unique
   collaboratorId String
-  feedback       String      @db.Text
+  feedback       String       @db.Text
   approved       Boolean
-  work           FinalWork   @relation(fields: [workId], references: [id], onDelete: Cascade)
+  work           FinalWork    @relation(fields: [workId], references: [id], onDelete: Cascade)
   collaborator   Collaborator @relation(fields: [collaboratorId], references: [id], onDelete: Cascade)
-  createdAt      DateTime    @default(now())
-  updatedAt      DateTime    @updatedAt
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
 }
 
 model AgentCertification {
-  id        String        @id @default(uuid())
-  agentId   String
-  moduleId  String
-  issuedAt  DateTime      @default(now())
-  agent     Agent         @relation(fields: [agentId], references: [id], onDelete: Cascade)
-  module    AcademyModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  id       String        @id @default(uuid())
+  agentId  String
+  moduleId String
+  issuedAt DateTime      @default(now())
+  agent    Agent         @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  module   AcademyModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
 
   @@unique([agentId, moduleId])
 }
@@ -711,20 +741,20 @@ model AgentCertification {
 // ─── Investimentos de agentes ─────────────────────────────────────────────────
 
 model AgentInvestment {
-  id               String                    @id @default(uuid())
-  investorId       String
-  investor         Agent                     @relation("AgentInvestor", fields: [investorId], references: [id], onDelete: Cascade)
-  targetType       AgentInvestmentTargetType
-  targetAgentId    String?
-  targetAgent      Agent?                    @relation("AgentInvestmentTarget", fields: [targetAgentId], references: [id], onDelete: SetNull)
+  id                     String                    @id @default(uuid())
+  investorId             String
+  investor               Agent                     @relation("AgentInvestor", fields: [investorId], references: [id], onDelete: Cascade)
+  targetType             AgentInvestmentTargetType
+  targetAgentId          String?
+  targetAgent            Agent?                    @relation("AgentInvestmentTarget", fields: [targetAgentId], references: [id], onDelete: SetNull)
   targetEmpreendimentoId String?
-  targetEmpreendimento   Empreendimento?     @relation("EmpreendimentoInvestmentTarget", fields: [targetEmpreendimentoId], references: [id], onDelete: SetNull)
-  amount           Float
-  type             AgentInvestmentType       @default(ONE_TIME)
-  notes            String?                   @db.Text
-  investedAt       DateTime                  @default(now())
-  createdAt        DateTime                  @default(now())
-  updatedAt        DateTime                  @updatedAt
+  targetEmpreendimento   Empreendimento?           @relation("EmpreendimentoInvestmentTarget", fields: [targetEmpreendimentoId], references: [id], onDelete: SetNull)
+  amount                 Float
+  type                   AgentInvestmentType       @default(ONE_TIME)
+  notes                  String?                   @db.Text
+  investedAt             DateTime                  @default(now())
+  createdAt              DateTime                  @default(now())
+  updatedAt              DateTime                  @updatedAt
 
   @@index([investorId, investedAt])
   @@index([targetAgentId, investedAt])
@@ -734,24 +764,167 @@ model AgentInvestment {
 // ─── Oportunidades ────────────────────────────────────────────────────────────
 
 model Opportunity {
-  id               String              @id @default(uuid())
-  title            String
-  description      String              @db.Text
-  category         OpportunityCategory @default(OTHER)
-  location         String?
-  isRemote         Boolean             @default(false)
-  isPublished      Boolean             @default(true)
+  id                   String              @id @default(uuid())
+  title                String
+  description          String              @db.Text
+  category             OpportunityCategory @default(OTHER)
+  location             String?
+  isRemote             Boolean             @default(false)
+  isPublished          Boolean             @default(true)
   // Autor: colaborador ou agente (dono de empreendimento aprovado)
   authorCollaboratorId String?
   authorAgentId        String?
   // Vínculo opcional com empreendimento
   empreendimentoId     String?
-  authorCollaborator   Collaborator?   @relation("CollaboratorOpportunities", fields: [authorCollaboratorId], references: [id], onDelete: SetNull)
-  authorAgent          Agent?          @relation("AgentOpportunities", fields: [authorAgentId], references: [id], onDelete: SetNull)
-  empreendimento       Empreendimento? @relation("EmpreendimentoOpportunities", fields: [empreendimentoId], references: [id], onDelete: SetNull)
-  createdAt        DateTime            @default(now())
-  updatedAt        DateTime            @updatedAt
+  authorCollaborator   Collaborator?       @relation("CollaboratorOpportunities", fields: [authorCollaboratorId], references: [id], onDelete: SetNull)
+  authorAgent          Agent?              @relation("AgentOpportunities", fields: [authorAgentId], references: [id], onDelete: SetNull)
+  empreendimento       Empreendimento?     @relation("EmpreendimentoOpportunities", fields: [empreendimentoId], references: [id], onDelete: SetNull)
+  createdAt            DateTime            @default(now())
+  updatedAt            DateTime            @updatedAt
 
   @@index([category, createdAt])
   @@index([isPublished, createdAt])
+}
+
+// ─── Profiling Dictionaries & Relations ───────────────────────────────────────
+
+model Nationality {
+  id        String   @id @default(uuid())
+  name      String   @unique
+  code      String   @unique
+  agents    Agent[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Language {
+  id        String          @id @default(uuid())
+  name      String          @unique
+  code      String          @unique
+  agents    AgentLanguage[]
+  createdAt DateTime        @default(now())
+  updatedAt DateTime        @updatedAt
+}
+
+model ExperienceType {
+  id          String            @id @default(uuid())
+  name        String            @unique
+  description String?
+  experiences AgentExperience[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+}
+
+model Skill {
+  id          String       @id @default(uuid())
+  name        String       @unique
+  description String?
+  agents      AgentSkill[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+}
+
+model VocationalArea {
+  id          String                @id @default(uuid())
+  name        String                @unique
+  description String?
+  agents      AgentVocationalArea[]
+  createdAt   DateTime              @default(now())
+  updatedAt   DateTime              @updatedAt
+}
+
+model AgentExperience {
+  id               String         @id @default(uuid())
+  agentId          String
+  agent            Agent          @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  experienceTypeId String
+  experienceType   ExperienceType @relation(fields: [experienceTypeId], references: [id], onDelete: Restrict)
+  title            String
+  organization     String
+  location         String?
+  startDate        DateTime
+  endDate          DateTime?
+  description      String?        @db.Text
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+}
+
+model AgentSkill {
+  agentId     String
+  skillId     String
+  agent       Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  skill       Skill    @relation(fields: [skillId], references: [id], onDelete: Cascade)
+  contextInfo String?  @db.Text
+  createdAt   DateTime @default(now())
+
+  @@id([agentId, skillId])
+}
+
+model AgentVocationalArea {
+  agentId          String
+  vocationalAreaId String
+  agent            Agent          @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  vocationalArea   VocationalArea @relation(fields: [vocationalAreaId], references: [id], onDelete: Cascade)
+  createdAt        DateTime       @default(now())
+
+  @@id([agentId, vocationalAreaId])
+}
+
+model AgentLanguage {
+  agentId          String
+  languageId       String
+  proficiencyLevel LanguageProficiency
+  agent            Agent               @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  language         Language            @relation(fields: [languageId], references: [id], onDelete: Cascade)
+  createdAt        DateTime            @default(now())
+
+  @@id([agentId, languageId])
+}
+
+model AgentEducation {
+  id          String    @id @default(uuid())
+  agentId     String
+  agent       Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  institution String
+  course      String
+  degree      String?
+  startDate   DateTime
+  endDate     DateTime?
+  description String?   @db.Text
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model AgentCourse {
+  id             String    @id @default(uuid())
+  agentId        String
+  agent          Agent     @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  title          String
+  institution    String
+  issueDate      DateTime?
+  certificateUrl String?
+  description    String?   @db.Text
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+}
+
+model AgentLink {
+  id        String   @id @default(uuid())
+  agentId   String
+  agent     Agent    @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  title     String
+  url       String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model AgentRecommendation {
+  id            String   @id @default(uuid())
+  recommenderId String
+  recommender   Agent    @relation("SentRecommendations", fields: [recommenderId], references: [id], onDelete: Cascade)
+  recommendedId String
+  recommended   Agent    @relation("ReceivedRecommendations", fields: [recommendedId], references: [id], onDelete: Cascade)
+  text          String   @db.Text
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 }

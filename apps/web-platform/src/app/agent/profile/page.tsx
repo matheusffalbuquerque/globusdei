@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui
 import { Input } from '../../../components/ui/input';
 import { Separator } from '../../../components/ui/separator';
 import { Textarea } from '../../../components/ui/textarea';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
 
 type ProfileForm = {
   phone: string;
@@ -22,6 +23,13 @@ type ProfileForm = {
   city: string;
   country: string;
   isActive: boolean;
+  slug: string;
+  photoUrl: string;
+  coverUrl: string;
+  state: string;
+  currentDenomination: string;
+  shortDescription: string;
+  portfolioUrl: string;
 };
 
 function agentStatusVariant(s?: string) {
@@ -47,6 +55,13 @@ export default function AgentProfilePage() {
     city: '',
     country: '',
     isActive: true,
+    slug: '',
+    photoUrl: '',
+    coverUrl: '',
+    state: '',
+    currentDenomination: '',
+    shortDescription: '',
+    portfolioUrl: '',
   });
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [error, setError] = useState<string | null>(null);
@@ -66,6 +81,13 @@ export default function AgentProfilePage() {
           city: profile.city ?? '',
           country: profile.country ?? '',
           isActive: profile.isActive ?? true,
+          slug: profile.slug ?? '',
+          photoUrl: profile.photoUrl ?? '',
+          coverUrl: profile.coverUrl ?? '',
+          state: profile.state ?? '',
+          currentDenomination: profile.currentDenomination ?? '',
+          shortDescription: profile.shortDescription ?? '',
+          portfolioUrl: profile.portfolioUrl ?? '',
         }),
       )
       .catch((requestError) => setError((requestError as Error).message));
@@ -93,7 +115,15 @@ export default function AgentProfilePage() {
   return (
     <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.1fr_0.9fr]">
       {/* Form panel */}
-      <Card>
+      <Tabs defaultValue="identidade">
+        <TabsList className="mb-4">
+          <TabsTrigger value="identidade">Identidade</TabsTrigger>
+          <TabsTrigger value="historico">Histórico</TabsTrigger>
+          <TabsTrigger value="habilidades">Habilidades & Acadêmico</TabsTrigger>
+        </TabsList>
+      
+        <TabsContent value="identidade">
+          <Card>
         <CardHeader className="pb-3">
           <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
             Perfil operacional
@@ -116,12 +146,38 @@ export default function AgentProfilePage() {
           <form onSubmit={handleSubmit} className="space-y-5">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">Slug (Sua URL Base)</label>
+                <div className="flex items-center">
+                   <span className="bg-muted px-3 py-2 border border-r-0 border-border rounded-l-md text-sm text-muted-foreground flex-shrink-0">
+                     globusdei.com/
+                   </span>
+                   <Input
+                    className="rounded-l-none"
+                    type="text"
+                    value={form.slug}
+                    onChange={(e) => setForm((c) => ({ ...c, slug: e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '') }))}
+                    placeholder="seu-nome"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-1.5">
                 <label className="text-sm font-medium text-foreground">Telefone</label>
                 <Input
                   type="text"
                   value={form.phone}
                   onChange={(e) => setForm((c) => ({ ...c, phone: e.target.value }))}
                   placeholder="(00) 00000-0000"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">Denominação Atual</label>
+                <Input
+                  type="text"
+                  value={form.currentDenomination}
+                  onChange={(e) => setForm((c) => ({ ...c, currentDenomination: e.target.value }))}
+                  placeholder="Ex: Igreja Batista..."
                 />
               </div>
 
@@ -135,6 +191,16 @@ export default function AgentProfilePage() {
                 />
               </div>
 
+              <div className="space-y-1.5 md:col-span-2">
+                <label className="text-sm font-medium text-foreground">Descrição Resumida (Abaixo do Nome)</label>
+                <Input
+                  type="text"
+                  value={form.shortDescription}
+                  onChange={(e) => setForm((c) => ({ ...c, shortDescription: e.target.value }))}
+                  placeholder="Ex: Missionário servindo no Oriente Médio"
+                />
+              </div>
+
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-foreground">Cidade base</label>
                 <Input
@@ -142,6 +208,36 @@ export default function AgentProfilePage() {
                   value={form.city}
                   onChange={(e) => setForm((c) => ({ ...c, city: e.target.value }))}
                   placeholder="Cidade"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">Estado</label>
+                <Input
+                  type="text"
+                  value={form.state}
+                  onChange={(e) => setForm((c) => ({ ...c, state: e.target.value }))}
+                  placeholder="Estado"
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">País</label>
+                <Input
+                  type="text"
+                  value={form.country}
+                  onChange={(e) => setForm((c) => ({ ...c, country: e.target.value }))}
+                  placeholder="País"
+                />
+              </div>
+              
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-foreground">Portfólio ou Site Externo (URL)</label>
+                <Input
+                  type="url"
+                  value={form.portfolioUrl}
+                  onChange={(e) => setForm((c) => ({ ...c, portfolioUrl: e.target.value }))}
+                  placeholder="https://..."
                 />
               </div>
 
@@ -215,6 +311,31 @@ export default function AgentProfilePage() {
           </form>
         </CardContent>
       </Card>
+      </TabsContent>
+      
+      <TabsContent value="historico">
+        <Card>
+          <CardHeader>
+             <CardTitle>Linha do Tempo (Histórico)</CardTitle>
+          </CardHeader>
+          <CardContent>
+             <p className="text-sm text-muted-foreground">O módulo de histórico de experiências estará disponível nas próximas atualizações para montagem da linha do tempo.</p>
+          </CardContent>
+        </Card>
+      </TabsContent>
+
+      <TabsContent value="habilidades">
+        <Card>
+          <CardHeader>
+             <CardTitle>Habilidades & Acadêmico</CardTitle>
+          </CardHeader>
+          <CardContent>
+             <p className="text-sm text-muted-foreground">O painel avançado de idiomas e competências conectadas ao sistema mestre estará disponível em breve.</p>
+          </CardContent>
+        </Card>
+      </TabsContent>
+      
+      </Tabs>
 
       {/* Summary sidebar */}
       <div className="space-y-5">
