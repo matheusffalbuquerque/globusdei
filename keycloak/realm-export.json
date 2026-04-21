@@ -2192,6 +2192,14 @@
       "builtIn": false,
       "authenticationExecutions": [
         {
+          "authenticator": "idp-auto-link",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 0,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false
+        },
+        {
           "authenticator": "idp-confirm-link",
           "authenticatorFlow": false,
           "requirement": "DISABLED",
