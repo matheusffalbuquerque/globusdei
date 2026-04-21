@@ -1,7 +1,9 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Query, UseGuards } from '@nestjs/common';
+import { KeycloakAuthGuard } from '../auth/keycloak-auth.guard';
 import { LocationService } from './location.service';
 
 @Controller('location')
+@UseGuards(KeycloakAuthGuard)
 export class LocationController {
   constructor(private readonly locationService: LocationService) {}
 
