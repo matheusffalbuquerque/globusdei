@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { resolve } from 'path';
 
 import { AcademyModule } from '../academy/academy.module';
 import { CollaboratorModule } from '../collaborator/collaborator.module';
@@ -18,6 +19,8 @@ import { NotificationModule } from '../notification/notification.module';
 import { InvestmentModule } from '../investment/investment.module';
 import { SystemConfigModule } from '../system-config/system-config.module';
 import { LocationModule } from '../location/location.module';
+import { StorageModule } from '../storage/storage.module';
+import { FileModule } from '../file/file.module';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
@@ -35,11 +38,19 @@ import { AppService } from './app.service';
     PrayerRequestModule,
     NotificationModule,
     InvestmentModule,
-    ConfigModule.forRoot({ isGlobal: true }),
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: [
+        resolve(__dirname, '../../../../.env'),
+        resolve(process.cwd(), '.env'),
+      ],
+    }),
     PlatformModule,
     AcademyModule,
     SystemConfigModule,
     LocationModule,
+    StorageModule,
+    FileModule,
   ],
   controllers: [AppController],
   providers: [AppService, KeycloakAuthGuard, PoliciesGuard],

@@ -19,6 +19,7 @@ import { apiFetch } from '../../../lib/api';
 import { type AppSession } from '../../../lib/auth';
 import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
+import { Avatar, AvatarFallback, AvatarImage } from '../../../components/ui/avatar';
 import { cn } from '../../../lib/utils';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -29,6 +30,8 @@ type AgentCard = {
   id: string;
   name: string;
   email: string;
+  photoUrl: string | null;
+  coverUrl: string | null;
   city: string | null;
   country: string | null;
   publicBio: string | null;
@@ -436,11 +439,16 @@ function AgentCardItem({
       {/* Banner / avatar area */}
       <div
         className="relative flex h-24 cursor-pointer items-end justify-center bg-gradient-to-br from-primary/10 to-primary/5"
+        style={agent.coverUrl ? { backgroundImage: `url(${agent.coverUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}
         onClick={onView}
       >
-        <div className="absolute -bottom-6 flex h-14 w-14 items-center justify-center rounded-full border-2 border-background bg-primary/15 text-lg font-bold text-primary shadow">
-          {initials(agent.name)}
-        </div>
+        <div className="absolute inset-0 bg-black/5" />
+        <Avatar className="absolute -bottom-6 h-14 w-14 border-2 border-background shadow">
+          {agent.photoUrl ? <AvatarImage src={agent.photoUrl} alt={agent.name} /> : null}
+          <AvatarFallback className="bg-primary/15 text-lg font-bold text-primary">
+            {initials(agent.name)}
+          </AvatarFallback>
+        </Avatar>
       </div>
 
       {/* Info */}

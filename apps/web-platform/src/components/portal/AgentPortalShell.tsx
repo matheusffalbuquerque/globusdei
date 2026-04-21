@@ -29,7 +29,7 @@ import {
   type AppSession,
 } from '../../lib/auth';
 import { useIsMobileViewport } from '../../hooks/useIsMobileViewport';
-import { Avatar, AvatarFallback } from '../ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Badge } from '../ui/badge';
 import {
   Dialog,
@@ -47,6 +47,7 @@ type AgentProfile = {
   name: string;
   email: string;
   status: string;
+  photoUrl?: string | null;
   city?: string | null;
   country?: string | null;
 };
@@ -141,6 +142,7 @@ export function AgentPortalShell({ children }: { children: ReactNode }) {
       <div className="rounded-xl border border-border bg-slate-950 p-4 text-white">
         <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10 shrink-0">
+            {agent?.photoUrl ? <AvatarImage src={agent.photoUrl} alt={agent.name} /> : null}
             <AvatarFallback className="bg-primary/20 text-sm font-bold text-primary-foreground">
               {(agent?.name ?? sessionName).charAt(0).toUpperCase()}
             </AvatarFallback>

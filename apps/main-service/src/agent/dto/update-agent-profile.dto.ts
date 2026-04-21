@@ -12,17 +12,27 @@ export class UpdateAgentProfileDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  slug?: string;
+  slug?: string | null;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  photoUrl?: string;
+  photoUrl?: string | null;
 
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  coverUrl?: string;
+  photoFileId?: string | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  coverUrl?: string | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  coverFileId?: string | null;
 
   @ApiPropertyOptional()
   @IsOptional()
@@ -47,7 +57,12 @@ export class UpdateAgentProfileDto {
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
-  portfolioUrl?: string;
+  portfolioUrl?: string | null;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  portfolioFileId?: string | null;
 
   @ApiPropertyOptional()
   @IsOptional()

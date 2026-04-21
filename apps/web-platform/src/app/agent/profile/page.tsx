@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { CheckCircle2, Loader2, Save, UserCircle } from 'lucide-react';
+import { CheckCircle2, Loader2, Save, UserCircle, Camera, ImageIcon } from 'lucide-react';
 
 import { useAgentPortal } from '../../../components/portal/AgentPortalShell';
 import { apiFetch } from '../../../lib/api';
@@ -18,6 +18,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { ProfileHistoryTab, ProfileExperience, ProfileEducation, ProfileCourse } from '../../../components/profile/ProfileHistoryTab';
 import { ProfileAbilitiesTab } from '../../../components/profile/ProfileAbilitiesTab';
 import { LocationAutocomplete } from '../../../components/ui/LocationAutocomplete';
+import { FileUpload } from '../../../components/ui/FileUpload';
 
 type ProfileForm = {
   phone: string;
@@ -26,11 +27,14 @@ type ProfileForm = {
   country: string;
   isActive: boolean;
   slug: string;
+  photoFileId: string;
   photoUrl: string;
+  coverFileId: string;
   coverUrl: string;
   state: string;
   currentDenomination: string;
   shortDescription: string;
+  portfolioFileId: string;
   portfolioUrl: string;
   vocationalAreaIds: string[];
   skillIds: string[];
@@ -59,11 +63,14 @@ export default function AgentProfilePage() {
     country: '',
     isActive: true,
     slug: '',
+    photoFileId: '',
     photoUrl: '',
+    coverFileId: '',
     coverUrl: '',
     state: '',
     currentDenomination: '',
     shortDescription: '',
+    portfolioFileId: '',
     portfolioUrl: '',
     vocationalAreaIds: [],
     skillIds: [],
@@ -78,6 +85,29 @@ export default function AgentProfilePage() {
   const [status, setStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
   const [error, setError] = useState<string | null>(null);
 
+  const hydrateFormFromProfile = (profile: Record<string, any>) => {
+    setForm({
+      phone: profile.phone ?? '',
+      publicBio: profile.publicBio ?? '',
+      city: profile.city ?? '',
+      country: profile.country ?? '',
+      isActive: profile.isActive ?? true,
+      slug: profile.slug ?? '',
+      photoFileId: profile.photoFileId ?? '',
+      photoUrl: profile.photoUrl ?? '',
+      coverFileId: profile.coverFileId ?? '',
+      coverUrl: profile.coverUrl ?? '',
+      state: profile.state ?? '',
+      currentDenomination: profile.currentDenomination ?? '',
+      shortDescription: profile.shortDescription ?? '',
+      portfolioFileId: profile.portfolioFileId ?? '',
+      portfolioUrl: profile.portfolioUrl ?? '',
+      vocationalAreaIds: profile.vocationalAreas?.map((v: { vocationalAreaId: string }) => v.vocationalAreaId) ?? [],
+      skillIds: profile.skills?.map((s: { skillId: string }) => s.skillId) ?? [],
+      languageRecords: profile.languages?.map((l: { languageId: string; proficiencyLevel: string }) => ({ languageId: l.languageId, proficiencyLevel: l.proficiencyLevel })) ?? [],
+    });
+  };
+
   useEffect(() => {
     if (!session) {
       return;
@@ -89,23 +119,7 @@ export default function AgentProfilePage() {
     ])
       .then(([profile, areas]) => {
         setVocationalAreasList(areas);
-        setForm({
-          phone: profile.phone ?? '',
-          publicBio: profile.publicBio ?? '',
-          city: profile.city ?? '',
-          country: profile.country ?? '',
-          isActive: profile.isActive ?? true,
-          slug: profile.slug ?? '',
-          photoUrl: profile.photoUrl ?? '',
-          coverUrl: profile.coverUrl ?? '',
-          state: profile.state ?? '',
-          currentDenomination: profile.currentDenomination ?? '',
-          shortDescription: profile.shortDescription ?? '',
-          portfolioUrl: profile.portfolioUrl ?? '',
-          vocationalAreaIds: profile.vocationalAreas?.map((v: { vocationalAreaId: string }) => v.vocationalAreaId) ?? [],
-          skillIds: profile.skills?.map((s: { skillId: string }) => s.skillId) ?? [],
-          languageRecords: profile.languages?.map((l: { languageId: string; proficiencyLevel: string }) => ({ languageId: l.languageId, proficiencyLevel: l.proficiencyLevel })) ?? [],
-        });
+        hydrateFormFromProfile(profile);
         setExperiences(profile.experiences ?? []);
         setEducation(profile.education ?? []);
         setCourses(profile.courses ?? []);
@@ -119,11 +133,20 @@ export default function AgentProfilePage() {
     setError(null);
 
     try {
-      await apiFetch('/agents/me', {
+      const updatedProfile = await apiFetch('/agents/me', {
         method: 'PATCH',
         session: session as AppSession,
-        body: JSON.stringify(form),
+        body: {
+          ...form,
+          photoUrl: undefined,
+          coverUrl: undefined,
+          portfolioUrl: undefined,
+        },
       });
+      hydrateFormFromProfile(updatedProfile);
+      setExperiences(updatedProfile.experiences ?? []);
+      setEducation(updatedProfile.education ?? []);
+      setCourses(updatedProfile.courses ?? []);
       await reloadAgent();
       setStatus('saved');
     } catch (requestError) {
@@ -175,6 +198,76 @@ export default function AgentProfilePage() {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-5">
+            {/* Visual do Perfil — Banner + Avatar */}
+            <div className="relative">
+              {/* Hidden file inputs — fora dos containers visuais */}
+              <FileUpload
+                session={session as AppSession}
+                context="agent-cover"
+                visibility="PUBLIC"
+                accept="image/*"
+                variant="hidden"
+                inputId="cover-upload"
+                currentUrl={form.coverUrl || undefined}
+                onUpload={(result) => {
+                  setForm(c => ({ ...c, coverFileId: result.fileId, coverUrl: result.publicUrl || '' }));
+                }}
+              />
+              <FileUpload
+                session={session as AppSession}
+                context="agent-photo"
+                visibility="PUBLIC"
+                accept="image/*"
+                variant="hidden"
+                inputId="photo-upload"
+                currentUrl={form.photoUrl || undefined}
+                onUpload={(result) => {
+                  setForm(c => ({ ...c, photoFileId: result.fileId, photoUrl: result.publicUrl || '' }));
+                }}
+              />
+
+              {/* Banner / Capa */}
+              <div
+                className="relative w-full h-40 md:h-48 rounded-xl overflow-hidden border-2 border-dashed border-muted-foreground/20 bg-muted/30 cursor-pointer group transition-colors hover:border-primary/40"
+                onClick={() => document.getElementById('cover-upload')?.click()}
+              >
+                {form.coverUrl ? (
+                  <img src={form.coverUrl} alt="Capa" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="flex flex-col items-center justify-center h-full gap-1.5 text-muted-foreground/40 group-hover:text-primary/50 transition-colors">
+                    <ImageIcon className="w-8 h-8" />
+                    <span className="text-xs font-medium">Clique para adicionar imagem de capa</span>
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-black/0 group-hover:bg-black/20 transition-colors flex items-center justify-center pointer-events-none">
+                  <span className="opacity-0 group-hover:opacity-100 transition-opacity text-white text-xs font-semibold bg-black/50 px-3 py-1.5 rounded-full flex items-center gap-1.5">
+                    <Camera className="w-3.5 h-3.5" /> Alterar capa
+                  </span>
+                </div>
+              </div>
+
+              {/* Avatar — sobrepõe a borda inferior do banner */}
+              <div style={{ marginTop: '-48px' }} className="relative z-10 ml-6 mb-2 flex items-end gap-3">
+                <div
+                  className="relative w-24 h-24 rounded-full border-4 border-background shadow-lg overflow-hidden bg-muted cursor-pointer group flex-shrink-0"
+                  onClick={() => document.getElementById('photo-upload')?.click()}
+                >
+                  {form.photoUrl ? (
+                    <img src={form.photoUrl} alt="Foto" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground/40 group-hover:text-primary/50 transition-colors">
+                      <UserCircle className="w-12 h-12" />
+                    </div>
+                  )}
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center rounded-full pointer-events-none">
+                    <Camera className="w-5 h-5 text-white opacity-0 group-hover:opacity-100 transition-opacity" />
+                  </div>
+                </div>
+                <p className="text-xs text-muted-foreground pb-1">Clique na foto ou capa para alterar</p>
+              </div>
+            </div>
+
+            <Separator />
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium text-foreground">Slug (Sua URL Base)</label>
@@ -305,12 +398,20 @@ export default function AgentProfilePage() {
               </div>
               
               <div className="space-y-1.5">
-                <label className="text-sm font-medium text-foreground">Portfólio ou Site Externo (URL)</label>
-                <Input
-                  type="url"
-                  value={form.portfolioUrl}
-                  onChange={(e) => setForm((c) => ({ ...c, portfolioUrl: e.target.value }))}
-                  placeholder="https://..."
+                <label className="text-sm font-medium text-foreground">Arquivo de portfólio</label>
+                <FileUpload
+                  session={session as AppSession}
+                  context="agent-portfolio"
+                  visibility="PUBLIC"
+                  variant="default"
+                  currentUrl={form.portfolioUrl || undefined}
+                  onUpload={(result) => {
+                    setForm((c) => ({
+                      ...c,
+                      portfolioFileId: result.fileId,
+                      portfolioUrl: result.publicUrl || '',
+                    }));
+                  }}
                 />
               </div>
             </div>

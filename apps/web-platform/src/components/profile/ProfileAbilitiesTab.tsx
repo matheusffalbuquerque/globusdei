@@ -16,11 +16,14 @@ export type ProfileForm = {
   country: string;
   isActive: boolean;
   slug: string;
+  photoFileId: string;
   photoUrl: string;
+  coverFileId: string;
   coverUrl: string;
   state: string;
   currentDenomination: string;
   shortDescription: string;
+  portfolioFileId: string;
   portfolioUrl: string;
   vocationalAreaIds: string[];
   skillIds: string[];

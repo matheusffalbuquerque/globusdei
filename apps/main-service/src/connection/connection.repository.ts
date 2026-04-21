@@ -3,8 +3,17 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 const AGENT_SELECT = {
-  id: true, name: true, email: true, city: true, country: true,
-  publicBio: true, status: true,
+  id: true,
+  name: true,
+  email: true,
+  city: true,
+  country: true,
+  publicBio: true,
+  status: true,
+  photoUrl: true,
+  coverUrl: true,
+  photoFile: { select: { key: true } },
+  coverFile: { select: { key: true } },
 } as const;
 
 @Injectable()

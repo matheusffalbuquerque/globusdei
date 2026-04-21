@@ -57,10 +57,8 @@ interface PublicAgentProfile {
 
 async function fetchPublicProfile(slug: string): Promise<PublicAgentProfile | null> {
   try {
-    // MAIN_SERVICE_URL é a variável server-side que já inclui /api
-    // ex: http://main-service:3001/api (interno) ou https://globusdei.org/api/main (prod)
-    const baseUrl = process.env.MAIN_SERVICE_URL ?? 'http://localhost:3001/api';
-    const res = await fetch(`${baseUrl}/agents/public/${slug}`, {
+    const baseUrl = process.env.NEXT_PUBLIC_MAIN_SERVICE_URL ?? 'http://localhost:3001';
+    const res = await fetch(`${baseUrl}/api/agents/public/${slug}`, {
       next: { revalidate: 60 },
     });
     if (!res.ok) return null;

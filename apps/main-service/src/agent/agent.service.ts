@@ -2,6 +2,7 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 
 import { AuditService, AuditType } from '../audit/audit.service';
 import type { AuthenticatedUser } from '../auth/user-context.interface';
+import { StorageService } from '../storage/storage.service';
 import { AgentRepository } from './agent.repository';
 import { UpdateAgentProfileDto } from './dto/update-agent-profile.dto';
 import { CreateAgentExperienceDto } from './dto/experiences/create-experience.dto';
@@ -13,14 +14,17 @@ export class AgentService {
   constructor(
     private readonly agents: AgentRepository,
     private readonly audit: AuditService,
+    private readonly storage: StorageService,
   ) {}
 
   async getMe(user: AuthenticatedUser) {
-    return this.agents.upsertFromIdentity({
+    const agent = await this.agents.upsertFromIdentity({
       authSubject: user.sub,
       email: user.email,
       name: user.name,
     });
+
+    return this.normalizeProfileMedia(agent);
   }
 
   async findOne(id: string, requester: AuthenticatedUser) {
@@ -41,15 +45,26 @@ export class AgentService {
 
   async updateMe(user: AuthenticatedUser, data: UpdateAgentProfileDto) {
     const agent = await this.getMe(user);
+    const normalizedSlug = this.normalizeSlug(data.slug);
+    const normalizedData = {
+      ...data,
+      slug: normalizedSlug,
+      photoFileId: this.normalizeNullableString(data.photoFileId),
+      coverFileId: this.normalizeNullableString(data.coverFileId),
+      portfolioFileId: this.normalizeNullableString(data.portfolioFileId),
+      photoUrl: undefined,
+      coverUrl: undefined,
+      portfolioUrl: undefined,
+    };
 
-    if (data.slug && data.slug !== agent.slug) {
-      const slugCheck = await this.checkSlug(data.slug, agent.id);
+    if (normalizedSlug && normalizedSlug !== agent.slug) {
+      const slugCheck = await this.checkSlug(normalizedSlug, agent.id);
       if (!slugCheck.available) {
         throw new Error(`Slug não pode ser salvo: ${slugCheck.reason}`);
       }
     }
 
-    const updated = await this.agents.updateProfile(agent.id, data);
+    const updated = await this.agents.updateProfile(agent.id, normalizedData);
 
     await this.audit.logAction(
       agent.id,
@@ -57,7 +72,7 @@ export class AgentService {
       'Atualização do perfil do agente.',
     );
 
-    return updated;
+    return this.normalizeProfileMedia(updated);
   }
 
   async getDashboard(user: AuthenticatedUser) {
@@ -81,7 +96,7 @@ export class AgentService {
     if (!agent || !agent.isActive || agent.status !== 'APPROVED') {
       throw new NotFoundException(`Perfil não encontrado.`);
     }
-    return agent;
+    return this.normalizeProfileMedia(agent);
   }
 
   async checkSlug(slug: string, currentAgentId?: string) {
@@ -126,5 +141,56 @@ export class AgentService {
   async removeCourse(user: AuthenticatedUser, courseId: string) {
     const agent = await this.getMe(user);
     return this.agents.removeCourse(agent.id, courseId);
+  }
+
+  private normalizeProfileMedia<
+    T extends {
+      photoUrl?: string | null;
+      photoFileId?: string | null;
+      photoFile?: { key: string } | null;
+      coverUrl?: string | null;
+      coverFileId?: string | null;
+      coverFile?: { key: string } | null;
+      portfolioUrl?: string | null;
+      portfolioFileId?: string | null;
+      portfolioFile?: { key: string } | null;
+    },
+  >(
+    profile: T,
+  ): T {
+    const photoUrl = profile.photoFile?.key
+      ? this.storage.getPublicUrl(profile.photoFile.key)
+      : this.storage.normalizePublicUrl(profile.photoUrl) ?? profile.photoUrl;
+    const coverUrl = profile.coverFile?.key
+      ? this.storage.getPublicUrl(profile.coverFile.key)
+      : this.storage.normalizePublicUrl(profile.coverUrl) ?? profile.coverUrl;
+    const portfolioUrl = profile.portfolioFile?.key
+      ? this.storage.getPublicUrl(profile.portfolioFile.key)
+      : this.storage.normalizePublicUrl(profile.portfolioUrl) ?? profile.portfolioUrl;
+
+    return {
+      ...profile,
+      photoUrl,
+      coverUrl,
+      portfolioUrl,
+    };
+  }
+
+  private normalizeSlug(slug?: string | null): string | null | undefined {
+    if (slug === undefined) {
+      return undefined;
+    }
+
+    const normalized = slug?.trim().toLowerCase() ?? '';
+    return normalized.length > 0 ? normalized : null;
+  }
+
+  private normalizeNullableString(value?: string | null): string | null | undefined {
+    if (value === undefined) {
+      return undefined;
+    }
+
+    const normalized = value?.trim() ?? '';
+    return normalized.length > 0 ? normalized : null;
   }
 }

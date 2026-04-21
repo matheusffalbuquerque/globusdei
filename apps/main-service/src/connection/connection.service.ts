@@ -7,6 +7,7 @@ import {
 
 import { AgentRepository } from '../agent/agent.repository';
 import { NotificationGatewayService } from '../notification/notification-gateway.service';
+import { StorageService } from '../storage/storage.service';
 import { ConnectionRepository } from './connection.repository';
 import type { AuthenticatedUser } from '../auth/user-context.interface';
 import {
@@ -21,6 +22,7 @@ export class ConnectionService {
     private readonly connections: ConnectionRepository,
     private readonly agents: AgentRepository,
     private readonly notificationGateway: NotificationGatewayService,
+    private readonly storage: StorageService,
   ) {}
 
   private async me(user: AuthenticatedUser) {
@@ -121,6 +123,26 @@ export class ConnectionService {
   /** Todos os agentes com status de conexão em relação ao usuário autenticado */
   async listAllWithStatus(user: AuthenticatedUser) {
     const agent = await this.me(user);
-    return this.connections.listAllWithStatus(agent.id);
+    const agents = await this.connections.listAllWithStatus(agent.id);
+    return agents.map((item) => this.normalizeAgentMedia(item));
+  }
+
+  private normalizeAgentMedia<
+    T extends {
+      photoUrl?: string | null;
+      photoFile?: { key: string } | null;
+      coverUrl?: string | null;
+      coverFile?: { key: string } | null;
+    },
+  >(agent: T): T {
+    return {
+      ...agent,
+      photoUrl: agent.photoFile?.key
+        ? this.storage.getPublicUrl(agent.photoFile.key)
+        : this.storage.normalizePublicUrl(agent.photoUrl) ?? agent.photoUrl,
+      coverUrl: agent.coverFile?.key
+        ? this.storage.getPublicUrl(agent.coverFile.key)
+        : this.storage.normalizePublicUrl(agent.coverUrl) ?? agent.coverUrl,
+    };
   }
 }

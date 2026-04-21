@@ -15,6 +15,9 @@ export class AgentRepository {
     return this.prisma.agent.findUnique({
       where: { id },
       include: {
+        photoFile: true,
+        coverFile: true,
+        portfolioFile: true,
         empreendimentos: {
           include: { empreendimento: true },
         },
@@ -47,6 +50,9 @@ export class AgentRepository {
         OR: [{ authSubject }, { email }],
       },
       include: {
+        photoFile: true,
+        coverFile: true,
+        portfolioFile: true,
         vocationalAreas: {
           include: { vocationalArea: true },
         },
@@ -86,11 +92,17 @@ export class AgentRepository {
         publicBio: true,
         shortDescription: true,
         photoUrl: true,
+        photoFileId: true,
+        photoFile: true,
         coverUrl: true,
+        coverFileId: true,
+        coverFile: true,
         city: true,
         state: true,
         country: true,
         portfolioUrl: true,
+        portfolioFileId: true,
+        portfolioFile: true,
         currentDenomination: true,
         status: true,
         isActive: true,
@@ -133,6 +145,9 @@ export class AgentRepository {
           name: params.name,
         },
         include: {
+          photoFile: true,
+          coverFile: true,
+          portfolioFile: true,
           vocationalAreas: {
             include: { vocationalArea: true },
           },
@@ -203,6 +218,30 @@ export class AgentRepository {
       return tx.agent.update({
         where: { id },
         data: rest,
+        include: {
+          photoFile: true,
+          coverFile: true,
+          portfolioFile: true,
+          vocationalAreas: {
+            include: { vocationalArea: true },
+          },
+          experiences: {
+            include: { experienceType: true },
+            orderBy: { startDate: 'desc' },
+          },
+          education: {
+            orderBy: { startDate: 'desc' },
+          },
+          courses: {
+            orderBy: { issueDate: 'desc' },
+          },
+          skills: {
+            include: { skill: true },
+          },
+          languages: {
+            include: { language: true },
+          },
+        },
       });
     });
   }

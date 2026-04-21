@@ -177,12 +177,47 @@ enum LanguageProficiency {
   NATIVE
 }
 
+enum FileVisibility {
+  PUBLIC
+  PRIVATE
+}
+
+model File {
+  id           String         @id @default(uuid())
+  key          String         @unique
+  bucket       String
+  visibility   FileVisibility @default(PUBLIC)
+  originalName String
+  mimeType     String
+  size         Int
+  uploadedById String?
+  confirmed    Boolean        @default(false)
+
+  agentPhotos           Agent[]          @relation("AgentPhoto")
+  agentCovers           Agent[]          @relation("AgentCover")
+  agentPortfolios       Agent[]          @relation("AgentPortfolio")
+  empreendimentoLogos   Empreendimento[] @relation("EmpreendimentoLogo")
+  empreendimentoBanners Empreendimento[] @relation("EmpreendimentoBanner")
+  empreendimentoPortfolios Empreendimento[] @relation("EmpreendimentoPortfolio")
+  academyModuleCovers   AcademyModule[]  @relation("AcademyModuleCover")
+  lessonMaterials       LessonMaterial[] @relation("LessonMaterialFile")
+  finalWorks            FinalWork[]      @relation("FinalWorkFile")
+  agentCourses          AgentCourse[]    @relation("AgentCourseFile")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 model Agent {
   id                    String                  @id @default(uuid())
   authSubject           String?                 @unique
   name                  String
   photoUrl              String?
+  photoFileId           String?
+  photoFile             File?                   @relation("AgentPhoto", fields: [photoFileId], references: [id], onDelete: SetNull)
   coverUrl              String?
+  coverFileId           String?
+  coverFile             File?                   @relation("AgentCover", fields: [coverFileId], references: [id], onDelete: SetNull)
   slug                  String?                 @unique
   email                 String                  @unique
   phone                 String?
@@ -197,6 +232,8 @@ model Agent {
   state                 String?
   country               String?
   portfolioUrl          String?
+  portfolioFileId       String?
+  portfolioFile         File?                   @relation("AgentPortfolio", fields: [portfolioFileId], references: [id], onDelete: SetNull)
   isActive              Boolean                 @default(true)
   status                AgentStatus             @default(ENTERED)
   scheduledSlotId       String?                 @unique
@@ -327,10 +364,16 @@ model Empreendimento {
   category               EmpreendimentoCategory
   socialLinks            Json?
   portfolioUrl           String?
+  portfolioFileId        String?
+  portfolioFile          File?                   @relation("EmpreendimentoPortfolio", fields: [portfolioFileId], references: [id], onDelete: SetNull)
   location               String?
   actuationRegions       String?                 @db.Text
   logoUrl                String?
+  logoFileId             String?
+  logoFile               File?                   @relation("EmpreendimentoLogo", fields: [logoFileId], references: [id], onDelete: SetNull)
   bannerUrl              String?
+  bannerFileId           String?
+  bannerFile             File?                   @relation("EmpreendimentoBanner", fields: [bannerFileId], references: [id], onDelete: SetNull)
   monthlyExpenses        Float                   @default(0)
   incomeSources          String?                 @db.Text
   needType               NeedType                @default(MAINTENANCE)
@@ -618,6 +661,8 @@ model AcademyModule {
   title            String
   description      String                  @db.Text
   coverUrl         String?
+  coverFileId      String?
+  coverFile        File?                   @relation("AcademyModuleCover", fields: [coverFileId], references: [id], onDelete: SetNull)
   workInstructions String                  @default("") @db.Text
   isPublished      Boolean                 @default(false)
   order            Int                     @default(0)
@@ -650,6 +695,8 @@ model LessonMaterial {
   lesson    Lesson   @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   title     String
   url       String
+  fileId    String?
+  file      File?    @relation("LessonMaterialFile", fields: [fileId], references: [id], onDelete: SetNull)
   createdAt DateTime @default(now())
 }
 
@@ -703,6 +750,8 @@ model FinalWork {
   agentId   String
   content   String?          @db.Text
   fileUrl   String?
+  fileId    String?
+  file      File?            @relation("FinalWorkFile", fields: [fileId], references: [id], onDelete: SetNull)
   status    FinalWorkStatus  @default(PENDING)
   module    AcademyModule    @relation(fields: [moduleId], references: [id], onDelete: Cascade)
   agent     Agent            @relation(fields: [agentId], references: [id], onDelete: Cascade)
@@ -900,7 +949,9 @@ model AgentCourse {
   title          String
   institution    String
   issueDate      DateTime?
-  certificateUrl String?
+  certificateUrl   String?
+  certificateFileId String?
+  certificateFile   File?    @relation("AgentCourseFile", fields: [certificateFileId], references: [id], onDelete: SetNull)
   description    String?   @db.Text
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt

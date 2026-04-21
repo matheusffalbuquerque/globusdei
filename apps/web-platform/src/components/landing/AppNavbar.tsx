@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
+import { useEffect, useState } from 'react';
 import {
   Bell,
   Briefcase,
@@ -12,9 +13,10 @@ import {
   Users,
 } from 'lucide-react';
 
+import { apiFetch } from '../../lib/api';
 import { isAgentSession, isCollaboratorSession, getDashboardHome, type AppSession } from '../../lib/auth';
 import { useIsMobileViewport } from '../../hooks/useIsMobileViewport';
-import { Avatar, AvatarFallback } from '../ui/avatar';
+import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { cn } from '../../lib/utils';
 
 type NavLinkItem = {
@@ -35,6 +37,18 @@ export function AppNavbar() {
   const typedSession = session as AppSession | null;
   const isLoggedIn = status === 'authenticated' && !!session;
   const isMobile = useIsMobileViewport();
+  const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!typedSession || !isAgentSession(typedSession)) {
+      setPhotoUrl(null);
+      return;
+    }
+
+    apiFetch('/agents/me', { session: typedSession })
+      .then((profile) => setPhotoUrl(profile.photoUrl ?? null))
+      .catch(() => setPhotoUrl(null));
+  }, [typedSession?.accessToken, typedSession?.user?.email]);
 
   /* ── Loading skeleton ── */
   if (status === 'loading') {
@@ -204,6 +218,7 @@ export function AppNavbar() {
         {/* Right: avatar + sign out */}
         <div className="flex shrink-0 items-center gap-2">
           <Avatar className="h-8 w-8">
+            {photoUrl ? <AvatarImage src={photoUrl} alt={userName} /> : null}
             <AvatarFallback className="bg-primary/15 text-xs font-bold text-primary">
               {userInitial}
             </AvatarFallback>
