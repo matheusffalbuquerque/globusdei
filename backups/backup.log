@@ -1,0 +1,20 @@
+============================================
+ Globus Dei — Backup PostgreSQL
+============================================
+ Modo      : full
+ Container : globusdei-postgres
+ Banco     : globusdei_db (schema: app)
+ Destino   : /var/www/globusdei/backups/globusdei_full_20260421_030002.sql.gz
+--------------------------------------------
+ ✅ Backup criado: globusdei_full_20260421_030002.sql.gz (36K)
+ 🔗 Link atualizado: globusdei_full_latest.sql.gz
+--------------------------------------------
+ Backups existentes:
+   25K  globusdei_full_20260420_180755.sql.gz
+   25K  globusdei_full_20260420_181650.sql.gz
+   25K  globusdei_full_20260420_222055.sql.gz
+   33K  globusdei_full_20260421_030002.sql.gz
+   64  globusdei_full_latest.sql.gz
+============================================
+ Concluído em: 2026-04-21 03:00:04
+============================================
