@@ -25,6 +25,7 @@ export class StorageService {
     this.client = new S3Client({
       region: 'auto',
       endpoint: `https://${accountId}.r2.cloudflarestorage.com`,
+      forcePathStyle: true,
       credentials: {
         accessKeyId: this.config.getOrThrow<string>('R2_ACCESS_KEY_ID'),
         secretAccessKey: this.config.getOrThrow<string>('R2_SECRET_ACCESS_KEY'),
