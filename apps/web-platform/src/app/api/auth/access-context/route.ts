@@ -4,8 +4,10 @@ import { NextResponse } from 'next/server';
 import { authOptions } from '../[...nextauth]/route';
 import { isAgentSession, isCollaboratorSession, type AppSession } from '../../../../lib/auth';
 
+// MAIN_SERVICE_URL é a variável server-side (já inclui /api)
+// ex: http://main-service:3001/api  (nunca usar NEXT_PUBLIC_ em Server Routes)
 const MAIN_SERVICE_URL =
-  process.env.NEXT_PUBLIC_MAIN_SERVICE_URL || 'http://localhost:3001/api';
+  process.env.MAIN_SERVICE_URL || 'http://localhost:3001/api';
 
 /**
  * Resolves portal availability from the authenticated NextAuth session and the
