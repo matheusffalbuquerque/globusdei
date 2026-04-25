@@ -1,7 +1,28 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsBoolean, IsOptional, IsString, IsDateString } from 'class-validator';
+import {
+  IsArray,
+  IsBoolean,
+  IsDateString,
+  IsEnum,
+  IsOptional,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
 import { LanguageProficiency } from '@prisma/client';
 import { Type } from 'class-transformer';
+
+/**
+ * UpdateAgentLanguageRecordDto validates the language/proficiency pairs saved on an agent profile.
+ */
+class UpdateAgentLanguageRecordDto {
+  @ApiPropertyOptional()
+  @IsString()
+  languageId!: string;
+
+  @ApiPropertyOptional({ enum: LanguageProficiency })
+  @IsEnum(LanguageProficiency)
+  proficiencyLevel!: LanguageProficiency;
+}
 
 export class UpdateAgentProfileDto {
   @ApiPropertyOptional()
@@ -69,8 +90,6 @@ export class UpdateAgentProfileDto {
   @IsString()
   nationalityId?: string;
 
-
-
   @ApiPropertyOptional()
   @IsOptional()
   @IsString()
@@ -93,13 +112,20 @@ export class UpdateAgentProfileDto {
 
   @ApiPropertyOptional()
   @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
   vocationalAreaIds?: string[];
 
   @ApiPropertyOptional()
   @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
   skillIds?: string[];
 
   @ApiPropertyOptional()
   @IsOptional()
-  languageRecords?: { languageId: string; proficiencyLevel: LanguageProficiency }[];
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => UpdateAgentLanguageRecordDto)
+  languageRecords?: UpdateAgentLanguageRecordDto[];
 }

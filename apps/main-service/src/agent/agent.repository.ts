@@ -78,7 +78,7 @@ export class AgentRepository {
 
   findBySlug(slug: string) {
     return this.prisma.agent.findUnique({
-      where: { slug }
+      where: { slug },
     });
   }
 
@@ -134,7 +134,10 @@ export class AgentRepository {
     email: string;
     name: string;
   }) {
-    const existing = await this.findBySubjectOrEmail(params.authSubject, params.email);
+    const existing = await this.findBySubjectOrEmail(
+      params.authSubject,
+      params.email,
+    );
 
     if (existing) {
       return this.prisma.agent.update({
@@ -181,14 +184,25 @@ export class AgentRepository {
   }
 
   async updateProfile(id: string, data: UpdateAgentProfileDto) {
-    const { vocationalAreaIds, skillIds, languageRecords, ...rest } = data;
+    const {
+      vocationalAreaIds: incomingVocationalAreaIds,
+      skillIds: incomingSkillIds,
+      languageRecords: incomingLanguageRecords,
+      ...rest
+    } = data;
+    const vocationalAreaIds = this.uniqueIds(incomingVocationalAreaIds);
+    const skillIds = this.uniqueIds(incomingSkillIds);
+    const languageRecords = this.uniqueLanguageRecords(incomingLanguageRecords);
 
     return this.prisma.$transaction(async (tx) => {
       if (vocationalAreaIds !== undefined) {
         await tx.agentVocationalArea.deleteMany({ where: { agentId: id } });
         if (vocationalAreaIds.length > 0) {
           await tx.agentVocationalArea.createMany({
-            data: vocationalAreaIds.map((vId) => ({ agentId: id, vocationalAreaId: vId })),
+            data: vocationalAreaIds.map((vId) => ({
+              agentId: id,
+              vocationalAreaId: vId,
+            })),
           });
         }
       }
@@ -206,10 +220,10 @@ export class AgentRepository {
         await tx.agentLanguage.deleteMany({ where: { agentId: id } });
         if (languageRecords.length > 0) {
           await tx.agentLanguage.createMany({
-            data: languageRecords.map((record) => ({ 
-              agentId: id, 
+            data: languageRecords.map((record) => ({
+              agentId: id,
               languageId: record.languageId,
-              proficiencyLevel: record.proficiencyLevel 
+              proficiencyLevel: record.proficiencyLevel,
             })),
           });
         }
@@ -246,35 +260,77 @@ export class AgentRepository {
     });
   }
 
+  /**
+   * uniqueIds prevents duplicate join-table inserts from rolling back a profile save.
+   */
+  private uniqueIds(ids?: string[]): string[] | undefined {
+    if (ids === undefined) {
+      return undefined;
+    }
+
+    return Array.from(new Set(ids.map((id) => id.trim()).filter(Boolean)));
+  }
+
+  /**
+   * uniqueLanguageRecords keeps the last selected proficiency for each language.
+   */
+  private uniqueLanguageRecords(
+    records?: UpdateAgentProfileDto['languageRecords'],
+  ): UpdateAgentProfileDto['languageRecords'] {
+    if (records === undefined) {
+      return undefined;
+    }
+
+    const byLanguageId = new Map<string, LanguageProficiency>();
+    for (const record of records) {
+      const languageId = record.languageId.trim();
+      if (!languageId) {
+        continue;
+      }
+
+      byLanguageId.set(languageId, record.proficiencyLevel);
+    }
+
+    return Array.from(byLanguageId, ([languageId, proficiencyLevel]) => ({
+      languageId,
+      proficiencyLevel,
+    }));
+  }
+
   getDashboard(agentId: string) {
     return this.prisma.$transaction(async (tx) => {
-      const [connections, following, announcements, serviceRequests, empreendimentos] =
-        await Promise.all([
-          tx.connection.count({
-            where: {
-              OR: [
-                { senderId: agentId, status: 'ACCEPTED' },
-                { receiverId: agentId, status: 'ACCEPTED' },
-              ],
-            },
-          }),
-          tx.empreendimentoFollow.count({ where: { agentId } }),
-          tx.announcement.findMany({
-            orderBy: { createdAt: 'desc' },
-            take: 5,
-          }),
-          tx.serviceRequest.findMany({
-            where: { agentId },
-            orderBy: { createdAt: 'desc' },
-            take: 5,
-          }),
-          tx.empreendimentoMember.findMany({
-            where: { agentId },
-            include: { empreendimento: true },
-            orderBy: { createdAt: 'desc' },
-            take: 5,
-          }),
-        ]);
+      const [
+        connections,
+        following,
+        announcements,
+        serviceRequests,
+        empreendimentos,
+      ] = await Promise.all([
+        tx.connection.count({
+          where: {
+            OR: [
+              { senderId: agentId, status: 'ACCEPTED' },
+              { receiverId: agentId, status: 'ACCEPTED' },
+            ],
+          },
+        }),
+        tx.empreendimentoFollow.count({ where: { agentId } }),
+        tx.announcement.findMany({
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+        }),
+        tx.serviceRequest.findMany({
+          where: { agentId },
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+        }),
+        tx.empreendimentoMember.findMany({
+          where: { agentId },
+          include: { empreendimento: true },
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+        }),
+      ]);
 
       return {
         connections,
