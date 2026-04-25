@@ -484,7 +484,9 @@ model Event {
   title       String
   description String      @db.Text
   date        DateTime
+  endDate     DateTime?
   location    String?
+  link        String?
   isOnline    Boolean     @default(false)
   isCancelled Boolean     @default(false)
   createdById String?

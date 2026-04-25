@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import {
   CalendarDays,
-  CheckCircle2,
   ChevronLeft,
   ChevronRight,
   Loader2,
@@ -22,7 +21,6 @@ import { Badge } from '../../../components/ui/badge';
 import { Button } from '../../../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '../../../components/ui/card';
 import { Input } from '../../../components/ui/input';
-import { Separator } from '../../../components/ui/separator';
 import {
   Table,
   TableBody,
@@ -33,6 +31,7 @@ import {
 } from '../../../components/ui/table';
 import { Textarea } from '../../../components/ui/textarea';
 import { cn } from '../../../lib/utils';
+import { EventCalendar } from '../../../components/events/EventCalendar';
 
 const PAGE_SIZE = 8;
 
@@ -52,7 +51,9 @@ const emptyForm = {
   title: '',
   description: '',
   date: '',
+  endDate: '',
   location: '',
+  link: '',
   isOnline: false,
 };
 
@@ -69,6 +70,7 @@ export default function CollaboratorEventsPage() {
   const [cancellingId, setCancellingId] = useState<string | null>(null);
 
   const canCreate =
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     permissions.canManageProjects || (permissions as any).isAdmin;
 
   const load = async () => {
@@ -98,7 +100,9 @@ export default function CollaboratorEventsPage() {
           title: form.title,
           description: form.description,
           date: new Date(form.date).toISOString(),
+          endDate: form.endDate ? new Date(form.endDate).toISOString() : undefined,
           location: form.location || undefined,
+          link: form.link || undefined,
           isOnline: form.isOnline,
         }),
       });
@@ -189,12 +193,23 @@ export default function CollaboratorEventsPage() {
                 </div>
 
                 <div className="space-y-1.5">
-                  <label className="text-sm font-medium text-foreground">Data e hora</label>
+                  <label className="text-sm font-medium text-foreground">Data e hora de início</label>
                   <Input
                     type="datetime-local"
                     required
                     value={form.date}
                     onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground">
+                    Data e hora de término <span className="text-muted-foreground">(opcional)</span>
+                  </label>
+                  <Input
+                    type="datetime-local"
+                    value={form.endDate}
+                    onChange={(e) => setForm((f) => ({ ...f, endDate: e.target.value }))}
                   />
                 </div>
 
@@ -206,6 +221,18 @@ export default function CollaboratorEventsPage() {
                     value={form.location}
                     onChange={(e) => setForm((f) => ({ ...f, location: e.target.value }))}
                     placeholder="Endereço ou link da reunião"
+                  />
+                </div>
+
+                <div className="space-y-1.5">
+                  <label className="text-sm font-medium text-foreground">
+                    Link do evento <span className="text-muted-foreground">(opcional)</span>
+                  </label>
+                  <Input
+                    type="url"
+                    value={form.link}
+                    onChange={(e) => setForm((f) => ({ ...f, link: e.target.value }))}
+                    placeholder="https://meet.google.com/..."
                   />
                 </div>
               </div>
@@ -229,12 +256,27 @@ export default function CollaboratorEventsPage() {
         </Card>
       )}
 
+      {/* Calendário visual */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Agenda visual
+            </p>
+            <CardTitle className="mt-0.5 text-base">Calendário</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <EventCalendar />
+        </CardContent>
+      </Card>
+
       {/* Tabela de eventos */}
       <Card>
         <CardHeader className="flex-row items-center justify-between pb-3">
           <div>
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-              Calendário
+              Gestão
             </p>
             <CardTitle className="mt-0.5 text-base">Todos os eventos</CardTitle>
           </div>
