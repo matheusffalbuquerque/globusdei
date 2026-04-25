@@ -29,6 +29,12 @@ export class EventController {
     return this.events.listAll();
   }
 
+  /** Retorna eventos formatados para o FullCalendar */
+  @Get('calendar')
+  listCalendarEvents() {
+    return this.events.listCalendarEvents();
+  }
+
   /** Detalhe de um evento com contagem de confirmados */
   @Get(':id')
   findOne(@Param('id') id: string, @CurrentUser() user: AuthenticatedUser) {

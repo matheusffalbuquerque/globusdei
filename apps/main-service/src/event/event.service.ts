@@ -23,6 +23,29 @@ export class EventService {
     return this.events.listAll();
   }
 
+  /**
+   * Retorna eventos no formato FullCalendar:
+   * { id, title, start, end?, extendedProps: { description, location, isOnline, isCancelled, link, confirmedCount } }
+   */
+  async listCalendarEvents() {
+    const events = await this.events.listAll();
+    return events.map((ev) => ({
+      id: ev.id,
+      title: ev.title,
+      start: ev.date.toISOString(),
+      end: ev.endDate?.toISOString() ?? null,
+      color: ev.isCancelled ? '#9ca3af' : undefined,
+      extendedProps: {
+        description: ev.description,
+        location: ev.location,
+        isOnline: ev.isOnline,
+        isCancelled: ev.isCancelled,
+        link: ev.link ?? null,
+        confirmedCount: ev._count?.rsvps ?? 0,
+      },
+    }));
+  }
+
   async findOne(id: string, user: AuthenticatedUser) {
     const event = await this.events.findById(id);
     if (!event) {
@@ -38,7 +61,9 @@ export class EventService {
       title: dto.title,
       description: dto.description,
       date: new Date(dto.date),
+      endDate: dto.endDate ? new Date(dto.endDate) : undefined,
       location: dto.location,
+      link: dto.link,
       isOnline: dto.isOnline ?? false,
       createdById: user.sub,
     });

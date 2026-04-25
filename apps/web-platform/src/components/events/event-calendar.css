@@ -1,0 +1,184 @@
+/* ====================================================================
+ * event-calendar.css — Estilos customizados para o FullCalendar
+ * Integração com o design system Globus Dei (terracota + CSS vars)
+ * ==================================================================== */
+
+.gd-calendar-wrapper {
+  --fc-border-color: hsl(var(--border));
+  --fc-button-bg-color: hsl(var(--primary));
+  --fc-button-border-color: hsl(var(--primary));
+  --fc-button-hover-bg-color: hsl(var(--primary) / 0.85);
+  --fc-button-hover-border-color: hsl(var(--primary) / 0.85);
+  --fc-button-active-bg-color: hsl(var(--primary) / 0.75);
+  --fc-button-active-border-color: hsl(var(--primary) / 0.75);
+  --fc-today-bg-color: hsl(var(--primary) / 0.06);
+  --fc-event-bg-color: hsl(var(--primary));
+  --fc-event-border-color: hsl(var(--primary));
+  --fc-event-text-color: hsl(var(--primary-foreground));
+  --fc-page-bg-color: transparent;
+}
+
+/* Toolbar de navegação */
+.gd-calendar-wrapper .fc-toolbar-title {
+  font-size: 1.05rem !important;
+  font-weight: 700;
+  color: hsl(var(--foreground));
+  text-transform: capitalize;
+}
+
+.gd-calendar-wrapper .fc-button {
+  font-size: 0.75rem !important;
+  padding: 0.3rem 0.65rem !important;
+  border-radius: 0.375rem !important;
+  font-weight: 600;
+  transition: all 0.15s ease;
+  box-shadow: none !important;
+}
+
+.gd-calendar-wrapper .fc-button:focus {
+  box-shadow: 0 0 0 2px hsl(var(--ring) / 0.3) !important;
+}
+
+/* Headers da tabela (dias da semana) */
+.gd-calendar-wrapper .fc-col-header-cell {
+  background: hsl(var(--muted));
+  border-color: hsl(var(--border));
+}
+
+.gd-calendar-wrapper .fc-col-header-cell-cushion {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: hsl(var(--muted-foreground));
+  padding: 0.45rem 0;
+  text-decoration: none !important;
+}
+
+/* Células do calendário */
+.gd-calendar-wrapper .fc-daygrid-day {
+  transition: background-color 0.15s ease;
+}
+
+.gd-calendar-wrapper .fc-daygrid-day:hover {
+  background-color: hsl(var(--accent) / 0.5);
+}
+
+.gd-calendar-wrapper .fc-daygrid-day-number {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: hsl(var(--foreground));
+  padding: 0.3rem 0.5rem;
+  text-decoration: none !important;
+}
+
+/* Dia de hoje */
+.gd-calendar-wrapper .fc-day-today .fc-daygrid-day-number {
+  background: hsl(var(--primary));
+  color: hsl(var(--primary-foreground));
+  border-radius: 50%;
+  width: 1.55rem;
+  height: 1.55rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0.15rem;
+  padding: 0;
+  font-weight: 700;
+}
+
+/* Eventos no calendário */
+.gd-calendar-wrapper .fc-event {
+  border-radius: 0.25rem !important;
+  border: none !important;
+  padding: 0.1rem 0.35rem !important;
+  margin-bottom: 1px;
+  cursor: pointer;
+  transition: opacity 0.15s ease, transform 0.1s ease;
+}
+
+.gd-calendar-wrapper .fc-event:hover {
+  opacity: 0.85;
+  transform: scale(1.01);
+}
+
+/* Custom event content layout */
+.gd-event-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.25rem;
+  width: 100%;
+  overflow: hidden;
+  font-size: 0.68rem;
+  line-height: 1.35;
+  padding: 0.05rem 0;
+}
+
+.gd-event-title {
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+  min-width: 0;
+}
+
+.gd-event-time {
+  font-weight: 500;
+  opacity: 0.85;
+  white-space: nowrap;
+  flex-shrink: 0;
+  font-size: 0.62rem;
+}
+
+/* Evento cancelado */
+.gd-event-cancelled {
+  opacity: 0.5;
+  text-decoration: line-through;
+}
+
+/* "+more" link */
+.gd-calendar-wrapper .fc-daygrid-more-link {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: hsl(var(--primary));
+  text-decoration: none;
+}
+
+.gd-calendar-wrapper .fc-daygrid-more-link:hover {
+  text-decoration: underline;
+}
+
+/* Borders e separadores */
+.gd-calendar-wrapper .fc-scrollgrid {
+  border: 1px solid hsl(var(--border)) !important;
+  border-radius: 0.5rem;
+  overflow: hidden;
+}
+
+.gd-calendar-wrapper td,
+.gd-calendar-wrapper th {
+  border-color: hsl(var(--border)) !important;
+}
+
+/* Responsividade */
+@media (max-width: 640px) {
+  .gd-calendar-wrapper .fc-toolbar {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .gd-calendar-wrapper .fc-toolbar-title {
+    font-size: 0.95rem !important;
+  }
+
+  .gd-calendar-wrapper .fc-button {
+    font-size: 0.65rem !important;
+    padding: 0.25rem 0.5rem !important;
+  }
+
+  .gd-event-content {
+    font-size: 0.6rem;
+  }
+}

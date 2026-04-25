@@ -29,7 +29,9 @@ export class EventRepository {
     title: string;
     description: string;
     date: Date;
+    endDate?: Date;
     location?: string;
+    link?: string;
     isOnline?: boolean;
     createdById?: string;
   }) {

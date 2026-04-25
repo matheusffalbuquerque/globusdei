@@ -21,6 +21,16 @@ export class CreateEventDto {
 
   @ApiPropertyOptional()
   @IsOptional()
+  @IsDateString()
+  endDate?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  link?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
   @IsBoolean()
   isOnline?: boolean;
 }

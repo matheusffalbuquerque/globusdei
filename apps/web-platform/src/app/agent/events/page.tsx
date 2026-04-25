@@ -27,6 +27,7 @@ import {
   TableRow,
 } from '../../../components/ui/table';
 import { cn } from '../../../lib/utils';
+import { EventCalendar } from '../../../components/events/EventCalendar';
 
 const PAGE_SIZE = 8;
 
@@ -118,6 +119,21 @@ export default function AgentEventsPage() {
         </div>
       )}
 
+      {/* Calendário visual */}
+      <Card>
+        <CardHeader className="pb-3">
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+              Agenda visual
+            </p>
+            <CardTitle className="mt-0.5 text-base">Calendário da rede</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <EventCalendar />
+        </CardContent>
+      </Card>
+
       {/* Tabela de eventos */}
       <Card>
         <CardHeader className="flex-row items-center justify-between pb-3">
@@ -125,7 +141,7 @@ export default function AgentEventsPage() {
             <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
               Próximos eventos
             </p>
-            <CardTitle className="mt-0.5 text-base">Calendário da rede</CardTitle>
+            <CardTitle className="mt-0.5 text-base">Lista de eventos</CardTitle>
           </div>
           <Badge variant="secondary" className="font-bold">
             {events.length} {events.length === 1 ? 'evento' : 'eventos'}
