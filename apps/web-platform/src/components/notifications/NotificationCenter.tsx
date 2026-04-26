@@ -1,13 +1,33 @@
 'use client';
 
-import { Bell, Building2, Mail, MailSearch, MessageSquareMore, Search } from 'lucide-react';
+import {
+  Bell,
+  Building2,
+  Mail,
+  MailSearch,
+  MessageSquareMore,
+  Search,
+} from 'lucide-react';
 
 import { Badge } from '../ui/badge';
 import { Button } from '../ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from '../ui/card';
 import { Input } from '../ui/input';
 import { Select } from '../ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../ui/table';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../ui/table';
 import { Textarea } from '../ui/textarea';
 
 export type NotificationItem = {
@@ -30,8 +50,19 @@ export type NotificationItem = {
 };
 
 export type RecipientSearchResult = {
-  agents: Array<{ id: string; name: string; email: string; city?: string | null; country?: string | null }>;
-  iniciativas: Array<{ id: string; name: string; category: string; location?: string | null }>;
+  agents: Array<{
+    id: string;
+    name: string;
+    email: string;
+    city?: string | null;
+    country?: string | null;
+  }>;
+  iniciativas: Array<{
+    id: string;
+    name: string;
+    category: string;
+    location?: string | null;
+  }>;
 };
 
 export type SentNotification = {
@@ -73,8 +104,36 @@ export function NotificationList({
   description: string;
   items: NotificationItem[];
   emptyMessage: string;
-  onMarkAsRead?: (recipientId: string) => void;
+  onMarkAsRead?: (recipientId: string) => void | Promise<void>;
 }) {
+  /**
+   * requestReadAck marks a specific recipient row without changing already-read items.
+   */
+  const requestReadAck = async (item: NotificationItem) => {
+    if (item.readAt || !onMarkAsRead) {
+      return;
+    }
+
+    await onMarkAsRead(item.id);
+  };
+
+  /**
+   * openNotificationAction persists the read acknowledgement before following the action link.
+   */
+  const openNotificationAction = async (
+    event: React.MouseEvent<HTMLAnchorElement>,
+    item: NotificationItem,
+  ) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    await requestReadAck(item);
+
+    if (item.notification.actionUrl) {
+      window.location.assign(item.notification.actionUrl);
+    }
+  };
+
   return (
     <Card>
       <CardHeader className="pb-3">
@@ -101,7 +160,18 @@ export function NotificationList({
                 className="rounded-xl border border-border bg-background px-4 py-4 shadow-sm"
               >
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                  <div className="space-y-2">
+                  <div
+                    role={!item.readAt && onMarkAsRead ? 'button' : undefined}
+                    tabIndex={!item.readAt && onMarkAsRead ? 0 : undefined}
+                    onClick={() => void requestReadAck(item)}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        void requestReadAck(item);
+                      }
+                    }}
+                    className={`space-y-2 ${!item.readAt && onMarkAsRead ? 'cursor-pointer rounded-lg transition-colors hover:bg-muted/30 focus:outline-none focus:ring-2 focus:ring-ring' : ''}`}
+                  >
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant={item.readAt ? 'secondary' : 'info'}>
                         {item.readAt ? 'Lida' : 'Nova'}
@@ -125,7 +195,8 @@ export function NotificationList({
                     <div className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted-foreground">
                       <span>Origem: {sender}</span>
                       <span>
-                        Recebida em {new Date(item.createdAt).toLocaleString('pt-BR')}
+                        Recebida em{' '}
+                        {new Date(item.createdAt).toLocaleString('pt-BR')}
                       </span>
                     </div>
                   </div>
@@ -133,11 +204,24 @@ export function NotificationList({
                   <div className="flex shrink-0 gap-2">
                     {item.notification.actionUrl && (
                       <Button asChild variant="outline" size="sm">
-                        <a href={item.notification.actionUrl}>Abrir</a>
+                        <a
+                          href={item.notification.actionUrl}
+                          onClick={(event) =>
+                            void openNotificationAction(event, item)
+                          }
+                        >
+                          Abrir
+                        </a>
                       </Button>
                     )}
                     {!item.readAt && onMarkAsRead && (
-                      <Button size="sm" onClick={() => onMarkAsRead(item.id)}>
+                      <Button
+                        size="sm"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          void requestReadAck(item);
+                        }}
+                      >
                         Marcar como lida
                       </Button>
                     )}
@@ -166,7 +250,9 @@ export function SentNotificationList({
           <MessageSquareMore className="h-4 w-4" />
           Notificações enviadas
         </CardTitle>
-        <CardDescription>Mensagens operacionais registradas pelo colaborador.</CardDescription>
+        <CardDescription>
+          Mensagens operacionais registradas pelo colaborador.
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-3">
         {items.length === 0 ? (
@@ -175,12 +261,17 @@ export function SentNotificationList({
           </div>
         ) : (
           items.map((item) => (
-            <div key={item.id} className="rounded-xl border border-border bg-background px-4 py-4 shadow-sm">
+            <div
+              key={item.id}
+              className="rounded-xl border border-border bg-background px-4 py-4 shadow-sm"
+            >
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="secondary">{item.type}</Badge>
                 <Badge variant="outline">{item.scope}</Badge>
               </div>
-              <h3 className="mt-3 text-sm font-semibold text-foreground">{item.title}</h3>
+              <h3 className="mt-3 text-sm font-semibold text-foreground">
+                {item.title}
+              </h3>
               <p className="mt-1 whitespace-pre-wrap text-sm leading-6 text-muted-foreground">
                 {item.message}
               </p>
@@ -251,7 +342,11 @@ export function MessageComposer({
     <Card>
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-base">
-          {mode === 'message' ? <MessageSquareMore className="h-4 w-4" /> : <Mail className="h-4 w-4" />}
+          {mode === 'message' ? (
+            <MessageSquareMore className="h-4 w-4" />
+          ) : (
+            <Mail className="h-4 w-4" />
+          )}
           {mode === 'message' ? 'Enviar notificação' : 'Enviar email'}
         </CardTitle>
         <CardDescription>
@@ -264,32 +359,49 @@ export function MessageComposer({
         <form className="space-y-4" onSubmit={onSubmit}>
           <div className="grid gap-4 lg:grid-cols-[180px_minmax(0,1fr)]">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Destino</label>
+              <label className="text-sm font-medium text-foreground">
+                Destino
+              </label>
               <Select
                 value={targetType}
-                onChange={(event) => onTargetTypeChange(event.target.value as 'AGENT' | 'EMPREENDIMENTO')}
+                onChange={(event) =>
+                  onTargetTypeChange(
+                    event.target.value as 'AGENT' | 'EMPREENDIMENTO',
+                  )
+                }
               >
                 <option value="AGENT">Agente</option>
                 <option value="EMPREENDIMENTO">Iniciativa</option>
               </Select>
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium text-foreground">Buscar destinatário</label>
+              <label className="text-sm font-medium text-foreground">
+                Buscar destinatário
+              </label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={query}
                   onChange={(event) => onQueryChange(event.target.value)}
                   className="pl-9"
-                  placeholder={targetType === 'AGENT' ? 'Nome ou email do agente' : 'Nome da iniciativa'}
+                  placeholder={
+                    targetType === 'AGENT'
+                      ? 'Nome ou email do agente'
+                      : 'Nome da iniciativa'
+                  }
                 />
               </div>
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium text-foreground">Selecionar destinatário</label>
-            <Select value={selectedTarget} onChange={(event) => onTargetChange(event.target.value)}>
+            <label className="text-sm font-medium text-foreground">
+              Selecionar destinatário
+            </label>
+            <Select
+              value={selectedTarget}
+              onChange={(event) => onTargetChange(event.target.value)}
+            >
               <option value="">Escolha um destinatário</option>
               {options.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -301,20 +413,35 @@ export function MessageComposer({
 
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">
-              {mode === 'message' ? 'Título da notificação' : 'Assunto do email'}
+              {mode === 'message'
+                ? 'Título da notificação'
+                : 'Assunto do email'}
             </label>
-            <Input value={title} onChange={(event) => onTitleChange(event.target.value)} />
+            <Input
+              value={title}
+              onChange={(event) => onTitleChange(event.target.value)}
+            />
           </div>
 
           <div className="space-y-1.5">
             <label className="text-sm font-medium text-foreground">
               {mode === 'message' ? 'Mensagem' : 'Corpo do email'}
             </label>
-            <Textarea value={message} onChange={(event) => onMessageChange(event.target.value)} />
+            <Textarea
+              value={message}
+              onChange={(event) => onMessageChange(event.target.value)}
+            />
           </div>
 
-          <Button type="submit" disabled={isSubmitting || !selectedTarget || !title || !message}>
-            {isSubmitting ? 'Enviando...' : mode === 'message' ? 'Registrar notificação' : 'Enviar email'}
+          <Button
+            type="submit"
+            disabled={isSubmitting || !selectedTarget || !title || !message}
+          >
+            {isSubmitting
+              ? 'Enviando...'
+              : mode === 'message'
+                ? 'Registrar notificação'
+                : 'Enviar email'}
           </Button>
         </form>
       </CardContent>
@@ -342,7 +469,9 @@ export function EmailHistoryTable({
               <MailSearch className="h-4 w-4" />
               Histórico de emails
             </CardTitle>
-            <CardDescription>Disponível apenas para administrador.</CardDescription>
+            <CardDescription>
+              Disponível apenas para administrador.
+            </CardDescription>
           </div>
           <div className="flex gap-2">
             <Input
@@ -371,7 +500,10 @@ export function EmailHistoryTable({
           <TableBody>
             {items.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="py-8 text-center text-sm text-muted-foreground">
+                <TableCell
+                  colSpan={5}
+                  className="py-8 text-center text-sm text-muted-foreground"
+                >
                   Nenhum email encontrado para o filtro atual.
                 </TableCell>
               </TableRow>
@@ -381,19 +513,34 @@ export function EmailHistoryTable({
                   <TableCell>
                     <div>
                       <p className="font-medium text-foreground">
-                        {item.recipientName || item.agent?.name || item.empreendimento?.name || item.recipientEmail}
+                        {item.recipientName ||
+                          item.agent?.name ||
+                          item.empreendimento?.name ||
+                          item.recipientEmail}
                       </p>
-                      <p className="text-xs text-muted-foreground">{item.recipientEmail}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {item.recipientEmail}
+                      </p>
                     </div>
                   </TableCell>
                   <TableCell>{item.subject}</TableCell>
                   <TableCell>
-                    <Badge variant={item.status === 'SENT' ? 'success' : item.status === 'FAILED' ? 'destructive' : 'secondary'}>
+                    <Badge
+                      variant={
+                        item.status === 'SENT'
+                          ? 'success'
+                          : item.status === 'FAILED'
+                            ? 'destructive'
+                            : 'secondary'
+                      }
+                    >
                       {item.status}
                     </Badge>
                   </TableCell>
                   <TableCell>{item.senderCollaborator.name}</TableCell>
-                  <TableCell>{new Date(item.createdAt).toLocaleString('pt-BR')}</TableCell>
+                  <TableCell>
+                    {new Date(item.createdAt).toLocaleString('pt-BR')}
+                  </TableCell>
                 </TableRow>
               ))
             )}

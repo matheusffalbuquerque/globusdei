@@ -23,7 +23,11 @@ export class NotificationRepository {
     });
   }
 
-  upsertAgentFromIdentity(params: { authSubject: string; email: string; name: string }) {
+  upsertAgentFromIdentity(params: {
+    authSubject: string;
+    email: string;
+    name: string;
+  }) {
     return this.prisma.agent.upsert({
       where: { email: params.email },
       update: {
@@ -137,11 +141,40 @@ export class NotificationRepository {
     });
   }
 
+  /**
+   * countAgentUnread totals unread personal and initiative notification recipient rows.
+   */
+  countAgentUnread(agentId: string, empreendimentoIds: string[]) {
+    return this.prisma.notificationRecipient.count({
+      where: {
+        readAt: null,
+        OR: [
+          { agentId },
+          ...(empreendimentoIds.length > 0
+            ? [{ empreendimentoId: { in: empreendimentoIds } }]
+            : []),
+        ],
+      },
+    });
+  }
+
   listCollaboratorInbox(collaboratorId: string) {
     return this.prisma.notificationRecipient.findMany({
       where: { collaboratorId },
       include: this.notificationRecipientInclude(),
       orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  /**
+   * countCollaboratorUnread totals unread collaborator notification recipient rows.
+   */
+  countCollaboratorUnread(collaboratorId: string) {
+    return this.prisma.notificationRecipient.count({
+      where: {
+        collaboratorId,
+        readAt: null,
+      },
     });
   }
 
@@ -205,7 +238,11 @@ export class NotificationRepository {
               { recipientEmail: { contains: query, mode: 'insensitive' } },
               { recipientName: { contains: query, mode: 'insensitive' } },
               { subject: { contains: query, mode: 'insensitive' } },
-              { empreendimento: { name: { contains: query, mode: 'insensitive' } } },
+              {
+                empreendimento: {
+                  name: { contains: query, mode: 'insensitive' },
+                },
+              },
             ],
           }
         : undefined,

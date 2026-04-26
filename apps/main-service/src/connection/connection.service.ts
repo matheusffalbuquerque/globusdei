@@ -33,6 +33,9 @@ export class ConnectionService {
     });
   }
 
+  /**
+   * Creates a pending connection request and dispatches a personal notification to the receiver.
+   */
   async request(user: AuthenticatedUser, receiverId: string) {
     const sender = await this.me(user);
 
@@ -44,7 +47,8 @@ export class ConnectionService {
     if (!receiver) throw new NotFoundException('Receiver not found.');
 
     const existing = await this.connections.findExisting(sender.id, receiverId);
-    if (existing) throw new BadRequestException('Connection already exists or is pending.');
+    if (existing)
+      throw new BadRequestException('Connection already exists or is pending.');
 
     const connection = await this.connections.create(sender.id, receiverId);
 
@@ -72,15 +76,53 @@ export class ConnectionService {
     return connection;
   }
 
+  /**
+   * Accepts a pending connection request and notifies the original requester once.
+   */
   async accept(user: AuthenticatedUser, connectionId: string) {
     const agent = await this.me(user);
     const connection = await this.connections.findById(connectionId);
 
     if (!connection) throw new NotFoundException('Connection not found.');
     if (connection.receiverId !== agent.id)
-      throw new ForbiddenException('Only the receiver can accept this request.');
+      throw new ForbiddenException(
+        'Only the receiver can accept this request.',
+      );
 
-    return this.connections.accept(connectionId);
+    if (connection.status === 'ACCEPTED') {
+      return connection;
+    }
+
+    if (connection.status !== 'PENDING') {
+      throw new BadRequestException(
+        'Only pending connection requests can be accepted.',
+      );
+    }
+
+    const acceptedConnection = await this.connections.accept(connectionId);
+
+    await this.notificationGateway.notify({
+      type: NotificationType.PROCESS_UPDATE,
+      scope: NotificationScope.PERSONAL,
+      title: 'Solicitação de conexão aceita',
+      message: `${agent.name} aceitou sua solicitação de conexão.`,
+      actionUrl: '/agent/network',
+      sourceEntityType: 'connection',
+      sourceEntityId: acceptedConnection.id,
+      senderSystemLabel: 'Rede Global',
+      metadata: {
+        acceptedById: agent.id,
+        acceptedByName: agent.name,
+      },
+      recipients: [
+        {
+          targetType: NotificationTargetType.AGENT,
+          agentId: connection.senderId,
+        },
+      ],
+    });
+
+    return acceptedConnection;
   }
 
   async reject(user: AuthenticatedUser, connectionId: string) {
@@ -89,7 +131,9 @@ export class ConnectionService {
 
     if (!connection) throw new NotFoundException('Connection not found.');
     if (connection.receiverId !== agent.id)
-      throw new ForbiddenException('Only the receiver can reject this request.');
+      throw new ForbiddenException(
+        'Only the receiver can reject this request.',
+      );
 
     return this.connections.reject(connectionId);
   }
@@ -139,10 +183,10 @@ export class ConnectionService {
       ...agent,
       photoUrl: agent.photoFile?.key
         ? this.storage.getPublicUrl(agent.photoFile.key)
-        : this.storage.normalizePublicUrl(agent.photoUrl) ?? agent.photoUrl,
+        : (this.storage.normalizePublicUrl(agent.photoUrl) ?? agent.photoUrl),
       coverUrl: agent.coverFile?.key
         ? this.storage.getPublicUrl(agent.coverFile.key)
-        : this.storage.normalizePublicUrl(agent.coverUrl) ?? agent.coverUrl,
+        : (this.storage.normalizePublicUrl(agent.coverUrl) ?? agent.coverUrl),
     };
   }
 }
