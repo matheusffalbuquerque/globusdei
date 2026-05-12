@@ -17,16 +17,22 @@ import {
 import { useCollaboratorPortal } from '../../../components/portal/CollaboratorPortalShell';
 import { Button } from '../../../components/ui/button';
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '../../../components/ui/tabs';
 import { apiFetch } from '../../../lib/api';
 import type { AppSession } from '../../../lib/auth';
+import { dispatchNotificationUnreadCountChanged } from '../../../lib/notification-events';
 
 /**
  * Collaborator notification center with inbox, outbox, direct messaging and email history.
  */
 export default function CollaboratorNotificationsPage() {
   const { data: session } = useSession();
-  const { collaborator } = useCollaboratorPortal();
+  const { collaborator, reloadNotificationCount } = useCollaboratorPortal();
   const isAdmin = (collaborator?.roles ?? []).includes('ADMIN');
 
   const [inbox, setInbox] = useState<NotificationItem[]>([]);
@@ -36,12 +42,16 @@ export default function CollaboratorNotificationsPage() {
     iniciativas: [],
   });
   const [messageQuery, setMessageQuery] = useState('');
-  const [messageTargetType, setMessageTargetType] = useState<'AGENT' | 'EMPREENDIMENTO'>('AGENT');
+  const [messageTargetType, setMessageTargetType] = useState<
+    'AGENT' | 'EMPREENDIMENTO'
+  >('AGENT');
   const [messageTargetId, setMessageTargetId] = useState('');
   const [messageTitle, setMessageTitle] = useState('');
   const [messageBody, setMessageBody] = useState('');
   const [emailQuery, setEmailQuery] = useState('');
-  const [emailTargetType, setEmailTargetType] = useState<'AGENT' | 'EMPREENDIMENTO'>('AGENT');
+  const [emailTargetType, setEmailTargetType] = useState<
+    'AGENT' | 'EMPREENDIMENTO'
+  >('AGENT');
   const [emailTargetId, setEmailTargetId] = useState('');
   const [emailSubject, setEmailSubject] = useState('');
   const [emailBody, setEmailBody] = useState('');
@@ -78,10 +88,13 @@ export default function CollaboratorNotificationsPage() {
     try {
       const params = new URLSearchParams();
       if (query) params.set('query', query);
-      const result = await apiFetch(`/notifications/collaborator/search?${params.toString()}`, {
-        service: 'notification',
-        session: session as AppSession,
-      });
+      const result = await apiFetch(
+        `/notifications/collaborator/search?${params.toString()}`,
+        {
+          service: 'notification',
+          session: session as AppSession,
+        },
+      );
       setSearchResults(result);
     } catch (requestError) {
       setError((requestError as Error).message);
@@ -94,10 +107,13 @@ export default function CollaboratorNotificationsPage() {
     try {
       const params = new URLSearchParams();
       if (query) params.set('query', query);
-      const result = await apiFetch(`/notifications/emails/history?${params.toString()}`, {
-        service: 'notification',
-        session: session as AppSession,
-      });
+      const result = await apiFetch(
+        `/notifications/emails/history?${params.toString()}`,
+        {
+          service: 'notification',
+          session: session as AppSession,
+        },
+      );
       setHistory(result);
     } catch (requestError) {
       setError((requestError as Error).message);
@@ -110,6 +126,9 @@ export default function CollaboratorNotificationsPage() {
     }
   }, [session]);
 
+  /**
+   * markAsRead acknowledges one recipient row and refreshes the portal/top-menu badge counts.
+   */
   const markAsRead = async (recipientId: string) => {
     try {
       await apiFetch(`/notifications/recipients/${recipientId}/read`, {
@@ -118,6 +137,8 @@ export default function CollaboratorNotificationsPage() {
         session: session as AppSession,
       });
       await loadBase();
+      await reloadNotificationCount();
+      dispatchNotificationUnreadCountChanged();
     } catch (requestError) {
       setError((requestError as Error).message);
     }
@@ -135,7 +156,10 @@ export default function CollaboratorNotificationsPage() {
         body: {
           targetType: messageTargetType,
           agentId: messageTargetType === 'AGENT' ? messageTargetId : undefined,
-          empreendimentoId: messageTargetType === 'EMPREENDIMENTO' ? messageTargetId : undefined,
+          empreendimentoId:
+            messageTargetType === 'EMPREENDIMENTO'
+              ? messageTargetId
+              : undefined,
           title: messageTitle,
           message: messageBody,
         },
@@ -164,7 +188,8 @@ export default function CollaboratorNotificationsPage() {
         body: {
           targetType: emailTargetType,
           agentId: emailTargetType === 'AGENT' ? emailTargetId : undefined,
-          empreendimentoId: emailTargetType === 'EMPREENDIMENTO' ? emailTargetId : undefined,
+          empreendimentoId:
+            emailTargetType === 'EMPREENDIMENTO' ? emailTargetId : undefined,
           subject: emailSubject,
           message: emailBody,
         },
@@ -194,7 +219,9 @@ export default function CollaboratorNotificationsPage() {
             Comunicação operacional e acompanhamento
           </h1>
           <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-            Consulte notificações recebidas, acompanhe o que já foi enviado e registre novas mensagens para agentes e iniciativas sem sair do portal.
+            Consulte notificações recebidas, acompanhe o que já foi enviado e
+            registre novas mensagens para agentes e iniciativas sem sair do
+            portal.
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-3 rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm font-medium text-muted-foreground">

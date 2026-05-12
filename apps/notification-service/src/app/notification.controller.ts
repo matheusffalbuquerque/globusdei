@@ -23,6 +23,7 @@ import { KeycloakAuthGuard } from './auth/keycloak-auth.guard';
 import { PoliciesGuard } from './auth/policies.guard';
 import {
   AllowInternalAccess,
+  OPERATIONAL_COLLABORATOR_REALM_ROLES,
   PLATFORM_REALM_ROLES,
   RequireCollaboratorRoles,
   RequireRealmRoles,
@@ -59,14 +60,25 @@ export class NotificationController {
    * Agent inbox with personal notifications.
    */
   @Get('agent')
+  @RequireRealmRoles('agente')
   listAgentInbox(@CurrentUser() user: AuthenticatedUser) {
     return this.notificationService.listAgentInbox(user);
+  }
+
+  /**
+   * Agent unread count used by portal notification badges.
+   */
+  @Get('agent/unread-count')
+  @RequireRealmRoles('agente')
+  countAgentUnread(@CurrentUser() user: AuthenticatedUser) {
+    return this.notificationService.countAgentUnread(user);
   }
 
   /**
    * Agent inbox with initiative-scoped notifications for owned/member empreendimentos.
    */
   @Get('agent/initiatives')
+  @RequireRealmRoles('agente')
   listAgentInitiatives(@CurrentUser() user: AuthenticatedUser) {
     return this.notificationService.listAgentInitiativeInbox(user);
   }
@@ -75,14 +87,25 @@ export class NotificationController {
    * Collaborator inbox.
    */
   @Get('collaborator')
+  @RequireRealmRoles(...OPERATIONAL_COLLABORATOR_REALM_ROLES)
   listCollaboratorInbox(@CurrentUser() user: AuthenticatedUser) {
     return this.notificationService.listCollaboratorInbox(user);
+  }
+
+  /**
+   * Collaborator unread count used by portal notification badges.
+   */
+  @Get('collaborator/unread-count')
+  @RequireRealmRoles(...OPERATIONAL_COLLABORATOR_REALM_ROLES)
+  countCollaboratorUnread(@CurrentUser() user: AuthenticatedUser) {
+    return this.notificationService.countCollaboratorUnread(user);
   }
 
   /**
    * Collaborator outbox.
    */
   @Get('collaborator/sent')
+  @RequireRealmRoles(...OPERATIONAL_COLLABORATOR_REALM_ROLES)
   listCollaboratorSent(@CurrentUser() user: AuthenticatedUser) {
     return this.notificationService.listSentByCollaborator(user);
   }
@@ -210,7 +233,10 @@ export class NotificationController {
    */
   @Get('emails/history')
   @RequireCollaboratorRoles(CollaboratorRole.ADMIN)
-  emailHistory(@CurrentUser() user: AuthenticatedUser, @Query('query') query?: string) {
+  emailHistory(
+    @CurrentUser() user: AuthenticatedUser,
+    @Query('query') query?: string,
+  ) {
     return this.notificationService.listEmailHistory(user, query);
   }
 
@@ -219,7 +245,9 @@ export class NotificationController {
    */
   @EventPattern('donation_processed')
   async handleDonationProcessed(@Payload() data: Record<string, unknown>) {
-    this.logger.log(`Received donation_processed event with payload keys: ${Object.keys(data).join(', ')}`);
+    this.logger.log(
+      `Received donation_processed event with payload keys: ${Object.keys(data).join(', ')}`,
+    );
 
     if (typeof data['email'] === 'string') {
       await this.emailProvider.send({
@@ -262,7 +290,12 @@ export class NotificationController {
         senderSystemLabel: 'Onboarding',
         recipientGroups: [],
         recipients: data['agentId']
-          ? [{ targetType: NotificationTargetType.AGENT, agentId: String(data['agentId']) }]
+          ? [
+              {
+                targetType: NotificationTargetType.AGENT,
+                agentId: String(data['agentId']),
+              },
+            ]
           : [],
       },
     );

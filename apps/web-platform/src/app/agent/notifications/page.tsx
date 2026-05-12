@@ -4,17 +4,28 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { BellRing } from 'lucide-react';
 
-import { NotificationList, type NotificationItem } from '../../../components/notifications/NotificationCenter';
+import {
+  NotificationList,
+  type NotificationItem,
+} from '../../../components/notifications/NotificationCenter';
 
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../../components/ui/tabs';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger,
+} from '../../../components/ui/tabs';
+import { useAgentPortal } from '../../../components/portal/AgentPortalShell';
 import { apiFetch } from '../../../lib/api';
 import type { AppSession } from '../../../lib/auth';
+import { dispatchNotificationUnreadCountChanged } from '../../../lib/notification-events';
 
 /**
  * Agent notification center with personal and initiative-scoped feeds.
  */
 export default function AgentNotificationsPage() {
   const { data: session } = useSession();
+  const { reloadNotificationCount } = useAgentPortal();
   const [personal, setPersonal] = useState<NotificationItem[]>([]);
   const [initiatives, setInitiatives] = useState<NotificationItem[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -45,6 +56,9 @@ export default function AgentNotificationsPage() {
     }
   }, [session]);
 
+  /**
+   * markAsRead acknowledges one recipient row and refreshes the portal/top-menu badge counts.
+   */
   const markAsRead = async (recipientId: string) => {
     try {
       await apiFetch(`/notifications/recipients/${recipientId}/read`, {
@@ -53,6 +67,8 @@ export default function AgentNotificationsPage() {
         session: session as AppSession,
       });
       await load();
+      await reloadNotificationCount();
+      dispatchNotificationUnreadCountChanged();
     } catch (requestError) {
       setError((requestError as Error).message);
     }
@@ -69,12 +85,16 @@ export default function AgentNotificationsPage() {
             Acompanhe o que exige sua atenção
           </h1>
           <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
-            Mensagens diretas de colaboradores, atualizações de processos, avisos de eventos e atividade nas iniciativas vinculadas ao seu perfil.
+            Mensagens diretas de colaboradores, atualizações de processos,
+            avisos de eventos e atividade nas iniciativas vinculadas ao seu
+            perfil.
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-3 rounded-xl border border-border bg-muted/30 px-4 py-3 text-sm font-medium text-muted-foreground">
           <BellRing className="h-4 w-4 text-primary" />
-          {personal.filter((item) => !item.readAt).length + initiatives.filter((item) => !item.readAt).length} pendências recentes
+          {personal.filter((item) => !item.readAt).length +
+            initiatives.filter((item) => !item.readAt).length}{' '}
+          pendências recentes
         </div>
       </div>
 

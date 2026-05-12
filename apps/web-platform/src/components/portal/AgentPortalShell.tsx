@@ -3,7 +3,14 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useSession } from 'next-auth/react';
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from 'react';
 import {
   LayoutDashboard,
   User,
@@ -29,6 +36,7 @@ import {
   type AppSession,
 } from '../../lib/auth';
 import { useIsMobileViewport } from '../../hooks/useIsMobileViewport';
+import { NotificationUnreadBadge } from '../notifications/NotificationUnreadBadge';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { Badge } from '../ui/badge';
 import {
@@ -56,6 +64,8 @@ type AgentPortalContextValue = {
   agent: AgentProfile | null;
   isLoading: boolean;
   reloadAgent: () => Promise<void>;
+  unreadNotificationCount: number;
+  reloadNotificationCount: () => Promise<void>;
 };
 
 const AgentPortalContext = createContext<AgentPortalContextValue | null>(null);
@@ -64,6 +74,7 @@ type NavItem = {
   href: string;
   label: string;
   icon: React.ElementType;
+  unreadCount?: number;
 };
 
 /**
@@ -76,6 +87,7 @@ export function AgentPortalShell({ children }: { children: ReactNode }) {
   const [agent, setAgent] = useState<AgentProfile | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
 
   const typedSession = session as AppSession | null;
   const sessionName = typedSession?.user?.name ?? 'Agente';
@@ -98,6 +110,25 @@ export function AgentPortalShell({ children }: { children: ReactNode }) {
     }
   };
 
+  /**
+   * loadUnreadNotificationCount keeps the notification menu badge in sync without blocking the shell.
+   */
+  const loadUnreadNotificationCount = async () => {
+    if (!typedSession) {
+      return;
+    }
+
+    try {
+      const result = await apiFetch('/notifications/agent/unread-count', {
+        service: 'notification',
+        session: typedSession,
+      });
+      setUnreadNotificationCount(Number(result?.count ?? 0));
+    } catch {
+      setUnreadNotificationCount(0);
+    }
+  };
+
   useEffect(() => {
     if (status === 'unauthenticated') {
       router.replace(`/login?callbackUrl=${encodeURIComponent(pathname)}`);
@@ -112,20 +143,30 @@ export function AgentPortalShell({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (status === 'authenticated' && isAgentSession(typedSession)) {
       void loadAgent();
+      void loadUnreadNotificationCount();
     }
   }, [status, typedSession?.accessToken, typedSession?.user?.email]);
 
   const navigation: NavItem[] = [
-    { href: '/agent/dashboard',          label: 'Visão Geral',     icon: LayoutDashboard },
-    { href: '/agent/profile',            label: 'Perfil',          icon: User },
-    { href: '/agent/status',             label: 'Onboarding',      icon: ClipboardList },
-    { href: '/agent/empreendimentos',    label: 'Empreendimentos', icon: Building2 },
-    { href: '/agent/opportunities',      label: 'Oportunidades',   icon: Briefcase },
-    { href: '/agent/investments',         label: 'Investimentos',   icon: TrendingUp },
-    { href: '/agent/events',             label: 'Eventos',         icon: CalendarDays },
-    { href: '/agent/prayer-requests',    label: 'Intercessão',     icon: HandHeart },
-    { href: '/agent/service-requests',   label: 'Solicitações',    icon: Inbox },
-    { href: '/agent/notifications',      label: 'Notificações',    icon: Bell },
+    { href: '/agent/dashboard', label: 'Visão Geral', icon: LayoutDashboard },
+    { href: '/agent/profile', label: 'Perfil', icon: User },
+    { href: '/agent/status', label: 'Onboarding', icon: ClipboardList },
+    {
+      href: '/agent/empreendimentos',
+      label: 'Empreendimentos',
+      icon: Building2,
+    },
+    { href: '/agent/opportunities', label: 'Oportunidades', icon: Briefcase },
+    { href: '/agent/investments', label: 'Investimentos', icon: TrendingUp },
+    { href: '/agent/events', label: 'Eventos', icon: CalendarDays },
+    { href: '/agent/prayer-requests', label: 'Intercessão', icon: HandHeart },
+    { href: '/agent/service-requests', label: 'Solicitações', icon: Inbox },
+    {
+      href: '/agent/notifications',
+      label: 'Notificações',
+      icon: Bell,
+      unreadCount: unreadNotificationCount,
+    },
   ];
 
   const contextValue = useMemo<AgentPortalContextValue>(
@@ -133,8 +174,16 @@ export function AgentPortalShell({ children }: { children: ReactNode }) {
       agent,
       isLoading: isLoadingProfile,
       reloadAgent: loadAgent,
+      unreadNotificationCount,
+      reloadNotificationCount: loadUnreadNotificationCount,
     }),
-    [agent, isLoadingProfile],
+    [
+      agent,
+      isLoadingProfile,
+      unreadNotificationCount,
+      typedSession?.accessToken,
+      typedSession?.user?.email,
+    ],
   );
 
   const renderSidebarContent = (closeOnNavigate: boolean) => (
@@ -142,7 +191,9 @@ export function AgentPortalShell({ children }: { children: ReactNode }) {
       <div className="rounded-xl border border-border bg-slate-950 p-4 text-white">
         <div className="flex items-center gap-3">
           <Avatar className="h-10 w-10 shrink-0">
-            {agent?.photoUrl ? <AvatarImage src={agent.photoUrl} alt={agent.name} /> : null}
+            {agent?.photoUrl ? (
+              <AvatarImage src={agent.photoUrl} alt={agent.name} />
+            ) : null}
             <AvatarFallback className="bg-primary/20 text-sm font-bold text-primary-foreground">
               {(agent?.name ?? sessionName).charAt(0).toUpperCase()}
             </AvatarFallback>
@@ -156,7 +207,10 @@ export function AgentPortalShell({ children }: { children: ReactNode }) {
         </div>
 
         <div className="mt-3 flex flex-col gap-1.5">
-          <Badge variant="secondary" className="w-fit border-white/10 bg-white/5 text-[10px] font-semibold uppercase tracking-wider text-slate-300">
+          <Badge
+            variant="secondary"
+            className="w-fit border-white/10 bg-white/5 text-[10px] font-semibold uppercase tracking-wider text-slate-300"
+          >
             {formatAgentStatus(agent?.status)}
           </Badge>
         </div>
@@ -166,7 +220,8 @@ export function AgentPortalShell({ children }: { children: ReactNode }) {
 
       <nav className="space-y-1">
         {navigation.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const isActive =
+            pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;
           const link = (
             <Link
@@ -178,9 +233,13 @@ export function AgentPortalShell({ children }: { children: ReactNode }) {
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground',
               )}
             >
-              <span className="flex items-center gap-2.5">
+              <span className="flex min-w-0 items-center gap-2.5">
                 <Icon className="h-4 w-4 shrink-0" />
-                {item.label}
+                <span className="truncate">{item.label}</span>
+                <NotificationUnreadBadge
+                  count={item.unreadCount ?? 0}
+                  active={isActive}
+                />
               </span>
               <ChevronRight
                 className={cn(
@@ -249,7 +308,11 @@ export function AgentPortalShell({ children }: { children: ReactNode }) {
     </>
   );
 
-  if (status === 'loading' || status === 'unauthenticated' || !isAgentSession(typedSession)) {
+  if (
+    status === 'loading' ||
+    status === 'unauthenticated' ||
+    !isAgentSession(typedSession)
+  ) {
     return (
       <div className="flex min-h-[calc(100vh-145px)] items-center justify-center bg-muted/30">
         <div className="flex items-center gap-3 rounded-xl border border-border bg-background px-6 py-4 text-sm font-medium text-muted-foreground shadow-sm">
@@ -263,8 +326,12 @@ export function AgentPortalShell({ children }: { children: ReactNode }) {
   return (
     <AgentPortalContext.Provider value={contextValue}>
       <div className="min-h-[calc(100vh-145px)] bg-muted/30">
-        <div className={cn('mx-auto min-h-[calc(100vh-145px)] max-w-[1520px]', isMobile ? 'block' : 'flex')}>
-
+        <div
+          className={cn(
+            'mx-auto min-h-[calc(100vh-145px)] max-w-[1520px]',
+            isMobile ? 'block' : 'flex',
+          )}
+        >
           {/* ── Sidebar ── */}
           {!isMobile && (
             <aside className="portal-shell-sidebar border-r border-border bg-background px-4 py-6">

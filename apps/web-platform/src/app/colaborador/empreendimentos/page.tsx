@@ -178,14 +178,24 @@ export default function CollaboratorEmpreendimentosPage() {
                 </div>
               </div>
 
-              <Button
-                size="sm"
-                className="w-full"
-                onClick={() => openSelection(empreendimento)}
-              >
-                <Building2 className="mr-1.5 h-4 w-4" />
-                Abrir análise
-              </Button>
+              <div className="flex gap-2 w-full">
+                <Button
+                  size="sm"
+                  className="w-full"
+                  onClick={() => openSelection(empreendimento)}
+                >
+                  <Building2 className="mr-1.5 h-4 w-4" />
+                  Abrir análise
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full"
+                  onClick={() => window.open(`/agent/empreendimentos/edit/${empreendimento.id}`, '_blank')}
+                >
+                  Editar dados
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ))}

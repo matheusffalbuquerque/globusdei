@@ -43,6 +43,7 @@ import {
   type CollaboratorProfile,
 } from '../../lib/auth';
 import { useIsMobileViewport } from '../../hooks/useIsMobileViewport';
+import { NotificationUnreadBadge } from '../notifications/NotificationUnreadBadge';
 import { Avatar, AvatarFallback } from '../ui/avatar';
 import { Badge } from '../ui/badge';
 import {
@@ -63,9 +64,12 @@ type CollaboratorPortalContextValue = {
   permissions: CollaboratorPermissions;
   isLoading: boolean;
   reloadCollaborator: () => Promise<void>;
+  unreadNotificationCount: number;
+  reloadNotificationCount: () => Promise<void>;
 };
 
-const CollaboratorPortalContext = createContext<CollaboratorPortalContextValue | null>(null);
+const CollaboratorPortalContext =
+  createContext<CollaboratorPortalContextValue | null>(null);
 
 // ─── Nav item definition ──────────────────────────────────────────────────────
 
@@ -75,6 +79,7 @@ type NavItem = {
   icon: React.ElementType;
   visible: boolean;
   badge?: string;
+  unreadCount?: number;
 };
 
 // ─── Shell ────────────────────────────────────────────────────────────────────
@@ -86,9 +91,12 @@ export function CollaboratorPortalShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const { data: session, status } = useSession();
-  const [collaborator, setCollaborator] = useState<CollaboratorProfile | null>(null);
+  const [collaborator, setCollaborator] = useState<CollaboratorProfile | null>(
+    null,
+  );
   const [error, setError] = useState<string | null>(null);
   const [isLoadingProfile, setIsLoadingProfile] = useState(true);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
 
   const typedSession = session as AppSession | null;
   const sessionName = typedSession?.user?.name ?? 'Colaborador';
@@ -98,13 +106,37 @@ export function CollaboratorPortalShell({ children }: { children: ReactNode }) {
     if (!typedSession) return;
     setIsLoadingProfile(true);
     try {
-      const profile = await apiFetch('/collaborators/me', { session: typedSession });
+      const profile = await apiFetch('/collaborators/me', {
+        session: typedSession,
+      });
       setCollaborator(profile);
       setError(null);
     } catch (requestError) {
       setError((requestError as Error).message);
     } finally {
       setIsLoadingProfile(false);
+    }
+  };
+
+  /**
+   * loadUnreadNotificationCount keeps the collaborator notification badge in sync without blocking access.
+   */
+  const loadUnreadNotificationCount = async () => {
+    if (!typedSession) {
+      return;
+    }
+
+    try {
+      const result = await apiFetch(
+        '/notifications/collaborator/unread-count',
+        {
+          service: 'notification',
+          session: typedSession,
+        },
+      );
+      setUnreadNotificationCount(Number(result?.count ?? 0));
+    } catch {
+      setUnreadNotificationCount(0);
     }
   };
 
@@ -122,13 +154,32 @@ export function CollaboratorPortalShell({ children }: { children: ReactNode }) {
   }, [status, typedSession?.accessToken, typedSession?.user?.email]);
 
   useEffect(() => {
+    if (
+      status === 'authenticated' &&
+      collaborator &&
+      (collaborator.roles ?? []).length > 0
+    ) {
+      void loadUnreadNotificationCount();
+    }
+  }, [
+    status,
+    collaborator?.id,
+    typedSession?.accessToken,
+    typedSession?.user?.email,
+  ]);
+
+  useEffect(() => {
     if (status !== 'authenticated' || !collaborator) {
       return;
     }
 
     const hasLocalCollaboratorAccess = (collaborator.roles ?? []).length > 0;
     if (!hasLocalCollaboratorAccess) {
-      router.replace(canChoosePortal(typedSession) ? '/dashboard' : getDashboardHome(typedSession));
+      router.replace(
+        canChoosePortal(typedSession)
+          ? '/dashboard'
+          : getDashboardHome(typedSession),
+      );
     }
   }, [collaborator, router, status, typedSession]);
 
@@ -191,6 +242,7 @@ export function CollaboratorPortalShell({ children }: { children: ReactNode }) {
       label: 'Notificações',
       icon: Bell,
       visible: true,
+      unreadCount: unreadNotificationCount,
     },
     {
       href: '/colaborador/finance',
@@ -237,8 +289,17 @@ export function CollaboratorPortalShell({ children }: { children: ReactNode }) {
       permissions,
       isLoading: isLoadingProfile,
       reloadCollaborator: loadCollaborator,
+      unreadNotificationCount,
+      reloadNotificationCount: loadUnreadNotificationCount,
     }),
-    [collaborator, isLoadingProfile, permissions],
+    [
+      collaborator,
+      isLoadingProfile,
+      permissions,
+      unreadNotificationCount,
+      typedSession?.accessToken,
+      typedSession?.user?.email,
+    ],
   );
 
   const visibleNavigation = navigation.filter((item) => item.visible);
@@ -256,7 +317,9 @@ export function CollaboratorPortalShell({ children }: { children: ReactNode }) {
             <p className="truncate text-sm font-semibold text-white">
               {collaborator?.name ?? sessionName}
             </p>
-            <p className="truncate text-xs text-slate-400">Portal do colaborador</p>
+            <p className="truncate text-xs text-slate-400">
+              Portal do colaborador
+            </p>
           </div>
         </div>
 
@@ -286,7 +349,8 @@ export function CollaboratorPortalShell({ children }: { children: ReactNode }) {
 
       <nav className="space-y-1">
         {visibleNavigation.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(`${item.href}/`);
+          const isActive =
+            pathname === item.href || pathname.startsWith(`${item.href}/`);
           const Icon = item.icon;
           const link = (
             <Link
@@ -298,15 +362,22 @@ export function CollaboratorPortalShell({ children }: { children: ReactNode }) {
                   : 'text-muted-foreground hover:bg-muted hover:text-foreground',
               )}
             >
-              <span className="flex items-center gap-2.5">
+              <span className="flex min-w-0 items-center gap-2.5">
                 <Icon className="h-4 w-4 shrink-0" />
-                {item.label}
+                <span className="truncate">{item.label}</span>
+                <NotificationUnreadBadge
+                  count={item.unreadCount ?? 0}
+                  active={isActive}
+                />
               </span>
               <span className="flex items-center gap-1.5">
                 {item.badge && (
                   <Badge
                     variant="secondary"
-                    className={cn('px-1.5 py-0 text-[10px]', isActive && 'bg-white/20 text-white')}
+                    className={cn(
+                      'px-1.5 py-0 text-[10px]',
+                      isActive && 'bg-white/20 text-white',
+                    )}
                   >
                     {item.badge}
                   </Badge>
@@ -333,10 +404,7 @@ export function CollaboratorPortalShell({ children }: { children: ReactNode }) {
     </>
   );
 
-  if (
-    status === 'loading' ||
-    status === 'unauthenticated'
-  ) {
+  if (status === 'loading' || status === 'unauthenticated') {
     return (
       <div className="flex min-h-[calc(100vh-145px)] items-center justify-center bg-muted/30">
         <div className="flex items-center gap-3 rounded-xl border border-border bg-background px-6 py-4 text-sm font-medium text-muted-foreground shadow-sm">
@@ -350,8 +418,12 @@ export function CollaboratorPortalShell({ children }: { children: ReactNode }) {
   return (
     <CollaboratorPortalContext.Provider value={contextValue}>
       <div className="min-h-[calc(100vh-145px)] bg-muted/30">
-        <div className={cn('mx-auto min-h-[calc(100vh-145px)] max-w-[1520px]', isMobile ? 'block' : 'flex')}>
-
+        <div
+          className={cn(
+            'mx-auto min-h-[calc(100vh-145px)] max-w-[1520px]',
+            isMobile ? 'block' : 'flex',
+          )}
+        >
           {/* ── Sidebar ── */}
           {!isMobile && (
             <aside className="portal-shell-sidebar border-r border-border bg-background px-4 py-6">
@@ -422,7 +494,9 @@ export function CollaboratorPortalShell({ children }: { children: ReactNode }) {
 export function useCollaboratorPortal() {
   const context = useContext(CollaboratorPortalContext);
   if (!context) {
-    throw new Error('useCollaboratorPortal must be used inside CollaboratorPortalShell.');
+    throw new Error(
+      'useCollaboratorPortal must be used inside CollaboratorPortalShell.',
+    );
   }
   return context;
 }

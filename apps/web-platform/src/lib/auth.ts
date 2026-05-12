@@ -42,7 +42,7 @@ export function hasRealmRole(session: AppSession | null | undefined, role: strin
 }
 
 export function isAgentSession(session?: AppSession | null): boolean {
-  return hasRealmRole(session, 'agente');
+  return hasRealmRole(session, 'agente') || hasRealmRole(session, 'administrador');
 }
 
 export function isCollaboratorSession(session?: AppSession | null): boolean {

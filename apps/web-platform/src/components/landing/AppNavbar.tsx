@@ -2,7 +2,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useSession, signOut } from 'next-auth/react';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Bell,
   Briefcase,
@@ -14,10 +14,17 @@ import {
 } from 'lucide-react';
 
 import { apiFetch } from '../../lib/api';
-import { isAgentSession, isCollaboratorSession, getDashboardHome, type AppSession } from '../../lib/auth';
+import {
+  isAgentSession,
+  isCollaboratorSession,
+  getDashboardHome,
+  type AppSession,
+} from '../../lib/auth';
+import { NOTIFICATION_UNREAD_COUNT_CHANGED_EVENT } from '../../lib/notification-events';
 import { useIsMobileViewport } from '../../hooks/useIsMobileViewport';
 import { Avatar, AvatarFallback, AvatarImage } from '../ui/avatar';
 import { cn } from '../../lib/utils';
+import { formatUnreadNotificationCount } from '../notifications/NotificationUnreadBadge';
 
 type NavLinkItem = {
   href: string;
@@ -38,6 +45,44 @@ export function AppNavbar() {
   const isLoggedIn = status === 'authenticated' && !!session;
   const isMobile = useIsMobileViewport();
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+  const realmRolesKey = typedSession?.user?.realmRoles?.join('|') ?? '';
+
+  /**
+   * loadUnreadNotificationCount feeds the top notification icon badge for each portal role.
+   */
+  const loadUnreadNotificationCount = useCallback(async () => {
+    if (!typedSession || status !== 'authenticated') {
+      setUnreadNotificationCount(0);
+      return;
+    }
+
+    const endpoint = isAgentSession(typedSession)
+      ? '/notifications/agent/unread-count'
+      : isCollaboratorSession(typedSession)
+        ? '/notifications/collaborator/unread-count'
+        : null;
+
+    if (!endpoint) {
+      setUnreadNotificationCount(0);
+      return;
+    }
+
+    try {
+      const result = await apiFetch(endpoint, {
+        service: 'notification',
+        session: typedSession,
+      });
+      setUnreadNotificationCount(Number(result?.count ?? 0));
+    } catch {
+      setUnreadNotificationCount(0);
+    }
+  }, [
+    status,
+    typedSession?.accessToken,
+    typedSession?.user?.email,
+    realmRolesKey,
+  ]);
 
   useEffect(() => {
     if (!typedSession || !isAgentSession(typedSession)) {
@@ -49,6 +94,30 @@ export function AppNavbar() {
       .then((profile) => setPhotoUrl(profile.photoUrl ?? null))
       .catch(() => setPhotoUrl(null));
   }, [typedSession?.accessToken, typedSession?.user?.email]);
+
+  useEffect(() => {
+    void loadUnreadNotificationCount();
+  }, [loadUnreadNotificationCount, pathname]);
+
+  useEffect(() => {
+    const refreshUnreadBadge = () => {
+      void loadUnreadNotificationCount();
+    };
+
+    window.addEventListener(
+      NOTIFICATION_UNREAD_COUNT_CHANGED_EVENT,
+      refreshUnreadBadge,
+    );
+    window.addEventListener('focus', refreshUnreadBadge);
+
+    return () => {
+      window.removeEventListener(
+        NOTIFICATION_UNREAD_COUNT_CHANGED_EVENT,
+        refreshUnreadBadge,
+      );
+      window.removeEventListener('focus', refreshUnreadBadge);
+    };
+  }, [loadUnreadNotificationCount]);
 
   /* ── Loading skeleton ── */
   if (status === 'loading') {
@@ -63,18 +132,33 @@ export function AppNavbar() {
       <header className="sticky top-0 z-50 border-b border-border bg-white/95 backdrop-blur-sm">
         <div className="container mx-auto flex h-16 items-center justify-between px-4">
           <Link href="/" className="flex items-center gap-3">
-            <img src="/logo.png" alt="Globus Dei Logo" className="h-10 w-auto" />
-            <span className="font-display text-2xl font-semibold text-primary">Globus Dei</span>
+            <img
+              src="/logo.png"
+              alt="Globus Dei Logo"
+              className="h-10 w-auto"
+            />
+            <span className="font-display text-2xl font-semibold text-primary">
+              Globus Dei
+            </span>
           </Link>
 
           <nav className="hidden items-center gap-8 text-sm font-medium md:flex">
-            <a href="#" className="text-slate-700 transition-colors hover:text-primary">
+            <a
+              href="#"
+              className="text-slate-700 transition-colors hover:text-primary"
+            >
               Rede Global
             </a>
-            <a href="#" className="text-slate-700 transition-colors hover:text-primary">
+            <a
+              href="#"
+              className="text-slate-700 transition-colors hover:text-primary"
+            >
               Projetos
             </a>
-            <a href="#" className="text-slate-700 transition-colors hover:text-primary">
+            <a
+              href="#"
+              className="text-slate-700 transition-colors hover:text-primary"
+            >
               Oportunidades
             </a>
           </nav>
@@ -99,36 +183,62 @@ export function AppNavbar() {
   }
 
   /* ── Build nav items per role ── */
-  const dashboardHome = isLoggedIn ? '/dashboard' : getDashboardHome(typedSession);
+  const dashboardHome = isLoggedIn
+    ? '/dashboard'
+    : getDashboardHome(typedSession);
   const userName = typedSession?.user?.name ?? 'Usuário';
   const userInitial = userName.charAt(0).toUpperCase();
   const isChoosingPortal = pathname === '/dashboard';
+  const notificationBadge =
+    unreadNotificationCount > 0 ? unreadNotificationCount : undefined;
 
   let navItems: NavLinkItem[];
 
   if (isAgentSession(typedSession)) {
     navItems = [
-      { href: '/agent/dashboard',        label: 'Início',        icon: Home },
-      { href: '/agent/network',             label: 'Rede Global',   icon: Users },
-      { href: '/agent/academy',           label: 'Academia',      icon: GraduationCap },
-      { href: '/agent/service-requests',  label: 'Oportunidades', icon: Briefcase },
-      { href: '/agent/notifications',     label: 'Notificações',  icon: Bell },
+      { href: '/agent/dashboard', label: 'Início', icon: Home },
+      { href: '/agent/network', label: 'Rede Global', icon: Users },
+      { href: '/agent/academy', label: 'Academia', icon: GraduationCap },
+      {
+        href: '/agent/service-requests',
+        label: 'Oportunidades',
+        icon: Briefcase,
+      },
+      {
+        href: '/agent/notifications',
+        label: 'Notificações',
+        icon: Bell,
+        badge: notificationBadge,
+      },
     ];
   } else if (isCollaboratorSession(typedSession)) {
     navItems = [
-      { href: '/colaborador/dashboard',         label: 'Início',        icon: Home },
-      { href: '/colaborador/empreendimentos',    label: 'Rede Global',   icon: Building2 },
-      { href: '/colaborador/academy',            label: 'Academia',      icon: GraduationCap },
-      { href: '/colaborador/service-requests',   label: 'Oportunidades', icon: Briefcase },
-      { href: '/colaborador/notifications',      label: 'Notificações',  icon: Bell },
+      { href: '/colaborador/dashboard', label: 'Início', icon: Home },
+      {
+        href: '/colaborador/empreendimentos',
+        label: 'Rede Global',
+        icon: Building2,
+      },
+      { href: '/colaborador/academy', label: 'Academia', icon: GraduationCap },
+      {
+        href: '/colaborador/service-requests',
+        label: 'Oportunidades',
+        icon: Briefcase,
+      },
+      {
+        href: '/colaborador/notifications',
+        label: 'Notificações',
+        icon: Bell,
+        badge: notificationBadge,
+      },
     ];
   } else {
-    navItems = [
-      { href: dashboardHome, label: 'Início', icon: Home },
-    ];
+    navItems = [{ href: dashboardHome, label: 'Início', icon: Home }];
   }
 
-  const mobileNavItems = navItems.filter((item) => MOBILE_NAV_LABELS.has(item.label));
+  const mobileNavItems = navItems.filter((item) =>
+    MOBILE_NAV_LABELS.has(item.label),
+  );
 
   /* ── Logged-in: LinkedIn-style top bar ── */
   return (
@@ -181,6 +291,7 @@ export function AppNavbar() {
               const isActive =
                 pathname === item.href || pathname.startsWith(`${item.href}/`);
               const Icon = item.icon;
+              const badgeLabel = formatUnreadNotificationCount(item.badge ?? 0);
               return (
                 <Link
                   key={item.href}
@@ -202,9 +313,12 @@ export function AppNavbar() {
                 >
                   <span className="relative">
                     <Icon className="h-5 w-5" />
-                    {item.badge != null && item.badge > 0 && (
-                      <span className="absolute -right-2 -top-1 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-red-500 px-0.5 text-[9px] font-bold text-white">
-                        {item.badge > 99 ? '99+' : item.badge}
+                    {badgeLabel && (
+                      <span
+                        aria-label={`${badgeLabel} notificações não lidas`}
+                        className="absolute -right-2.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-600 px-1 text-[9px] font-bold leading-none text-white shadow-sm ring-2 ring-white"
+                      >
+                        {badgeLabel}
                       </span>
                     )}
                   </span>
@@ -237,7 +351,8 @@ export function AppNavbar() {
 
       {isChoosingPortal && (
         <div className="border-t border-amber-200 bg-amber-50 px-6 py-2 text-center text-xs font-medium text-amber-900">
-          Escolha primeiro se deseja entrar como agente ou colaborador para liberar a navegação.
+          Escolha primeiro se deseja entrar como agente ou colaborador para
+          liberar a navegação.
         </div>
       )}
     </header>

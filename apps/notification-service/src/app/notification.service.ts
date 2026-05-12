@@ -15,7 +15,10 @@ import {
 import type { AuthenticatedUser } from './auth/user-context.interface';
 import { NotificationRepository } from './notification.repository';
 import { EmailProvider } from './providers/email.provider';
-import { CreateNotificationDto, NotificationRecipientDto } from './dto/create-notification.dto';
+import {
+  CreateNotificationDto,
+  NotificationRecipientDto,
+} from './dto/create-notification.dto';
 import { SendDirectMessageDto } from './dto/send-direct-message.dto';
 import { SendEmailDto } from './dto/send-email.dto';
 import { SendWelcomeEmailDto } from './dto/send-welcome-email.dto';
@@ -41,6 +44,25 @@ export class NotificationService {
     return this.notifications.listAgentInbox(agent.id);
   }
 
+  /**
+   * countAgentUnread returns the unread total used by the agent portal menu badge.
+   */
+  async countAgentUnread(user: AuthenticatedUser) {
+    const agent = await this.notifications.upsertAgentFromIdentity({
+      authSubject: user.sub,
+      email: user.email,
+      name: user.name,
+    });
+    const initiatives = await this.notifications.listAgentInitiatives(agent.id);
+
+    return {
+      count: await this.notifications.countAgentUnread(
+        agent.id,
+        initiatives.map((initiative) => initiative.id),
+      ),
+    };
+  }
+
   async listAgentInitiativeInbox(user: AuthenticatedUser) {
     const agent = await this.notifications.upsertAgentFromIdentity({
       authSubject: user.sub,
@@ -53,12 +75,25 @@ export class NotificationService {
       return [];
     }
 
-    return this.notifications.listInitiativeInbox(initiatives.map((initiative) => initiative.id));
+    return this.notifications.listInitiativeInbox(
+      initiatives.map((initiative) => initiative.id),
+    );
   }
 
   async listCollaboratorInbox(user: AuthenticatedUser) {
     const collaborator = await this.ensureCollaborator(user);
     return this.notifications.listCollaboratorInbox(collaborator.id);
+  }
+
+  /**
+   * countCollaboratorUnread returns the unread total used by the collaborator portal menu badge.
+   */
+  async countCollaboratorUnread(user: AuthenticatedUser) {
+    const collaborator = await this.ensureCollaborator(user);
+
+    return {
+      count: await this.notifications.countCollaboratorUnread(collaborator.id),
+    };
   }
 
   async listSentByCollaborator(user: AuthenticatedUser) {
@@ -84,12 +119,19 @@ export class NotificationService {
     });
   }
 
-  async createNotification(user: AuthenticatedUser, dto: CreateNotificationDto) {
-    const senderCollaborator = user.isInternalService ? null : await this.findOptionalCollaborator(user);
+  async createNotification(
+    user: AuthenticatedUser,
+    dto: CreateNotificationDto,
+  ) {
+    const senderCollaborator = user.isInternalService
+      ? null
+      : await this.findOptionalCollaborator(user);
     const recipients = await Promise.all(
       dto.recipients.map((recipient) => this.validateRecipient(recipient)),
     );
-    const groupedRecipients = await this.resolveRecipientGroups(dto.recipientGroups);
+    const groupedRecipients = await this.resolveRecipientGroups(
+      dto.recipientGroups,
+    );
 
     return this.notifications.createNotification({
       type: dto.type,
@@ -106,9 +148,14 @@ export class NotificationService {
     });
   }
 
-  async updateNotification(user: AuthenticatedUser, notificationId: string, dto: UpdateNotificationDto) {
+  async updateNotification(
+    user: AuthenticatedUser,
+    notificationId: string,
+    dto: UpdateNotificationDto,
+  ) {
     const collaborator = await this.ensureCollaborator(user);
-    const notification = await this.notifications.findNotification(notificationId);
+    const notification =
+      await this.notifications.findNotification(notificationId);
 
     if (!notification) {
       throw new NotFoundException('Notification not found.');
@@ -119,7 +166,9 @@ export class NotificationService {
     }
 
     if (notification.senderCollaboratorId !== collaborator.id) {
-      throw new ForbiddenException('Only the original collaborator author can edit this notification.');
+      throw new ForbiddenException(
+        'Only the original collaborator author can edit this notification.',
+      );
     }
 
     return this.notifications.updateNotification(notificationId, {
@@ -129,6 +178,9 @@ export class NotificationService {
     });
   }
 
+  /**
+   * markAsRead validates ownership before idempotently marking a recipient row as read.
+   */
   async markAsRead(user: AuthenticatedUser, recipientId: string) {
     const recipient = await this.notifications.findRecipient(recipientId);
     if (!recipient) {
@@ -136,25 +188,34 @@ export class NotificationService {
     }
 
     const collaborator = await this.findOptionalCollaborator(user);
-    const agent = collaborator
-      ? null
-      : await this.notifications.upsertAgentFromIdentity({
+    const shouldResolveAgent =
+      user.realmRoles.includes('agente') &&
+      (recipient.agentId !== null || recipient.empreendimentoId !== null);
+    const agent = shouldResolveAgent
+      ? await this.notifications.upsertAgentFromIdentity({
           authSubject: user.sub,
           email: user.email,
           name: user.name,
-        });
+        })
+      : null;
 
     const ownsRecipient =
       recipient.agentId === agent?.id ||
       recipient.collaboratorId === collaborator?.id ||
       (recipient.empreendimentoId &&
         agent &&
-        (await this.notifications
-          .listAgentInitiatives(agent.id))
-          .some((initiative) => initiative.id === recipient.empreendimentoId));
+        (await this.notifications.listAgentInitiatives(agent.id)).some(
+          (initiative) => initiative.id === recipient.empreendimentoId,
+        ));
 
     if (!ownsRecipient) {
-      throw new ForbiddenException('You do not have access to this notification.');
+      throw new ForbiddenException(
+        'You do not have access to this notification.',
+      );
+    }
+
+    if (recipient.readAt) {
+      return recipient;
     }
 
     return this.notifications.markRecipientAsRead(recipientId);
@@ -237,7 +298,9 @@ export class NotificationService {
   async listEmailHistory(user: AuthenticatedUser, query?: string) {
     const collaborator = await this.ensureCollaborator(user);
     if (!collaborator.roles.includes(CollaboratorRole.ADMIN)) {
-      throw new ForbiddenException('Only administrator collaborators can view the email history.');
+      throw new ForbiddenException(
+        'Only administrator collaborators can view the email history.',
+      );
     }
 
     return this.notifications.listEmailHistory(query);
@@ -245,23 +308,30 @@ export class NotificationService {
 
   async searchRecipients(user: AuthenticatedUser, query?: string) {
     await this.ensureMessagingCollaborator(user);
-    const [agents, iniciativas] = await this.notifications.searchRecipients(query);
+    const [agents, iniciativas] =
+      await this.notifications.searchRecipients(query);
     return { agents, iniciativas };
   }
 
   private async resolveDirectMessageRecipients(dto: SendDirectMessageDto) {
     if (dto.targetType === NotificationTargetType.AGENT) {
       if (!dto.agentId) {
-        throw new BadRequestException('agentId is required for agent notifications.');
+        throw new BadRequestException(
+          'agentId is required for agent notifications.',
+        );
       }
 
       await this.assertAgentExists(dto.agentId);
-      return [{ targetType: NotificationTargetType.AGENT, agentId: dto.agentId }];
+      return [
+        { targetType: NotificationTargetType.AGENT, agentId: dto.agentId },
+      ];
     }
 
     if (dto.targetType === NotificationTargetType.EMPREENDIMENTO) {
       if (!dto.empreendimentoId) {
-        throw new BadRequestException('empreendimentoId is required for initiative notifications.');
+        throw new BadRequestException(
+          'empreendimentoId is required for initiative notifications.',
+        );
       }
 
       await this.assertEmpreendimentoExists(dto.empreendimentoId);
@@ -273,13 +343,17 @@ export class NotificationService {
       ];
     }
 
-    throw new BadRequestException('Direct messages support only agent or initiative targets.');
+    throw new BadRequestException(
+      'Direct messages support only agent or initiative targets.',
+    );
   }
 
   private async resolveEmailRecipients(dto: SendEmailDto) {
     if (dto.targetType === NotificationTargetType.AGENT) {
       if (!dto.agentId) {
-        throw new BadRequestException('agentId is required for emailing an agent.');
+        throw new BadRequestException(
+          'agentId is required for emailing an agent.',
+        );
       }
 
       const agent = await this.notifications.findAgent(dto.agentId);
@@ -298,10 +372,14 @@ export class NotificationService {
 
     if (dto.targetType === NotificationTargetType.EMPREENDIMENTO) {
       if (!dto.empreendimentoId) {
-        throw new BadRequestException('empreendimentoId is required for initiative emails.');
+        throw new BadRequestException(
+          'empreendimentoId is required for initiative emails.',
+        );
       }
 
-      const empreendimento = await this.notifications.findEmpreendimento(dto.empreendimentoId);
+      const empreendimento = await this.notifications.findEmpreendimento(
+        dto.empreendimentoId,
+      );
       if (!empreendimento) {
         throw new NotFoundException('Empreendimento not found.');
       }
@@ -335,7 +413,9 @@ export class NotificationService {
       return Array.from(recipients.values());
     }
 
-    throw new BadRequestException('Email sending supports only agents or initiatives.');
+    throw new BadRequestException(
+      'Email sending supports only agents or initiatives.',
+    );
   }
 
   private buildWelcomeEmail(name?: string) {
@@ -387,13 +467,17 @@ export class NotificationService {
     switch (recipient.targetType) {
       case NotificationTargetType.AGENT:
         if (!recipient.agentId) {
-          throw new BadRequestException('agentId is required for AGENT recipients.');
+          throw new BadRequestException(
+            'agentId is required for AGENT recipients.',
+          );
         }
         await this.assertAgentExists(recipient.agentId);
         return { targetType: recipient.targetType, agentId: recipient.agentId };
       case NotificationTargetType.COLLABORATOR:
         if (!recipient.collaboratorId) {
-          throw new BadRequestException('collaboratorId is required for COLLABORATOR recipients.');
+          throw new BadRequestException(
+            'collaboratorId is required for COLLABORATOR recipients.',
+          );
         }
         return {
           targetType: recipient.targetType,
@@ -401,7 +485,9 @@ export class NotificationService {
         };
       case NotificationTargetType.EMPREENDIMENTO:
         if (!recipient.empreendimentoId) {
-          throw new BadRequestException('empreendimentoId is required for EMPREENDIMENTO recipients.');
+          throw new BadRequestException(
+            'empreendimentoId is required for EMPREENDIMENTO recipients.',
+          );
         }
         await this.assertEmpreendimentoExists(recipient.empreendimentoId);
         return {
@@ -418,7 +504,9 @@ export class NotificationService {
       return [];
     }
 
-    const normalizedGroups = Array.from(new Set(groups.map((group) => group.trim().toUpperCase())));
+    const normalizedGroups = Array.from(
+      new Set(groups.map((group) => group.trim().toUpperCase())),
+    );
     const recipients: Array<{
       targetType: NotificationTargetType;
       agentId?: string;
@@ -458,7 +546,8 @@ export class NotificationService {
   }
 
   private async assertEmpreendimentoExists(empreendimentoId: string) {
-    const empreendimento = await this.notifications.findEmpreendimento(empreendimentoId);
+    const empreendimento =
+      await this.notifications.findEmpreendimento(empreendimentoId);
     if (!empreendimento) {
       throw new NotFoundException('Empreendimento not found.');
     }
@@ -484,7 +573,9 @@ export class NotificationService {
       collaborator.roles.includes(CollaboratorRole.RESOURCE_MANAGER);
 
     if (!canMessage) {
-      throw new ForbiddenException('Collaborator cannot search notification recipients.');
+      throw new ForbiddenException(
+        'Collaborator cannot search notification recipients.',
+      );
     }
 
     return collaborator;

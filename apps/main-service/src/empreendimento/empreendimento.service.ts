@@ -72,7 +72,7 @@ export class EmpreendimentoService {
 
   async update(id: string, user: AuthenticatedUser, dto: UpdateEmpreendimentoDto) {
     const agent = await this.ensureAgent(user);
-    await this.assertAgentCanManage(id, agent.id);
+    await this.assertAgentCanManage(id, agent.id, user);
 
     let encryptedBankDetails: string | null | undefined;
     if (dto.bankDetails !== undefined) {
@@ -167,7 +167,7 @@ export class EmpreendimentoService {
     dto: CreateEmpreendimentoInviteDto,
   ) {
     const agent = await this.ensureAgent(user);
-    await this.assertAgentCanManage(empreendimentoId, agent.id);
+    await this.assertAgentCanManage(empreendimentoId, agent.id, user);
 
     const token = crypto.randomBytes(24).toString('hex');
     const invite = await this.empreendimentos.createInvite({
@@ -231,7 +231,22 @@ export class EmpreendimentoService {
     });
   }
 
-  private async assertAgentCanManage(empreendimentoId: string, agentId: string) {
+  private async assertAgentCanManage(empreendimentoId: string, agentId: string, user: AuthenticatedUser) {
+    if (user.realmRoles.includes('administrador')) {
+      return;
+    }
+
+    if (user.realmRoles.includes('colaborador')) {
+      const collaborator = await this.collaborators.findBySubjectOrEmail(user.sub, user.email);
+      if (
+        collaborator &&
+        (collaborator.roles.includes(CollaboratorRole.ADMIN) ||
+         collaborator.roles.includes(CollaboratorRole.PROJECT_MANAGER))
+      ) {
+        return;
+      }
+    }
+
     const membership = await this.empreendimentos.getMembership(empreendimentoId, agentId);
 
     if (!membership) {
