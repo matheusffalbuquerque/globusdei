@@ -46,7 +46,7 @@ export function MainFooter() {
 
       <div className="container mx-auto px-6 mt-24 pt-8 border-t border-slate-800 flex flex-col md:flex-row justify-between items-center gap-8">
         <p className="text-slate-500 text-sm">
-          © 2026 Globus Dei. Todos os direitos reservados.
+          © 2026 Globus Dei. Desenvolvido por Talanta Tecnologia.
         </p>
         <div className="flex gap-6 text-slate-500">
            <span className="text-xs uppercase font-black opacity-30">GD CORE v1.0.0</span>

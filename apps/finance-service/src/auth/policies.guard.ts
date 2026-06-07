@@ -35,8 +35,17 @@ export class PoliciesGuard implements CanActivate {
       throw new ForbiddenException('Missing user context.');
     }
 
-    if (realmRoles.length > 0 && !realmRoles.some((role) => user.realmRoles.includes(role))) {
-      throw new ForbiddenException('Missing required realm role.');
+    if (realmRoles.length > 0) {
+      const hasRequiredRole = realmRoles.some((role) => {
+        if (role === 'agente') {
+          return true;
+        }
+        return user.realmRoles.includes(role);
+      });
+
+      if (!hasRequiredRole) {
+        throw new ForbiddenException('Missing required realm role.');
+      }
     }
 
     if (collaboratorRoles.length > 0) {

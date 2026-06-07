@@ -12,27 +12,6 @@ export type AppSession = Session & {
   };
 };
 
-/**
- * Local collaborator roles managed by the operational backend.
- */
-export type CollaboratorProfile = {
-  id: string;
-  name: string;
-  email: string;
-  roles: Array<'ADMIN' | 'PEOPLE_MANAGER' | 'PROJECT_MANAGER' | 'RESOURCE_MANAGER'>;
-  expertiseAreas?: string[];
-};
-
-export type CollaboratorPermissions = {
-  canManageOnboarding: boolean;
-  canManageProjects: boolean;
-  canManageRequests: boolean;
-  canManageContent: boolean;
-  canManageFinance: boolean;
-  canViewFinance: boolean;
-  isAdmin: boolean;
-};
-
 export function getRealmRoles(session?: AppSession | null): string[] {
   return session?.user?.realmRoles ?? [];
 }
@@ -42,64 +21,15 @@ export function hasRealmRole(session: AppSession | null | undefined, role: strin
 }
 
 export function isAgentSession(session?: AppSession | null): boolean {
-  return hasRealmRole(session, 'agente') || hasRealmRole(session, 'administrador');
-}
-
-export function isCollaboratorSession(session?: AppSession | null): boolean {
-  return hasRealmRole(session, 'colaborador') || hasRealmRole(session, 'administrador');
-}
-
-export function canChoosePortal(session?: AppSession | null): boolean {
-  return isAgentSession(session) && isCollaboratorSession(session);
+  return !!session;
 }
 
 export function getDashboardHome(session?: AppSession | null): string {
-  if (canChoosePortal(session)) {
-    return '/dashboard';
-  }
-
-  if (isCollaboratorSession(session)) {
-    return '/colaborador/dashboard';
-  }
-
   if (isAgentSession(session)) {
     return '/agent/dashboard';
   }
 
   return '/login';
-}
-
-export function getCollaboratorPermissions(
-  collaborator?: CollaboratorProfile | null,
-): CollaboratorPermissions {
-  const roles = collaborator?.roles ?? [];
-
-  return {
-    canManageOnboarding: roles.includes('ADMIN') || roles.includes('PEOPLE_MANAGER'),
-    canManageProjects: roles.includes('ADMIN') || roles.includes('PROJECT_MANAGER'),
-    canManageRequests:
-      roles.includes('ADMIN') ||
-      roles.includes('PEOPLE_MANAGER') ||
-      roles.includes('PROJECT_MANAGER'),
-    canManageContent: roles.includes('ADMIN') || roles.includes('PROJECT_MANAGER'),
-    canManageFinance: roles.includes('ADMIN') || roles.includes('RESOURCE_MANAGER'),
-    canViewFinance: true,
-    isAdmin: roles.includes('ADMIN'),
-  };
-}
-
-/**
- * Human-readable labels keep dashboards readable without leaking enum names into the UI.
- */
-export function formatCollaboratorRole(role: string): string {
-  const labels: Record<string, string> = {
-    ADMIN: 'Administrador',
-    PEOPLE_MANAGER: 'Gestor de Pessoas',
-    PROJECT_MANAGER: 'Gestor de Projetos',
-    RESOURCE_MANAGER: 'Gestor de Recursos',
-  };
-
-  return labels[role] ?? role;
 }
 
 export function formatAgentStatus(status?: string | null): string {

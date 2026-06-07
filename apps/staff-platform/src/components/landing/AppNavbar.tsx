@@ -11,6 +11,7 @@ import {
   Home,
   LogOut,
   Users,
+  Inbox,
 } from 'lucide-react';
 
 import { apiFetch } from '../../lib/api';
@@ -139,8 +140,8 @@ export function AppNavbar() {
       { href: '/colaborador/academy', label: 'Academia', icon: GraduationCap },
       {
         href: '/colaborador/service-requests',
-        label: 'Oportunidades',
-        icon: Briefcase,
+        label: 'Solicitações',
+        icon: Inbox,
       },
       {
         href: '/colaborador/notifications',

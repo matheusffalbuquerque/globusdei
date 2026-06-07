@@ -59,7 +59,7 @@ export default function RootLayout({
 
         <footer className="border-t border-border mt-auto py-8">
           <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-            &copy; 2026 Globus Dei. Todos os direitos reservados.
+            &copy; 2026 Globus Dei. Desenvolvido por Talanta Tecnologia.
           </div>
         </footer>
       </body>
