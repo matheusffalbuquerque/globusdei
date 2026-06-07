@@ -328,6 +328,45 @@ services:
     networks:
       - globusdei-network
 
+  staff-platform:
+    build:
+      context: .
+      dockerfile: apps/staff-platform/Dockerfile
+    image: ghcr.io/matheusffalbuquerque/globusdei/staff-platform:latest
+    container_name: globusdei-staff-platform
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+      PORT: 3008
+      NEXTAUTH_URL: ${STAFF_NEXTAUTH_URL:-http://localhost:3008}
+      NEXTAUTH_URL_INTERNAL: http://localhost:3008
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      KEYCLOAK_URL: ${KEYCLOAK_URL}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET}
+      KEYCLOAK_ISSUER: ${KEYCLOAK_ISSUER}
+      KEYCLOAK_JWKS_URI: ${KEYCLOAK_JWKS_URI}
+      KEYCLOAK_ADMIN_CLIENT_ID: ${KEYCLOAK_ADMIN_CLIENT_ID}
+      KEYCLOAK_ADMIN_USERNAME: ${KEYCLOAK_ADMIN_USERNAME}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      NEXT_PUBLIC_MAIN_SERVICE_URL: ${NEXT_PUBLIC_MAIN_SERVICE_URL:-http://main-service:3001/api}
+      NEXT_PUBLIC_FINANCE_SERVICE_URL: ${NEXT_PUBLIC_FINANCE_SERVICE_URL:-http://finance-service:3002/api}
+      NEXT_PUBLIC_NOTIFICATION_SERVICE_URL: ${NEXT_PUBLIC_NOTIFICATION_SERVICE_URL:-http://notification-service:3004/api}
+      NOTIFICATION_SERVICE_URL: ${NOTIFICATION_SERVICE_URL:-http://notification-service:3004/api}
+      MAIN_SERVICE_URL: ${MAIN_SERVICE_URL:-http://main-service:3001/api}
+      INTERNAL_SERVICE_TOKEN: ${INTERNAL_SERVICE_TOKEN}
+    ports:
+      - "3008:3008"
+    depends_on:
+      - main-service
+      - finance-service
+      - notification-service
+    networks:
+      - globusdei-network
+
 # ─── Volumes ─────────────────────────────────────────────────────────────────
 
 volumes:

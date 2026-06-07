@@ -6,7 +6,6 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   Bell,
   Briefcase,
-  Building2,
   GraduationCap,
   Home,
   LogOut,
@@ -16,7 +15,6 @@ import {
 import { apiFetch } from '../../lib/api';
 import {
   isAgentSession,
-  isCollaboratorSession,
   getDashboardHome,
   type AppSession,
 } from '../../lib/auth';
@@ -59,9 +57,7 @@ export function AppNavbar() {
 
     const endpoint = isAgentSession(typedSession)
       ? '/notifications/agent/unread-count'
-      : isCollaboratorSession(typedSession)
-        ? '/notifications/collaborator/unread-count'
-        : null;
+      : null;
 
     if (!endpoint) {
       setUnreadNotificationCount(0);
@@ -188,7 +184,6 @@ export function AppNavbar() {
     : getDashboardHome(typedSession);
   const userName = typedSession?.user?.name ?? 'Usuário';
   const userInitial = userName.charAt(0).toUpperCase();
-  const isChoosingPortal = pathname === '/dashboard';
   const notificationBadge =
     unreadNotificationCount > 0 ? unreadNotificationCount : undefined;
 
@@ -206,27 +201,6 @@ export function AppNavbar() {
       },
       {
         href: '/agent/notifications',
-        label: 'Notificações',
-        icon: Bell,
-        badge: notificationBadge,
-      },
-    ];
-  } else if (isCollaboratorSession(typedSession)) {
-    navItems = [
-      { href: '/colaborador/dashboard', label: 'Início', icon: Home },
-      {
-        href: '/colaborador/empreendimentos',
-        label: 'Rede Global',
-        icon: Building2,
-      },
-      { href: '/colaborador/academy', label: 'Academia', icon: GraduationCap },
-      {
-        href: '/colaborador/service-requests',
-        label: 'Oportunidades',
-        icon: Briefcase,
-      },
-      {
-        href: '/colaborador/notifications',
         label: 'Notificações',
         icon: Bell,
         badge: notificationBadge,
@@ -263,20 +237,12 @@ export function AppNavbar() {
               return (
                 <Link
                   key={item.href}
-                  href={isChoosingPortal ? '#' : item.href}
-                  aria-disabled={isChoosingPortal}
-                  onClick={(event) => {
-                    if (isChoosingPortal) {
-                      event.preventDefault();
-                    }
-                  }}
+                  href={item.href}
                   className={cn(
                     'flex items-center gap-1 rounded-lg px-2 py-2 text-xs font-medium transition-colors',
-                    isChoosingPortal
-                      ? 'cursor-not-allowed text-muted-foreground/50'
-                      : isActive
-                        ? 'bg-primary/10 text-primary'
-                        : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+                    isActive
+                      ? 'bg-primary/10 text-primary'
+                      : 'text-muted-foreground hover:bg-muted hover:text-foreground',
                   )}
                 >
                   <Icon className="h-4 w-4 shrink-0" />
@@ -295,20 +261,12 @@ export function AppNavbar() {
               return (
                 <Link
                   key={item.href}
-                  href={isChoosingPortal ? '#' : item.href}
-                  aria-disabled={isChoosingPortal}
-                  onClick={(event) => {
-                    if (isChoosingPortal) {
-                      event.preventDefault();
-                    }
-                  }}
+                  href={item.href}
                   className={cn(
                     'relative flex w-24 flex-col items-center justify-center gap-1 text-[11px] font-medium transition-colors',
-                    isChoosingPortal
-                      ? 'cursor-not-allowed text-muted-foreground/50'
-                      : isActive
-                        ? 'text-foreground after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-full after:bg-foreground'
-                        : 'text-muted-foreground hover:text-foreground',
+                    isActive
+                      ? 'text-foreground after:absolute after:bottom-0 after:left-0 after:h-[2px] after:w-full after:bg-foreground'
+                      : 'text-muted-foreground hover:text-foreground',
                   )}
                 >
                   <span className="relative">
@@ -349,12 +307,7 @@ export function AppNavbar() {
         </div>
       </div>
 
-      {isChoosingPortal && (
-        <div className="border-t border-amber-200 bg-amber-50 px-6 py-2 text-center text-xs font-medium text-amber-900">
-          Escolha primeiro se deseja entrar como agente ou colaborador para
-          liberar a navegação.
-        </div>
-      )}
+      {/* No chooser banner needed */}
     </header>
   );
 }

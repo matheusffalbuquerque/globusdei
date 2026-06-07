@@ -34,7 +34,6 @@ import {
 
 import { apiFetch } from '../../lib/api';
 import {
-  canChoosePortal,
   formatCollaboratorRole,
   getCollaboratorPermissions,
   getDashboardHome,
@@ -175,11 +174,7 @@ export function CollaboratorPortalShell({ children }: { children: ReactNode }) {
 
     const hasLocalCollaboratorAccess = (collaborator.roles ?? []).length > 0;
     if (!hasLocalCollaboratorAccess) {
-      router.replace(
-        canChoosePortal(typedSession)
-          ? '/dashboard'
-          : getDashboardHome(typedSession),
-      );
+      router.replace(getDashboardHome(typedSession));
     }
   }, [collaborator, router, status, typedSession]);
 

@@ -63,5 +63,7 @@ web-build/
 cache/
 
 .env
+.env.local
+.env.*.local
 keycloak/backups/
 docker-compose.override.yml
