@@ -47,6 +47,9 @@ jobs:
           - name: report-service
             dockerfile: apps/report-service/Dockerfile
             build_args: false
+          - name: staff-platform
+            dockerfile: apps/staff-platform/Dockerfile
+            build_args: true
 
     steps:
       - name: Checkout do repositório
@@ -164,6 +167,8 @@ jobs:
           CORS_ORIGINS=${{ secrets.CORS_ORIGINS }}
           NEXT_PUBLIC_MAIN_SERVICE_URL=${{ secrets.NEXT_PUBLIC_MAIN_SERVICE_URL }}
           NEXT_PUBLIC_FINANCE_SERVICE_URL=${{ secrets.NEXT_PUBLIC_FINANCE_SERVICE_URL }}
+          STAFF_NEXTAUTH_URL=${{ secrets.STAFF_NEXTAUTH_URL }}
+          MAIN_SERVICE_URL=http://main-service:3001/api
           NEXT_PUBLIC_NOTIFICATION_SERVICE_URL=${{ secrets.NEXT_PUBLIC_NOTIFICATION_SERVICE_URL }}
           NOTIFICATION_SERVICE_URL=${{ secrets.NOTIFICATION_SERVICE_URL }}
           SMTP_HOST=${{ secrets.SMTP_HOST }}
